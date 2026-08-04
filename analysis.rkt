@@ -613,7 +613,25 @@
                (format (string-append "  Signed:      first ~a to ~a leaves, recto; "
                                       "irregular, the men differing in the habit")
                        (car ns) (apply max ns))]))
-          "  Catchwords:  on every page"
+          ;; McKerrow: catchwords "ordinarily appear at the foot of every
+          ;; page" -- but whether each answers the page it faces has to be
+          ;; counted, because the compositor caught the word from his copy
+          ;; before the next page was set, and may then have resumed at the
+          ;; wrong point. A catchword that does not answer is the trace.
+          (let* ([ps (book-pages b)]
+                 [bad (for/sum ([p (in-list ps)] [nxt (in-list (cdr ps))])
+                        (define f
+                          (for/or ([l (in-list (page-all-lines nxt))])
+                            (and (pair? (set-line-words l))
+                                 (word-printed (car (set-line-words l))))))
+                        (if (and f (not (string=? (page-catchword p) ""))
+                                 (not (string=? (page-catchword p) f)))
+                            1 0))])
+            (if (zero? bad)
+                "  Catchwords:  on every page, each answering the next"
+                (format (string-append "  Catchwords:  on every page; ~a do(es) not "
+                                       "answer the page it faces")
+                        bad)))
           ""
           "  Stints, in the order the pages were actually set:")
     (for/list ([s (in-list (book-stints b))])

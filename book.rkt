@@ -594,17 +594,44 @@
   (set-box! (comp-events c) (list-tail evs (- (length evs) mark)))
   result)
 
+;; The catchword is taken from the copy, not from the next page.
+;;
+;; This matters, and getting it the other way round made a whole class of
+;; evidence impossible. The compositor finished a page, looked at his copy for
+;; the word that came next, and set it in the direction line -- before the next
+;; page existed. McKerrow's proof is the mismatches: we find "a correct
+;; catchword in cases where the opening words of the next page are wrong, owing
+;; to the compositor having mistaken the point at which he left off and
+;; consequently omitted or repeated a word or two. The catchword must therefore
+;; have been taken from the MS."
+;;
+;; Hence his editorial rule: where a catchword disagrees with the page it
+;; faces, "the reading of the former may well be given the preference, for it
+;; was the earlier set up". The catchword can be the better witness to the copy
+;; than the text it points at.
+;;
+;; Taking it from the next page's first printed word, as this did, guarantees
+;; they always agree -- so the simulation could never produce the disagreement,
+;; and the description's rule about bracketing a catchword that does not answer
+;; was unreachable code.
 (define (add-catchwords pages)
   (for/list ([p (in-list pages)] [i (in-naturals)])
     (cond
       [(>= (add1 i) (length pages)) p]
       [else
        (define nxt (list-ref pages (add1 i)))
-       (define first-word
+       ;; what the copy showed as coming next. Where the next page dropped
+       ;; copy, that is the first word of what was dropped: the compositor
+       ;; caught it from the manuscript, then resumed past it.
+       (define from-copy
+         (for/or ([t (in-list (page-omitted nxt))])
+           (define ws (string-split t))
+           (and (pair? ws) (car ws))))
+       (define from-page
          (for/or ([l (in-list (page-all-lines nxt))])
            (and (pair? (set-line-words l))
                 (word-printed (car (set-line-words l))))))
-       (struct-copy page p [catchword (or first-word "")])])))
+       (struct-copy page p [catchword (or from-copy from-page "")])])))
 
 (define (add-running-titles pages formes fmt)
   (define by-key

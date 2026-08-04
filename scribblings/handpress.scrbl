@@ -417,6 +417,36 @@ carried on the @racket[book].}
 Per sort: the bill it started with, the fewest ever left in the box, and the
 proportion out at the worst moment.}
 
+@subsection{Catchwords, and why they can disagree}
+@declare-exporting[handpress/book]
+
+The catchword is taken from the @emph{copy}, not from the next page. The
+compositor finished a page, looked at his manuscript for the word that came
+next, and set it in the direction line — before the next page existed.
+
+McKerrow's proof is the mismatches: we find ``a correct catchword in cases
+where the opening words of the next page are wrong, owing to the compositor
+having mistaken the point at which he left off and consequently omitted or
+repeated a word or two. The catchword must therefore have been taken from the
+MS.'' Hence his editorial rule — where a catchword disagrees with the page it
+faces, ``the reading of the former may well be given the preference, for it was
+the earlier set up''. The catchword can be the better witness to the copy than
+the text it points at.
+
+This program took the catchword from the next page's first printed word, which
+guarantees the two always agree. @racket[add-catchwords] now prefers the copy
+reading where the following page dropped any.
+
+@margin-note{Which currently changes nothing observable, and the reason is
+worth recording. @racket[cast-off] closes a segment @emph{before} adding the
+unit that would overflow it, so a page is never allocated more copy than it
+holds; the setter then caps at capacity. Page pressure is therefore always
+zero or negative — spun out or exact, never crowded — no copy is ever dropped,
+and the mismatch McKerrow describes cannot arise. Real casting off errs both
+ways. Until that is fixed the catchword derivation is right in principle and
+inert in practice, and the report's count of non-answering catchwords will read
+zero for the same reason.}
+
 @subsection{Signatures, and who puts them there}
 @declare-exporting[handpress/book]
 
