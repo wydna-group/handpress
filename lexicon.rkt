@@ -38,6 +38,7 @@
          modern-form current-word? undo-uv-ij
          plausible? plausible-share)
 
+(define-runtime-path eebo-lexicon-file "lexicon/eebo-1580-1640.rktd")
 (define-runtime-path default-lexicon-file "samples/ado-lexicon.rktd")
 (define-runtime-path default-standard-file "samples/mulcaster.rktd")
 
@@ -94,16 +95,25 @@
          w))
      (lexicon attested groups index modern current (path->string path))]))
 
-;; The bundled lexicon is drawn from the two Much Ado texts and is a
-;; demonstration, not an authority: 2,370 forms against the 318,722 a slice of
-;; EEBO-TCP yields. Build a real one with tools/build-lexicon.py and point
-;; HANDPRESS_LEXICON at it. The file is some 9 MB, which is why it is not
-;; carried in the repository; the two tools that make it are.
+;; Which lexicon a run gets, in order of preference:
+;;
+;;   HANDPRESS_LEXICON            one you built yourself, for another period
+;;                                or another kind of book
+;;   lexicon/eebo-1580-1640.rktd  the one shipped here: 318,722 forms from
+;;                                5,287 books printed in those sixty years
+;;   samples/ado-lexicon.rktd     2,370 forms from the two Much Ado texts,
+;;                                which is a demonstration and not an
+;;                                authority. It is kept because it is small
+;;                                enough to read, and because the difference
+;;                                between the two is instructive: half the
+;;                                findings in this project's history came from
+;;                                mistaking the small one for evidence.
 (define (default-lexicon)
   (define env (getenv "HANDPRESS_LEXICON"))
-  (if (and env (file-exists? env))
-      (load-lexicon (string->path env))
-      (load-lexicon)))
+  (cond
+    [(and env (file-exists? env)) (load-lexicon (string->path env))]
+    [(file-exists? eebo-lexicon-file) (load-lexicon eebo-lexicon-file)]
+    [else (load-lexicon)]))
 
 (define current-lexicon (make-parameter (default-lexicon)))
 
