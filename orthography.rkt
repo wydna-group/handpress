@@ -247,16 +247,43 @@
         #\A #\Ā #\E #\Ē #\I #\Ī #\O #\Ō #\U #\Ū))
 
 ;; Words whose full form the trade kept in stock for stretching a line.
+;;
+;; This program has no dictionary. That is a real limitation and it showed up
+;; here first. The list was originally built by analogy -- bee, wee, mee are
+;; genuine, so manne, somme, welle, wille, himme, themme, theere, wheere and
+;; whenne were coined to match. Counted against the 24,000 words of Q1600 and
+;; F1623 in samples/ado, not one of those nine occurs. They are not early
+;; modern spellings at all; they are what a rule produces when nothing checks
+;; the result against a real book.
+;;
+;; Every form kept below is attested in that corpus. The counts are from it.
 (define long-forms
-  (hash "be" "bee" "we" "wee" "me" "mee" "he" "hee" "she" "shee"
-        "do" "doe" "go" "goe" "so" "soe" "no" "noe"
-        "to" "too" "by" "bye" "here" "heere"
-        "there" "theere" "where" "wheere" "only" "onely"
-        "sun" "sunne" "run" "runne" "sin" "sinne" "won" "wonne"
-        "man" "manne" "some" "somme" "well" "welle" "will" "wille"
-        "king" "kinge" "thing" "thinge" "such" "suche" "much" "muche"
-        "old" "olde" "cold" "colde" "bold" "bolde" "wild" "wilde"
-        "him" "himme" "them" "themme" "when" "whenne"))
+  (hash "be" "bee"        ; 5
+        "we" "wee"        ; 8
+        "me" "mee"        ; 25
+        "he" "hee"        ; 33
+        "she" "shee"      ; 44
+        "do" "doe"        ; 48
+        "go" "goe"        ; 26
+        "to" "too"        ; 51
+        "here" "heere"    ; 19
+        "only" "onely"    ; 12
+        "sun" "sunne"     ; 4
+        "run" "runne"     ; 2
+        "sin" "sinne"     ; 12
+        "won" "wonne"     ; 2
+        "wild" "wilde"))  ; 2
+
+;; Genuine period spellings that had gone out of use in printed drama by 1600:
+;; none of these occurs in the sample either, but unlike the nine above they
+;; are real, and would be right for copy of the 1580s or earlier. Absence from
+;; 24,000 words is not proof a form never existed, so they are kept and
+;; excluded rather than deleted.
+(define archaic-long-forms
+  (hash "so" "soe" "no" "noe" "by" "bye"
+        "king" "kinge" "thing" "thinge"
+        "such" "suche" "much" "muche"
+        "old" "olde" "cold" "colde" "bold" "bolde"))
 
 (define short-forms
   (for/hash ([(k v) (in-hash long-forms)]) (values v k)))
