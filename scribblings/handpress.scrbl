@@ -196,6 +196,52 @@ pattern tests (@tt{-ie}/@tt{-y}, @tt{-ll}/@tt{-l}). These are an extrapolation
 from Satchell's list rather than something Hinman demonstrates; treat them as
 a device for making the simulation legible at short lengths.}
 
+@subsection{Stints, and how the frame changes hands}
+@declare-exporting[handpress/book]
+
+This program used to change compositors every forme — a tidy alternation, and
+the one shop whose records survive contradicts it flatly. McKenzie, from the
+Cambridge Vouchers: when two or more men worked on a book ``they did not work
+together setting sheet and sheet about. What usually happened was that one took
+over where the other left off and then composed as many sheets as the master
+found convenient or as other commitments allowed'' (i. 107).
+
+His quarto Virgil shows the shape. Bertram set A–E; Crownfield F–3G; Michaelis
+3H–3Z; Bertram resumed to 4F; Délié set the single sheet 4G; Crownfield took
+over at 4H; and Bertram finished the book after Crownfield retired at 4O. Four
+men, long blocks, one man returning three times, and the odd single sheet
+dropped in where somebody was briefly free.
+
+@racket[make-house] therefore takes @racket[#:stint-sheets], the mean length of
+a stint in sheets, and builds a plan of contiguous blocks with a single sheet
+about one time in six. The next man is whoever is free rather than the next in
+rotation.
+
+The consequence for attribution is the uncomfortable part. Those boundaries
+fall where the shop's @emph{other} commitments put them, so — as McKenzie
+says — ``the compositorial pattern within any such book will rarely have any
+internal significance''. It records the house's other work, not anything about
+the book being analysed.
+
+@margin-note{The nuance that partly rescues the method: the shop is chaotic,
+but a single book's composition is usually ``a simple matter of progression
+from sheet to sheet by consecutive compositors''. Stints are blocks, and blocks
+are findable.}
+
+@subsection{The compositor's freedom with his copy}
+@declare-exporting[handpress/orthography]
+
+The expansion and contraction devices are not an inference. The manuscript copy
+for two Cambridge books survives beside the printed sheets, and Knell can be
+watched expanding @tt{q} to @tt{que}, @tt{fut:} to @tt{futuro}, @tt{salib:} to
+@tt{salibus}, @tt{p} to @tt{per}, @tt{Gram:} to @tt{Grammat:} — and contracting
+@tt{et} to @tt{&} (i. 118). McKenzie's conclusion is that ``a compositor was
+evidently not only free to expand or contract forms in his copy but that
+authors probably relied upon him to do so.''
+
+That is direct archival warrant for the ampersand device and for the whole
+expand/contract ladder, from a shop that kept its records.
+
 @subsection{The lay of the case}
 @declare-exporting[handpress/typecase]
 
@@ -656,6 +702,31 @@ it. Only the failures are evidence; the successes are arithmetic.}
        (1899) — the collation the calibration is measured against}
  @item{D. F. McKenzie, ``Printers of the Mind'', @emph{Studies in
        Bibliography} xxii (1969) — on the limits of all of this}]
+
+@section{What the archives say about rates}
+
+The program models no clock at all: a page is set, and no time passes. These
+are the figures it would need if it did, and they are worth recording because
+they are measured rather than assumed.
+
+@bold{Composition.} The obvious norm would be 1,000 ens an hour over a
+twelve-hour day and a six-day week — call it 12,000 ens a day. Actual daily
+averages at Cambridge run at about half that: Bertram 5,700, Knell 5,603.
+Pokins is the exception at some 10,600 ens a day over five weeks in 1702, and
+he stands out sharply from everyone else. McKenzie's reading is that ``each
+compositor's output was conditioned more by what he was content to earn than
+by any sanctions that Crownfield might have imposed'' (i. 119).
+
+@bold{Presswork.} A token is 250 sheets and was reckoned an hour's work, which
+agrees with Moxon's ``if two men Work at the Press ten Quires is an Hour''
+(240 sheets). So roughly 250 impressions an hour at a press worked by two men
+— which is where @racket[run-press]'s three or four impressions a minute comes
+from, and the one rate in this program that was right before it was checked.
+
+@bold{Concurrency.} A compositor did not work through a book to the exclusion
+of others: ``normally he would be setting type for two or three
+concurrently''. Books were correspondingly slow — Bentley's Horace was over
+eight years in the Press, Wasse's Sallust exactly five.
 
 @section{What is not modelled}
 

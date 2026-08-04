@@ -63,7 +63,7 @@
 
 (struct house (fmt compositor-names seed by-formes? conventions case-scale
                    cast-off-accuracy n-skeletons formes-standing
-                   prepare-copy? title profiles condition)
+                   prepare-copy? title profiles condition stint-sheets)
   #:transparent)
 
 (define (make-house #:fmt [fmt QUARTO]
@@ -82,9 +82,26 @@
                     #:profiles [profiles PROFILES]
                     ;; new | used | worn | foul, or a number: how much of the
                     ;; fount is individually identifiable by its damage
-                    #:condition [condition 'used])
+                    #:condition [condition 'used]
+                    ;; Mean length of a compositor's stint, in sheets.
+                    ;;
+                    ;; This program used to change compositors every forme, a
+                    ;; tidy alternation that the one shop whose records survive
+                    ;; flatly contradicts. McKenzie: when two or more men
+                    ;; worked on a book "they did not work together setting
+                    ;; sheet and sheet about. What usually happened was that
+                    ;; one took over where the other left off and then composed
+                    ;; as many sheets as the master found convenient or as
+                    ;; other commitments allowed" (i. 107).
+                    ;;
+                    ;; His quarto Virgil shows the shape: Bertram set A-E,
+                    ;; Crownfield F-3G, Michaelis 3H-3Z, Bertram again to 4F,
+                    ;; Delie a single sheet at 4G, Crownfield from 4H, Bertram
+                    ;; finishing. Long blocks, with the occasional single sheet
+                    ;; dropped in where a man was free.
+                    #:stint-sheets [stint 4])
   (house fmt names seed by-formes? cv case-scale acc nsk
-         (max 1 standing) prep? title profiles condition))
+         (max 1 standing) prep? title profiles condition (max 1 stint)))
 
 (define (house-spec h)
   (page-spec (exact-round (* (book-format-measure-ems (house-fmt h)) UNITS-PER-EM))
@@ -303,8 +320,47 @@
   ;; So a house setting seriatim must keep the best part of a gathering
   ;; standing before it can print anything at all, while a house setting by
   ;; formes from the middle outward can print and distribute a sheet at a time.
-  ;; That difference is the whole economic case for casting off, and this
-  ;; counts it.
+  ;; That difference is arithmetic about the practice, not evidence of it:
+  ;; McKenzie found setting by formes "was followed occasionally but was
+  ;; certainly not normal" (i. 115). This counts what it would have saved.
+  ;; Who is at the frame, forme by forme.
+  ;;
+  ;; Not a rotation. A man takes over where the last left off and sets as many
+  ;; sheets as the master finds convenient, so the plan is a run of long
+  ;; contiguous blocks with the occasional single sheet where somebody was
+  ;; briefly free. The boundaries fall where the shop's other commitments put
+  ;; them, which is why McKenzie says the compositorial pattern within a book
+  ;; "will rarely have any internal significance" (i. 107) -- it records the
+  ;; house's other work, not anything about this book.
+  (define stint-plan (make-hash))
+  (define plan-filled (box 0))
+  (define plan-last (box -1))
+  (define (man-for-forme i)
+    (cond
+      [(= (length order) 1) (car order)]
+      [else
+       (let extend ()
+         (when (>= i (unbox plan-filled))
+           ;; a stint is a whole number of sheets: mostly several, now and then
+           ;; a single one, as Delie set only 4G of the quarto Virgil
+           (define sheets
+             (if (< (rnd g) 0.18)
+                 1
+                 (max 1 (exact-round (* 2 (house-stint-sheets h)
+                                        (rnd-beta g 2.0 2.0))))))
+           (define len (* 2 sheets))     ; two formes to a sheet
+           ;; the man who takes over is whoever is free, not the next in turn
+           (define pick
+             (let loop ()
+               (define k (rnd-int g (length order)))
+               (if (= k (unbox plan-last)) (loop) k)))
+           (for ([j (in-range (unbox plan-filled) (+ (unbox plan-filled) len))])
+             (hash-set! stint-plan j (list-ref order pick)))
+           (set-box! plan-filled (+ (unbox plan-filled) len))
+           (set-box! plan-last pick)
+           (extend)))
+       (hash-ref stint-plan i)]))
+
   (define standing-sorts 0)
   (define peak-sorts 0)
   (define peak-pages 0)
@@ -346,16 +402,15 @@
            (define seg (list-ref segments seg-index))
            (define r (hash-ref refs page-no))
            (define fm (hash-ref page->forme page-no))
+           ;; The stint plan is indexed by forme when the house sets by formes,
+           ;; and by sheet-worth-of-pages when it sets seriatim; either way a
+           ;; man holds on for several sheets together.
            (define man
              (hash-ref men
-                       (cond
-                         [(= (length order) 1) (car order)]
-                         [(house-by-formes? h)
-                          (list-ref order (modulo (+ (forme-order fm) gathering)
-                                                  (length order)))]
-                         [else
-                          (list-ref order (modulo (+ (quotient pos 2) gathering)
-                                                  (length order)))])))
+                       (man-for-forme
+                        (if (house-by-formes? h)
+                            (forme-order fm)
+                            (+ (* gathering (book-format-pages fmt)) pos)))))
            (define units-for-page (append carry (cast-off-segment-units seg)))
            (define-values (pg leftover)
              (set-page h man units-for-page r fm spec capacity))

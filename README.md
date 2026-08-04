@@ -186,6 +186,25 @@ This is where habit and necessity become impossible to separate, and it is the
 caveat Hinman states about his own method (i. 186–7): a spelling forced by a
 tight measure is not evidence of the man who set it.
 
+### Stints
+
+Compositors do not alternate. A man takes the frame and holds it for several
+sheets together, and the next man is whoever is free rather than the next in
+turn. McKenzie, from the Cambridge Vouchers: when two or more men worked on a
+book "they did not work together setting sheet and sheet about. What usually
+happened was that one took over where the other left off and then composed as
+many sheets as the master found convenient or as other commitments allowed"
+(i. 107).
+
+His quarto Virgil: Bertram set A–E, Crownfield F–3G, Michaelis 3H–3Z, Bertram
+again to 4F, Délié the single sheet 4G, Crownfield from 4H, Bertram finishing.
+Long blocks, one man returning three times, the odd single sheet where somebody
+was free. `--stint-sheets` sets the mean block length.
+
+The uncomfortable consequence: those boundaries fall where the shop's *other*
+commitments put them, so "the compositorial pattern within any such book will
+rarely have any internal significance." It records the house's other work.
+
 ### Spelling habit
 
 Compositors are profiles with per-word preferences, drawn from published
