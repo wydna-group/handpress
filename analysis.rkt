@@ -10,7 +10,7 @@
 
 (require racket/list racket/string racket/math racket/set
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
-         "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt"
+         "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt" "pagination.rkt"
          "press.rkt" "render.rkt")
 
 (provide (struct-out page-evidence)
@@ -721,6 +721,7 @@ TEXT
                  (contamination-report b)
                  (skeleton-report b)
                  (castingoff-report b)
+                 (pagination-report (book-paging b))
                  (case-report b)
                  (deviation-report b r))
            (if r (list (press-report b r)) '())

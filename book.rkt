@@ -17,7 +17,7 @@
 ;;; casting off.
 
 (require racket/list racket/string racket/math
-         "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
+         "pagination.rkt" "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "rng.rkt")
 
 (provide (struct-out page) (struct-out book) (struct-out house)
@@ -41,7 +41,7 @@
   (string-join (map line-text (page-all-lines p)) "\n"))
 
 (struct book (pages formes skeletons fmt events stints case title
-                    copy-units authors-copy preparation standing)
+                    copy-units authors-copy preparation standing paging)
   #:transparent)
 
 ;; The high-water mark of standing type, and the page-by-page ledger behind it.
@@ -63,7 +63,8 @@
 
 (struct house (fmt compositor-names seed by-formes? conventions case-scale
                    cast-off-accuracy n-skeletons formes-standing
-                   prepare-copy? title profiles condition stint-sheets)
+                   prepare-copy? title profiles condition stint-sheets
+                   paging-error)
   #:transparent)
 
 (define (make-house #:fmt [fmt QUARTO]
@@ -112,14 +113,18 @@
                     ;; formes, and even individual pages were on occasion
                     ;; shared". A big house really does approach the rapid
                     ;; alternation this program used to do unconditionally.
-                    #:stint-sheets [stint #f])
+                    #:stint-sheets [stint #f]
+                    ;; how freely the paging goes wrong; no hand-press
+                    ;; book of any length was numbered correctly
+                    #:paging-error [paging-error 0.04])
   (house fmt names seed by-formes? cv case-scale acc nsk
          (max 1 standing) prep? title profiles condition
          (cond
            [stint (max 1 stint)]
            [(<= (length names) 3) 4]     ; whole sheets at a time
            [(<= (length names) 5) 2]
-           [else 1])))                   ; takes, shared about
+           [else 1])                     ; takes, shared about
+         paging-error))
 
 (define (house-spec h)
   (page-spec (exact-round (* (book-format-measure-ems (house-fmt h)) UNITS-PER-EM))
@@ -513,13 +518,23 @@
   (define with-catchwords (add-catchwords ordered))
   (define with-titles (add-running-titles with-catchwords all-formes fmt))
 
+  ;; The paging is set last because it belongs to the headline rather than to
+  ;; the text: a piece of type beside the running title, carried from forme to
+  ;; forme with the skeleton, and going wrong in the ways it does for that
+  ;; reason. See pagination.rkt.
+  (define paging
+    (paginate (for/list ([p (in-list with-titles)]) (page-pref p))
+              #:rate (house-paging-error h)
+              #:rng (make-rng (+ (house-seed h) 5501))))
+
   (book with-titles all-formes skeletons fmt
         (append* (for/list ([name (in-list order)])
                    (comp-event-list (hash-ref men name))))
         (compress-stints (reverse stint-log))
         tc (house-title h) units authors-copy prepared
         (standing-type peak-sorts peak-pages (reverse ledger)
-                       (house-by-formes? h))))
+                       (house-by-formes? h))
+        paging))
 
 ;; ---------------------------------------------------------------------------
 

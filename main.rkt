@@ -57,6 +57,7 @@
                        #:skeletons [skeletons 2]
                        #:formes-standing [standing 2]
                        #:stint-sheets [stint #f]
+                       #:paging-error [paging-error 0.04]
                        #:prepare-copy? [prepare? #t]
                        #:first-proof [first-proof 0.0]
                        #:edition [edition 750]
@@ -86,6 +87,7 @@
                         #:skeletons skeletons
                         #:formes-standing standing
                         #:stint-sheets stint
+                        #:paging-error paging-error
                         #:prepare-copy? prepare?
                         #:condition condition
                         #:title title))
@@ -162,6 +164,7 @@
   (define skeletons 2)
   (define standing 2)
   (define stint #f)
+  (define paging-error 0.04)
   (define prepare? #t)
   (define first-proof 0.0)
   (define edition 750)
@@ -195,6 +198,8 @@
      [("--cast-off") a "accuracy of the casting off, 0-1"
                      (set! cast-off (string->number a))]
      [("--skeletons") n "skeleton formes in use" (set! skeletons (string->number n))]
+     [("--paging-error") x "how freely the paging goes wrong, 0-1 (default 0.04)"
+      (set! paging-error (string->number x))]
      [("--stint-sheets") n "sheets a man sets before the frame changes hands (default: by shop size)"
       (set! stint (string->number n))]
      [("--formes-standing") n "formes of type standing before distribution"
@@ -230,7 +235,7 @@
                        #:order order #:kind kind #:seed seed #:copies copies
                        #:case-scale case-scale #:cast-off cast-off
                        #:skeletons skeletons #:formes-standing standing
-                       #:stint-sheets stint
+                       #:stint-sheets stint #:paging-error paging-error
                        #:prepare-copy? prepare? #:first-proof first-proof
                        #:edition edition #:condition condition
                        #:title title #:pages pages #:numbers? numbers?
