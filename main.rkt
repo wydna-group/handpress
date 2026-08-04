@@ -56,7 +56,7 @@
                        #:cast-off [cast-off 0.93]
                        #:skeletons [skeletons 2]
                        #:formes-standing [standing 2]
-                       #:stint-sheets [stint 4]
+                       #:stint-sheets [stint #f]
                        #:prepare-copy? [prepare? #t]
                        #:first-proof [first-proof 0.0]
                        #:edition [edition 750]
@@ -156,7 +156,7 @@
   (define cast-off 0.93)
   (define skeletons 2)
   (define standing 2)
-  (define stint 4)
+  (define stint #f)
   (define prepare? #t)
   (define first-proof 0.0)
   (define edition 750)
@@ -189,7 +189,7 @@
      [("--cast-off") a "accuracy of the casting off, 0-1"
                      (set! cast-off (string->number a))]
      [("--skeletons") n "skeleton formes in use" (set! skeletons (string->number n))]
-     [("--stint-sheets") n "mean sheets a man sets before the frame changes hands"
+     [("--stint-sheets") n "sheets a man sets before the frame changes hands (default: by shop size)"
       (set! stint (string->number n))]
      [("--formes-standing") n "formes of type standing before distribution"
                             (set! standing (string->number n))]

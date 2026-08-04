@@ -99,9 +99,27 @@
                     ;; Delie a single sheet at 4G, Crownfield from 4H, Bertram
                     ;; finishing. Long blocks, with the occasional single sheet
                     ;; dropped in where a man was free.
-                    #:stint-sheets [stint 4])
+                    ;;
+                    ;; Left at #f the length follows the size of the shop,
+                    ;; which is Gaskell's rule (p. 41) and the thing that
+                    ;; reconciles the authorities. Where there were "no more
+                    ;; than two or three" compositors the tendency was for a
+                    ;; man to concentrate on particular books "and to set at
+                    ;; least whole sheets or whole formes" -- McKenzie's
+                    ;; Cambridge, and long stints. Where there were more, the
+                    ;; copy went out in small "takings" or "takes" "to whoever
+                    ;; was ready for them", so that "the setting of sheets,
+                    ;; formes, and even individual pages were on occasion
+                    ;; shared". A big house really does approach the rapid
+                    ;; alternation this program used to do unconditionally.
+                    #:stint-sheets [stint #f])
   (house fmt names seed by-formes? cv case-scale acc nsk
-         (max 1 standing) prep? title profiles condition (max 1 stint)))
+         (max 1 standing) prep? title profiles condition
+         (cond
+           [stint (max 1 stint)]
+           [(<= (length names) 3) 4]     ; whole sheets at a time
+           [(<= (length names) 5) 2]
+           [else 1])))                   ; takes, shared about
 
 (define (house-spec h)
   (page-spec (exact-round (* (book-format-measure-ems (house-fmt h)) UNITS-PER-EM))

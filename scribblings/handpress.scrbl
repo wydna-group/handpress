@@ -217,6 +217,23 @@ a stint in sheets, and builds a plan of contiguous blocks with a single sheet
 about one time in six. The next man is whoever is free rather than the next in
 rotation.
 
+Left unset it follows the size of the shop, which is Gaskell's rule (p. 41) and
+the thing that reconciles the authorities. Where there were ``no more than two
+or three'' compositors the tendency was for a man to concentrate on particular
+books ``and to set at least whole sheets or whole formes'' — McKenzie's
+Cambridge, and long stints. Where there were more, copy went out in small
+``takings'' or ``takes'' ``to whoever was ready for them'', so that ``the
+setting of sheets, formes, and even individual pages were on occasion shared''.
+A large house genuinely does approach the rapid alternation this program used
+to do unconditionally; the mistake was doing it for every house.
+
+@margin-note{Honesty about the demonstration: the rule is implemented and the
+block structure does change shape with the shop — a two-man house opens with a
+twelve-page block where a five-man house sets even blocks of four. But on the
+24 pages of the @emph{Much Ado} sample the number of changes of hand comes out
+much the same either way, so this is an evidenced parameter rather than a
+measured effect.}
+
 The consequence for attribution is the uncomfortable part. Those boundaries
 fall where the shop's @emph{other} commitments put them, so — as McKenzie
 says — ``the compositorial pattern within any such book will rarely have any
