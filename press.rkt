@@ -12,10 +12,36 @@
 ;;; were gathered at random when the book was made up, no two copies of the
 ;;; edition need agree.
 ;;;
-;;; Two facts, both Hinman's: the corrector generally worked *without the
-;;; copy*, so he catches foul case readily and misreadings hardly at all; and
-;;; he sometimes made it worse, introducing a reading that is neither the
-;;; author's nor the compositor's.
+;;; How the corrector worked is a question with two answers, and this module
+;;; used to give only one of them.
+;;;
+;;; Moxon describes the proper method: the master-printer appoints someone
+;;; "well skill'd in true and quick Reading, to Read the Copy" aloud while the
+;;; corrector follows the proof. On that method the copy is present throughout
+;;; and a misreading is as catchable as a turned letter.
+;;;
+;;; Hinman found the Folio was not corrected that way. Its variants are mostly
+;;; obvious blunders, and "the copy was in all probability seldom if ever used
+;;; to correct perfectly obvious mistakes that could easily enough, in the
+;;; light provided by the immediate context, be made to yield sense". But
+;;; seldom is not never, and he can point to the corrections that prove it: a
+;;; two-line speech restored on d5 that "cannot have been restored save by
+;;; reference to the copy", and a line on vv3 bearing no resemblance to what
+;;; it replaced.
+;;;
+;;; So the corrector here works from sense, and now and then calls for the
+;;; copy. The distinction matters because the two methods fail differently:
+;;; sense catches foul case and leaves a plausible misreading standing, while
+;;; the copy catches the omission that sense cannot even see.
+;;;
+;;; Hinman also noticed the consequence of a scare. Having consulted the copy
+;;; and discovered a considerable omission, the reader grew "somewhat more
+;;; careful ... at least for a time" -- so a serious catch raises vigilance,
+;;; and the vigilance decays.
+;;;
+;;; And he sometimes made it worse, introducing a reading that is neither the
+;;; author's nor the compositor's: at one place a compositor's error was
+;;; rightly noticed and then "corrected" to something plausible and wrong.
 ;;;
 ;;; And one from Carter: a proof pulled and mended *before* the run leaves no
 ;;; variant at all. So the catalogue of press variants, however many copies
@@ -70,6 +96,14 @@
                    #:proof-rate [proof-rate 0.6]
                    #:catches-accident [catches-accident 0.75]
                    #:catches-misreading [catches-misreading 0.10]
+                   ;; How often the reader calls for the copy rather than
+                   ;; working by sense alone. Low, because Hinman's Folio is
+                   ;; the case being modelled and its correction was mostly
+                   ;; done without it -- but not zero, because he can name the
+                   ;; places where the copy must have been at the reader's
+                   ;; elbow. Set it to 1.0 for a house following Moxon's
+                   ;; method, where the copy is read aloud throughout.
+                   #:consults-copy [consults-copy 0.12]
                    #:sophisticates [sophisticates 0.16]
                    #:first-proof [first-proof 0.0]
                    #:edition [edition 750])
@@ -90,6 +124,10 @@
   (define states (make-hash))
   (define log '())
   (define silent-readings (make-hash))
+  ;; raised when consulting the copy turns up a real corruption, and spent on
+  ;; the next forme -- Hinman's reader, who grew more careful "at least for a
+  ;; time" after finding a considerable omission
+  (define vigilant (box #f))
 
   (define (locate p e)
     (define lines (page-all-lines p))
@@ -155,19 +193,87 @@
        (define fraction (min 0.65 (/ (* early slow) (max 100 edition))))
        (define variants '())
 
+       ;; Is the copy at the reader's elbow for this forme? `vigilant' carries
+       ;; over from a forme where consulting it turned up something serious.
+       (define with-copy?
+         (or (unbox vigilant) (< (rnd g) consults-copy)))
+       (set-box! vigilant #f)
+
        (for ([p (in-list pages)])
          (for ([e (in-list (hash-ref events-by-page (page-sig p) '()))])
            (define w (locate p e))
            (define threshold
-             (if (eq? (event-kind e) 'accident) catches-accident catches-misreading))
-           (when (and w (< (rnd g) threshold)
-                      (not (string=? (word-printed w) (word-composed w))))
+             (cond
+               ;; foul case and turned letters are visible on the page itself,
+               ;; so the copy adds little
+               [(eq? (event-kind e) 'accident) catches-accident]
+               ;; a misreading yields sense and hides from a reader working by
+               ;; sense. Against the copy, read aloud, it has nowhere to hide.
+               [with-copy? (max catches-misreading 0.80)]
+               [else catches-misreading]))
+           ;; What the reader can put back depends on what he is reading
+           ;; against. A literal is wrong on the page, so the standing type
+           ;; shows it and the composed reading restores it. A misreading is
+           ;; not wrong on the page at all -- it is wrong against the copy --
+           ;; so only the copy can supply what should have stood there. This
+           ;; is why a corrector working by sense leaves misreadings behind
+           ;; however careful he is: he has nothing to catch them with.
+           (define restored
+             (and w
+                  (cond
+                    [(eq? (event-kind e) 'accident)
+                     (and (not (string=? (word-printed w) (word-composed w)))
+                          (word-composed w))]
+                    [with-copy?
+                     (and (word-copy w)
+                          (not (string=? (word-printed w) (word-copy w)))
+                          (word-copy w))]
+                    [else #f])))
+           (when (and restored (< (rnd g) threshold))
+             ;; the scare: having found a real corruption against the copy,
+             ;; the reader is more careful for a while
+             (when (and with-copy? (eq? (event-kind e) 'copy) (< (rnd g) 0.5))
+               (set-box! vigilant #t))
              (set! variants
                    (cons (pvariant forme-name (page-sig p) (event-line e)
-                                   (event-word e) (word-printed w) (word-composed w)
-                                   (format "literal corrected at press (~a)"
-                                           (event-detail e)))
+                                   (event-word e) (word-printed w) restored
+                                   (if (eq? (event-kind e) 'accident)
+                                       (format "literal corrected at press (~a)"
+                                               (event-detail e))
+                                       (format "reading restored from the copy (~a)"
+                                               (event-detail e))))
                          variants))))
+
+         ;; Misreadings have to be found on the page rather than in the event
+         ;; log. They are recorded at the moment the compositor reads his copy,
+         ;; before the word is placed, so they carry no page, line or word and
+         ;; the loop above never sees them -- which meant that until this was
+         ;; noticed no misreading was correctable at press by any method, and
+         ;; `catches-misreading' did nothing whatever.
+         ;;
+         ;; The word itself is evidence enough: the copy said one thing and the
+         ;; compositor read another. Habitual respelling does not show here,
+         ;; because habit acts after reading and leaves `read' alone.
+         (when with-copy?
+           (for ([l (in-list (page-all-lines p))] [li (in-naturals 1)])
+             (for ([w (in-list (set-line-words l))] [wi (in-naturals)])
+               ;; A divided word is not a misreading. Both halves keep the
+               ;; whole word as their copy reading, so `pri-' and `nce' would
+               ;; otherwise look like corruptions of `prince' and get
+               ;; "restored" into a line that has no room for them.
+               (when (and (word-copy w) (word-read w)
+                          (not (ormap (lambda (c) (regexp-match? #rx"divided" c))
+                                      (word-causes w)))
+                          (not (string=? (word-copy w) (word-read w)))
+                          (not (string=? (word-printed w) (word-copy w)))
+                          (< (rnd g) (max catches-misreading 0.80)))
+                 (when (< (rnd g) 0.5) (set-box! vigilant #t))
+                 (set! variants
+                       (cons (pvariant forme-name (page-sig p) li wi
+                                       (word-printed w) (word-copy w)
+                                       (format "reading restored from the copy: ~s for ~s"
+                                               (word-copy w) (word-printed w)))
+                             variants))))))
 
          ;; and now the corrector improves something that was not wrong
          (define lines (page-all-lines p))
@@ -240,6 +346,34 @@
 
   (define b (set-book (make-house #:fmt QUARTO #:seed 1623) sample))
   (define r (run-press b #:copies 6 #:seed 1623 #:proof-rate 1.0))
+
+  ;; The copy at the reader's elbow catches a different class of error.
+  ;;
+  ;; A misreading yields sense, so a reader working by sense alone has no
+  ;; reason to stop at it; read against the copy it has nowhere to hide. Over
+  ;; a long text the two methods should therefore mend a measurably different
+  ;; number of readings, and it is the misreadings that move.
+  ;; Misreadings are rare, so this asserts the invariant rather than a count:
+  ;; a reader working by sense can never restore a copy reading, because he
+  ;; has not got the copy. The prentice hand E misreads often enough to give
+  ;; the other branch something to find.
+  (let ()
+    (define long-text
+      (apply string-append (for/list ([i (in-range 60)]) sample)))
+    (define bb (set-book (make-house #:fmt QUARTO #:seed 11 #:compositors '("E"))
+                         long-text))
+    (define (restorations consults)
+      (define rr (run-press bb #:copies 2 #:seed 11 #:proof-rate 1.0
+                            #:consults-copy consults))
+      (for*/sum ([(nm s) (in-hash (press-run-states rr))]
+                 [v (in-list (forme-state-variants s))]
+                 #:when (regexp-match? #rx"restored from the copy"
+                                       (pvariant-note v)))
+        1))
+    (check-equal? (restorations 0.0) 0
+                  "a reader without the copy cannot restore a copy reading")
+    (check-true (> (restorations 1.0) 0)
+                "a reader with the copy at his elbow can"))
 
   ;; Every corrected forme was corrected early in the run, as the arithmetic
   ;; of a 1,200-sheet edition requires.

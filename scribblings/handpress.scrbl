@@ -425,10 +425,38 @@ uncorrected state is typically 5 to 10 per cent of the copies. The corrector
 generally worked without the copy, so he catches foul case readily and
 misreadings hardly at all, and sometimes he made it worse.
 
+Whether the corrector had the copy in front of him is a question with two
+answers, and this module used to give only one. Moxon describes the proper
+method: the master-printer appoints someone ``well skill'd in true and quick
+Reading, to Read the Copy'' aloud while the corrector follows the proof. On
+that method a misreading is as catchable as a turned letter.
+
+Hinman found the Folio was not corrected that way — ``the copy was in all
+probability seldom if ever used to correct perfectly obvious mistakes'' that
+the context would yield sense for. But seldom is not never, and he can point
+to the corrections that prove the copy was sometimes at the reader's elbow: a
+two-line speech that ``cannot have been restored save by reference to the
+copy'', and a line bearing no resemblance to the one it replaced.
+
+So @racket[consults-copy] governs how often the copy is called for, and the
+two methods fail differently. Sense catches foul case and leaves a plausible
+misreading standing; the copy catches the omission that sense cannot see.
+Hinman also noticed the consequence of a scare — having found a considerable
+omission, the reader grew ``somewhat more careful ... at least for a time'' —
+so a serious catch raises vigilance for the next forme.
+
+@margin-note{Building this turned up a bug of some standing. Misreadings are
+recorded when the compositor reads his copy, before the word is placed, so
+they carry no page or line and the press loop never saw them: no misreading
+was correctable by any method, and @racket[catches-misreading] did nothing at
+all. They are now found on the page, where the copy reading and the read
+reading disagree.}
+
 @defproc[(run-press [b book?]
                     [#:copies copies exact-integer? 4]
                     [#:seed seed exact-integer? 1623]
                     [#:proof-rate proof-rate real? 0.6]
+                    [#:consults-copy consults-copy real? 0.12]
                     [#:first-proof first-proof real? 0.0])
          press-run?]{
 Prints the book, correcting some formes in mid-run, and makes up copies at
