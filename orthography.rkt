@@ -57,8 +57,12 @@
     ;; both English, and a device that turns one into the other has changed
     ;; the reading, not the spelling. This is the same trap as `her' for
     ;; `here', and the variant groups are what avoid it.
+    ;; and it must be a form somebody really used, not one the corpus happens
+    ;; to contain once or twice: see `plausible?'
     [(pair? group)
-     (and (member (string-downcase produced) group) #t)]
+     (and (member (string-downcase produced) group)
+          (plausible? produced)
+          #t)]
     ;; A word the corpus knows, with no variants recorded, was set one way
     ;; only. Then any alteration is wrong, and it is not enough that the
     ;; result happens to be some other English word -- that is exactly how

@@ -35,7 +35,8 @@
          commonest-form longer-forms-of shorter-forms-of
          lexicon-skeleton
          load-standard current-standard standard? sanctioned?
-         modern-form current-word? undo-uv-ij)
+         modern-form current-word? undo-uv-ij
+         plausible? plausible-share)
 
 (define-runtime-path default-lexicon-file "samples/ado-lexicon.rktd")
 (define-runtime-path default-standard-file "samples/mulcaster.rktd")
@@ -93,7 +94,18 @@
          w))
      (lexicon attested groups index modern current (path->string path))]))
 
-(define current-lexicon (make-parameter (load-lexicon)))
+;; The bundled lexicon is drawn from the two Much Ado texts and is a
+;; demonstration, not an authority: 2,370 forms against the 318,722 a slice of
+;; EEBO-TCP yields. Build a real one with tools/build-lexicon.py and point
+;; HANDPRESS_LEXICON at it. The file is some 9 MB, which is why it is not
+;; carried in the repository; the two tools that make it are.
+(define (default-lexicon)
+  (define env (getenv "HANDPRESS_LEXICON"))
+  (if (and env (file-exists? env))
+      (load-lexicon (string->path env))
+      (load-lexicon)))
+
+(define current-lexicon (make-parameter (default-lexicon)))
 
 ;; ---------------------------------------------------------------------------
 ;; The standard, as against the practice
@@ -136,6 +148,30 @@
 ;; the only thing that produced it was a rule.
 (define (sanctioned? w [lx (current-lexicon)] [st (current-standard)])
   (or (attested? w lx) (standard? w st)))
+
+;; Attested is not the same as available, and a big corpus makes the
+;; difference matter. Across 5,287 books printed 1580-1640, `theere' occurs
+;; seventeen times against 145,517 for `here', and `wheere' six. Those are not
+;; spellings a compositor might have chosen; they are the sweepings of a very
+;; large floor -- foreign words, slips, mis-keyings. Set beside them `manne'
+;; occurs 1,147 times and `somme' 467, and those are real.
+;;
+;; So a form is available to a device when it holds a real share of its own
+;; word's occurrences. The threshold is a judgement and is stated here rather
+;; than buried: a spelling used less than once in two hundred is treated as
+;; not used.
+(define plausible-share (make-parameter 0.005))
+
+(define (plausible? w [lx (current-lexicon)])
+  (define vs (variants-of w lx))
+  (cond
+    [(null? vs) (attested? w lx)]
+    [else
+     (define total (for/sum ([p (in-list vs)]) (cdr p)))
+     (define mine (for/or ([p (in-list vs)])
+                    (and (string=? (car p) (string-downcase w)) (cdr p))))
+     (and mine (>= (/ (exact->inexact mine) (max 1 total))
+                   (plausible-share)))]))
 
 (define (current-word? w [lx (current-lexicon)])
   (set-member? (lexicon-current lx) (string-downcase w)))
