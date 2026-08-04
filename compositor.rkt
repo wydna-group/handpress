@@ -1,0 +1,824 @@
+#lang racket/base
+;;; The workman at the frame.
+;;;
+;;; A compositor holds a composing stick set to the measure and fills it
+;;; letter by letter from the two cases before him. He cannot see the line as
+;;; the reader will see it; he sees a row of metal upside down and back to
+;;; front, and he knows a line is finished when it will not take another sort.
+;;;
+;;; The order of operations is the order of the trade:
+;;;
+;;;   1. he reads a stretch of copy, and may misread it;
+;;;   2. he sets it in his own spelling, not his author's;
+;;;   3. he finds the line will not justify, and alters the spelling again --
+;;;      this time for room, not for habit;
+;;;   4. he applies the conventions of the house: long s, u for v, i for j;
+;;;   5. he picks the sorts, and picks some of them wrong.
+;;;
+;;; TWO THINGS THE RACKET VERSION DOES THAT THE PYTHON ONE COULD NOT.
+;;;
+;;; Words are immutable. In the Python original, trying whether one more word
+;;; would pinch into a line meant mutating the words, discovering it would
+;;; not, and restoring them from a snapshot -- and a bug in that restore was
+;;; real. Here `justify' returns a fresh line built from fresh words, or #f if
+;;; the line will not go. A rejected trial simply is not used; there is
+;;; nothing to undo, because nothing was ever changed.
+;;;
+;;; And the measure is a contract, not a test. A line wider than the measure
+;;; cannot be locked up in a chase, so it must not be constructible. `make-line'
+;;; carries a post-condition to that effect, which means the invariant is
+;;; checked at every construction rather than by a script run afterwards.
+
+(require racket/list racket/string racket/match racket/contract racket/math
+         "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt" "rng.rkt")
+
+(provide (struct-out word) (struct-out set-line) (struct-out event)
+         (struct-out profile) (struct-out page-spec)
+         PROFILES make-comp comp? comp-profile comp-events comp-rng comp-case
+         line-set-width line-text
+         set-prose set-verse set-stage-direction set-heading speech-prefix
+         pick-line! add-event! comp-event-list
+         (contract-out
+          [make-line (->* ((listof word?) (listof exact-integer?)
+                           exact-nonnegative-integer? exact-positive-integer?
+                           symbol?)
+                          (#:justification string? #:turned-over? boolean?
+                           #:quadded? boolean? #:italic? boolean?)
+                          set-line?)]))
+
+;; ---------------------------------------------------------------------------
+;; Record keeping
+;; ---------------------------------------------------------------------------
+
+;; One thing that happened at the frame, for the record of composition.
+;; kind is 'habit 'justification 'accident 'copy 'shift 'press
+(struct event (kind detail page line word compositor before after)
+  #:transparent)
+
+(define (make-event kind detail
+                    #:page [page ""] #:line [line 0] #:word [wd -1]
+                    #:compositor [c ""] #:before [b ""] #:after [a ""])
+  (event kind detail page line wd c b a))
+
+;; A single word on its way from copy to metal.
+;;
+;; Every stage is kept, because the difference between any two of them is a
+;; different kind of bibliographical fact: copy against read is a misreading,
+;; read against habit is the workman's spelling, habit against final is the
+;; measure talking, and composed against printed is the case.
+;; `pieces' records which individually identifiable types printed this word,
+;; as (character-index . sort-piece). It is the raw material of Hinman's
+;; method: the same piece turning up in another forme proves a shared case.
+(struct word (copy read habit final composed printed width causes italic? pieces)
+  #:transparent)
+
+(struct set-line
+  (words spaces indent measure kind justification turned-over? quadded? italic?)
+  #:transparent)
+
+(define (line-set-width l)
+  (+ (for/sum ([w (in-list (set-line-words l))]) (word-width w))
+     (for/sum ([s (in-list (set-line-spaces l))]) s)
+     (set-line-indent l)))
+
+(define (line-text l)
+  (string-join (map word-printed (set-line-words l)) " "))
+
+;; The one physical law: a line wider than the measure cannot be locked up.
+(define (make-line ws spaces indent measure kind
+                   #:justification [j ""] #:turned-over? [t #f]
+                   #:quadded? [q #f] #:italic? [i #f])
+  (define l (set-line ws spaces indent measure kind j t q i))
+  (unless (or (<= (line-set-width l) measure) (<= (length ws) 1))
+    (error 'make-line
+           "line overhangs the measure by ~a units: ~s"
+           (- (line-set-width l) measure) (line-text l)))
+  l)
+
+;; ---------------------------------------------------------------------------
+;; The workmen
+;; ---------------------------------------------------------------------------
+
+(struct profile
+  (name spellings care misread-rate memorial-rate contracts
+        normalises-verse? habit-strength pattern-style description)
+  #:transparent)
+
+(define (tests-for name)
+  (for/hash ([(head forms) (in-hash SPELLING-TESTS)]
+             #:when (hash-has-key? forms name))
+    (values head (hash-ref forms name))))
+
+;; A and B carry the spelling habits Satchell isolated and Hinman generalised.
+;; E is the prentice hand -- on the usual account John Leason, bound in 1622 --
+;; whose stint is the worst-set and most heavily corrected in the Folio.
+(define PROFILES
+  (hash
+   "A" (profile "A" (tests-for "A") 1.0 0.008 0.004 0.35 #f 0.82 "A"
+                (string-append
+                 "a steady journeyman; keeps the older fuller forms, "
+                 "reluctant to tamper with the lineation of his copy"))
+   "B" (profile "B" (tests-for "B") 1.15 0.013 0.011 0.75 #t 0.91 "B"
+                (string-append
+                 "fast, confident and free with his copy; modernises "
+                 "spelling, abbreviates readily, and will set verse as prose "
+                 "sooner than turn a line over"))
+   ;; C sets doe and goe like A, but heere like B. Hinman found him working
+   ;; at case x beside A in quires T and V, "in the absence of B", and again
+   ;; in quire L. He "reproduces a few here spellings from copy -- more than
+   ;; B is ever likely to -- but he also changes here to heere" (i. 196).
+   "C" (profile "C" (tests-for "C") 1.05 0.010 0.006 0.45 #f 0.78 #f
+                (string-append
+                 "a third hand, at case x; A's man for do and go but B's for "
+                 "heere, which is what betrays him. Partnered A when B was "
+                 "wanted elsewhere"))
+   ;; D is the difficult one. His *preferences* are A's -- doe, goe, here --
+   ;; so no spelling test separates them. What distinguishes him is his
+   ;; tolerance: he "is very much more tolerant of the short spellings than
+   ;; either A or C is" and "much more likely to reproduce the do-go spellings
+   ;; in his copy than A is" (i. 197, 199). That is a difference of habit
+   ;; strength, not of habit, and it is exactly what habit-strength models.
+   "D" (profile "D" (tests-for "D") 1.10 0.011 0.008 0.50 #f 0.42 #f
+                (string-append
+                 "the man who brought case z into use in quire K. His "
+                 "preferences are A's, so no spelling test will separate "
+                 "them; what marks him is how readily he lets a copy "
+                 "spelling stand"))
+   ;; --- Nicholas Okes's shop, 1607-8 (Blayney, i, ch. 5) -----------------
+   ;; Okes's B set sheets B-G and most of H alone. His markers are doe, goe,
+   ;; here, capitalised King, -our endings, and a free use of the apostrophe.
+   "OkesB" (profile "OkesB" (tests-for "OkesB") 1.0 0.011 0.007 0.5 #f 0.80 "OkesB"
+                    (string-append
+                     "Okes's principal workman; set sheets B-G and most of H "
+                     "alone. Sets doe, goe, here and -our, and uses the "
+                     "apostrophe freely"))
+   ;; C set four short stints in H-L, some 455 lines in all, working at the
+   ;; second case. Blayney: he "refused five opportunities to use an
+   ;; apostrophe", and sets heere, do, and -or.
+   "OkesC" (profile "OkesC" (tests-for "OkesC") 1.15 0.013 0.009 0.6 #f 0.72 "OkesC"
+                    (string-append
+                     "Okes's second hand, in four short stints across H-L. "
+                     "Sets do, go, heere and -or, and avoids the apostrophe "
+                     "where B would use it"))
+   "E" (profile "E" (tests-for "A") 2.6 0.030 0.020 0.55 #f 0.45 "A"
+                (string-append
+                 "the prentice hand; a substitute rather than a regular, who "
+                 "stepped in to keep the Folio going when one of the other "
+                 "men was wanted elsewhere, and who had no case or working "
+                 "space of his own. His spellings are A's, so no spelling "
+                 "test will separate them -- which is why the third hand went "
+                 "unnoticed until Hinman found it in the type"))))
+
+(struct page-spec (measure lines verse-indent prose-indent) #:transparent)
+
+(struct comp (profile case conventions rng events) #:transparent)
+
+(define (make-comp prof tc cv g)
+  (comp prof tc cv g (box '())))
+
+(define (add-event! c e)
+  (set-box! (comp-events c) (cons e (unbox (comp-events c)))))
+
+(define (comp-event-list c) (reverse (unbox (comp-events c))))
+
+;; ---------------------------------------------------------------------------
+;; One word
+;; ---------------------------------------------------------------------------
+
+;; `wd' is either a copy token or a (copy . as-read) pair.
+(define (make-word c wd #:italic? [italic? #f])
+  (define-values (copy-word read-word)
+    (if (pair? wd) (values (car wd) (cdr wd)) (values wd wd)))
+  (define prof (comp-profile c))
+  (define cv (comp-conventions c))
+  (define g (comp-rng c))
+  (define pref (preferred read-word (profile-spellings prof)))
+  ;; Habit strength is not one number. Hinman's counts for quire L show
+  ;; Compositor C imposing doe/goe on four opportunities in five but heere on
+  ;; only one in two (i. 195). A profile may therefore carry either a scalar
+  ;; or a table keyed by the head-word, with a fallback.
+  (define (strength-for word)
+    (define hs (profile-habit-strength prof))
+    (cond
+      [(real? hs) hs]
+      [else (define-values (core tail) (split-point word))
+            (define head (head-form core))
+            (hash-ref hs (or head "") (lambda () (hash-ref hs "" 0.85)))]))
+  (define habit
+    (cond
+      [(and pref (< (rnd g) (strength-for read-word))) pref]
+      [else
+       (define-values (form rule)
+         (pattern-form read-word (profile-pattern-style prof)))
+       (if (and form (< (rnd g) (strength-for read-word))) form read-word)]))
+  (define composed (apply-conventions cv habit))
+  (word copy-word read-word habit habit composed composed
+        (width-of-word composed) '() italic? '()))
+
+;; Purely functional: returns a new word, leaves the old one alone.
+(define (revise cv wd form cause)
+  (define composed (apply-conventions cv form))
+  (struct-copy word wd
+               [final form]
+               [composed composed]
+               [printed composed]
+               [width (width-of-word composed)]
+               [causes (append (word-causes wd) (list cause))]))
+
+;; Alternative forms, with their true widths after the conventions.
+(define (word-variants cv wd widen?)
+  (define raw (if widen?
+                  (expansions (word-final wd))
+                  (contractions (word-final wd)
+                                #:scribal? (conventions-scribal? cv))))
+  (define out
+    (for/list ([v (in-list raw)])
+      (list (variant-form v)
+            (width-of-word (apply-conventions cv (variant-form v)))
+            (variant-device v))))
+  (sort out (if widen? > <) #:key cadr))
+
+;; How much a device costs the reader. The compositor works down this list.
+;; The ampersand ranks below the spelling variants, not above them. A reader
+;; barely registers `honestie' for `honesty', but an ampersand is a visible
+;; substitution of a sign for a word. The Folio bears this out: fourteen
+;; ampersands in twelve thousand words, against a quarto's six -- the trade
+;; used it, but sparingly, and after everything gentler had been tried.
+(define violence-table
+  '(("terminal -e" 0) ("full form" 0) ("short form" 1) ("-ll for -l" 1)
+    ("-ie for -y" 1) ("and for &" 1) ("elided" 1) ("written out" 1)
+    ("-y for -ie" 2)
+    ("double" 3) ("& for and" 4) ("contracted to" 5) ("tilde" 6)))
+
+(define (violence device)
+  (or (for/or ([row (in-list violence-table)])
+        (and (string-contains? device (car row)) (cadr row)))
+      3))
+
+;; ---------------------------------------------------------------------------
+;; Squeezing and stretching
+;; ---------------------------------------------------------------------------
+;; Both return (values new-words note) or (values #f #f). Nothing is mutated,
+;; so a caller that does not like the result simply discards it.
+
+;; A word already altered once for the measure is not altered again. Without
+;; this the squeeze loop kept reaching for the same word, and "implementation"
+;; came out as "implēētatiō" -- three contractions stacked on one word, which
+;; no compositor ever set and no reader could have unpicked.
+(define (already-altered? wd)
+  (for/or ([c (in-list (word-causes wd))]) (string-prefix? c "justification")))
+
+(define (adjust cv ws need widen?)
+  (define candidates
+    (for*/list ([(wd i) (in-indexed (in-list ws))]
+                #:unless (already-altered? wd)
+                [v (in-list (word-variants cv wd widen?))]
+                #:when (let ([d (- (cadr v) (word-width wd))])
+                         (if widen? (> d 0) (< d 0))))
+      (define gain (abs (- (cadr v) (word-width wd))))
+      (list gain (violence (caddr v)) i (car v) (caddr v))))
+  (cond
+    [(null? candidates) (values #f #f)]
+    [else
+     (define enough (filter (lambda (c) (>= (car c) need)) candidates))
+     (define pool (if (null? enough) candidates enough))
+     ;; the gentlest device that will serve; among equals, the smallest
+     ;; sufficient change
+     (define best
+       (for/fold ([best (car pool)]) ([c (in-list (cdr pool))])
+         (if (or (< (cadr c) (cadr best))
+                 (and (= (cadr c) (cadr best)) (< (car c) (car best))))
+             c best)))
+     (match-define (list gain _v i form device) best)
+     (values (list-set ws i (revise cv (list-ref ws i) form
+                                    (string-append "justification: " device)))
+             (format "~a (~a ~a em)" device (if widen? "gaining" "saving")
+                     (real->decimal-string (ems gain) 2)))]))
+
+(define (squeeze cv ws [need 0]) (adjust cv ws need #f))
+(define (stretch cv ws [need 0]) (adjust cv ws need #t))
+
+;; ---------------------------------------------------------------------------
+;; Justification
+;; ---------------------------------------------------------------------------
+
+;; Divide the white evenly, giving the odd units to the wider gaps first. A
+;; compositor cannot cut a space in half; he makes up the difference from the
+;; finer spaces in the box, which is why justified hand-set prose has slightly
+;; unequal word spacing even when it is well done.
+(define (apportion white gaps)
+  (cond
+    [(<= gaps 0) '()]
+    [else
+     (define base (max HAIR (quotient white gaps)))
+     (define v (make-vector gaps base))
+     (let loop ([left (- white (* base gaps))] [i 0])
+       (when (and (> left 0) (< i (* gaps 4)))
+         (define j (modulo i gaps))
+         (vector-set! v j (add1 (vector-ref v j)))
+         (loop (sub1 left) (add1 i))))
+     (vector->list v)]))
+
+;; Space out a full line of prose so that it exactly fills the stick.
+;; Returns a line, or #f if the words will not go into the measure at all --
+;; in which case the caller puts one back and tries again.
+(define (justify cv ws measure indent pressure)
+  (define n (length ws))
+  (cond
+    [(zero? n) #f]
+    [(= n 1)
+     (make-line ws '() indent measure 'prose
+                #:justification "single word, quadded out" #:quadded? #t)]
+    [else
+     (define gaps (sub1 n))
+     (define (per ws) (/ (- measure indent (content-width ws)) gaps))
+
+     ;; Too tight to space at all: the compositor must find room in the words.
+     (define-values (tight-ws tight-notes)
+       (let loop ([ws ws] [notes '()] [rounds 0])
+         (cond
+           [(or (>= (per ws) HAIR) (>= rounds 8)) (values ws notes)]
+           [else
+            (define need (exact-ceiling (* (- HAIR (per ws)) gaps)))
+            (define-values (new note) (squeeze cv ws need))
+            (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
+
+     (cond
+       [(< (per tight-ws) HAIR) #f]     ; it will not go; caller must retry
+       [else
+        ;; So loose the line will gape: fill it out with fuller spellings
+        ;; before resorting to great gouts of white between the words. Only
+        ;; so far, though -- a compositor stretching three words has done his
+        ;; part, and the rest of the white simply goes between them.
+        (define loose-limit (if (>= pressure 0) EN-QUAD (* THICK 3/2)))
+        (define-values (final-ws all-notes)
+          (let loop ([ws tight-ws] [notes tight-notes] [rounds 0])
+            (cond
+              [(or (<= (per ws) loose-limit) (>= rounds 3)) (values ws notes)]
+              [else
+               (define need (exact-floor (* (- (per ws) loose-limit) gaps)))
+               (define-values (new note) (stretch cv ws need))
+               (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
+
+        (define white (- measure indent (content-width final-ws)))
+        (define spaces (apportion white gaps))
+        ;; Moxon's account of justifying is quantised: the compositor sets with
+        ;; one space between words, and if the line will not fill he "puts a
+        ;; Space more between every Word", and if still not, another -- "So
+        ;; that here is now three Spaces, and strictly, good Workmanship will
+        ;; not allow more" (ii. 214-15). Three thick spaces make an em, so a
+        ;; gap wider than an em is beyond what he would own to, and has a name:
+        ;; "These wide Whites are by Compositers (in way of Scandal) call'd
+        ;; Pidgeon-holes."
+        (define pigeon? (> (per final-ws) EM-QUAD))
+        (define note
+          (string-append
+           (if pigeon? "pigeon-holes — " "")
+           (describe-space (exact-round (per final-ws)))
+           (if (null? all-notes) ""
+               (string-append "; " (string-join (reverse all-notes) "; ")))))
+        (make-line final-ws spaces indent measure 'prose #:justification note)])]))
+
+(define (content-width ws) (for/sum ([w (in-list ws)]) (word-width w)))
+
+;; The widest space in the box that still lets the line into the stick.
+(define (fitting-space ws room)
+  (define gaps (max 0 (sub1 (length ws))))
+  (cond
+    [(zero? gaps) NORMAL-SPACE]
+    [else (max HAIR (min NORMAL-SPACE (quotient (- room (content-width ws)) gaps)))]))
+
+(define (quad-out ws measure indent kind)
+  (define space (fitting-space ws (- measure indent)))
+  (define gaps (max 0 (sub1 (length ws))))
+  (make-line ws (make-list gaps space) indent measure kind
+             #:quadded? #t
+             #:justification
+             (if (and (< space NORMAL-SPACE) (positive? gaps))
+                 (format "quadded out, spaced with ~a" (describe-space space))
+                 "quadded out")))
+
+(define (range-right ws measure kind)
+  (define space (fitting-space ws (- measure EM-QUAD)))
+  (define gaps (max 0 (sub1 (length ws))))
+  (define content (+ (content-width ws) (* space gaps)))
+  (define indent (max 0 (min (max EM-QUAD (- measure content)) (- measure content))))
+  (make-line ws (make-list gaps space) indent measure kind))
+
+;; ---------------------------------------------------------------------------
+;; Reading the copy
+;; ---------------------------------------------------------------------------
+
+;; The misreading rates in the profiles were set by eye, and are certainly too
+;; high for the same reason the foul-case rate was: a printed page carries far
+;; fewer errors than one imagines. The Q/F comparison bounds it loosely --
+;; differences of several letters run at about 4 per thousand words, and most
+;; of those are spelling variants rather than misreadings -- so this scales the
+;; profiles down. It is a weaker calibration than the foul-case one and should
+;; be treated as such.
+(define MISREAD-SCALE 0.2)
+
+(define (read-copy c text)
+  (define prof (comp-profile c))
+  (define-values (pairs errors)
+    (misread (string-split text) (comp-rng c)
+             (* MISREAD-SCALE (profile-misread-rate prof))
+             (* MISREAD-SCALE (profile-memorial-rate prof))))
+  (for ([e (in-list errors)])
+    (add-event! c (make-event 'copy
+                              (format "~a: ~s for ~s" (misreading-note e)
+                                      (misreading-reading e)
+                                      (misreading-original e))
+                              #:compositor (profile-name prof)
+                              #:before (misreading-original e)
+                              #:after (misreading-reading e))))
+  pairs)
+
+;; ---------------------------------------------------------------------------
+;; Prose
+;; ---------------------------------------------------------------------------
+
+;; Fill the stick, line by line, and justify each one exactly.
+;;
+;; The compositor fills greedily and then asks whether one more word might be
+;; pinched in. He finds out by trying it: the trial is a fresh line built from
+;; fresh words, and if it will not lift he simply keeps the other one.
+;; Break a word across two lines with a hyphen.
+;;
+;; The division is made after a vowel where one can be found, which is roughly
+;; the rule the manuals give and entirely the rule compositors followed when
+;; the manuals were not to hand. Both halves keep the copy-word they came
+;; from, so nothing is lost to the record by dividing.
+(define (divide c w room)
+  (define cv (comp-conventions c))
+  (define text (word-final w))
+  (define n (string-length text))
+  (cond
+    [(< n 5) (values #f #f)]
+    [else
+     (let try ([cut (- n 2)])
+       (cond
+         [(< cut 2) (values #f #f)]
+         [else
+          (define head-text (string-append (substring text 0 cut) "-"))
+          (cond
+            [(> (width-of-word (apply-conventions cv head-text)) room)
+             (try (sub1 cut))]
+            [(not (memv (char-downcase (string-ref text (sub1 cut)))
+                        '(#\a #\e #\i #\o #\u)))
+             (try (sub1 cut))]
+            [else
+             (define head (make-word c (cons (word-copy w) head-text)))
+             (define tail (make-word c (cons (word-copy w) (substring text cut))))
+             (add-event! c (make-event
+                            'justification
+                            (format "~a divided as ~a / ~a"
+                                    (word-copy w) head-text (substring text cut))
+                            #:compositor (profile-name (comp-profile c))))
+             (values (struct-copy word head
+                                  [causes (list "word divided at the end of the line")])
+                     (struct-copy word tail
+                                  [causes (list "second half of a divided word")]))])])) ]))
+
+(define (set-prose c text spec pressure
+                   #:first-indent? [first-indent? #t]
+                   #:lead [lead '()])
+  (define cv (comp-conventions c))
+  (define prof (comp-profile c))
+  (define g (comp-rng c))
+  (define measure (page-spec-measure spec))
+  (define made
+    (append lead (for/list ([p (in-list (read-copy c text))]) (make-word c p))))
+
+  (let loop ([rest made] [indent (if first-indent? (page-spec-prose-indent spec) 0)]
+             [out '()])
+    (cond
+      [(null? rest) (reverse out)]
+      [else
+       (define room (- measure indent))
+       ;; greedy fill
+       ;; Fill at the NORMAL space, not the finest one.
+       ;;
+       ;; This was hair spaces, and it was wrong in a way no internal test
+       ;; could see. A compositor fills his stick expecting an ordinary word
+       ;; space between the words; only when the line then refuses to justify
+       ;; does he go finer. Filling at the hair space crams in a word that
+       ;; does not really fit, and every line then has to be squeezed --
+       ;; which silently reverted the man's own spellings, since `doe' shrinks
+       ;; to `do'. Setting the whole of Much Ado that way drove the long forms
+       ;; *below* the level in the copy, when the real Folio has them far
+       ;; above it. Moxon has it the other way round: one space, and a second
+       ;; and third put in where the line falls short (ii. 214-15).
+       (define-values (span0 rest0)
+         (let fill ([xs rest] [acc '()] [width 0])
+           (cond
+             [(null? xs) (values (reverse acc) '())]
+             [else
+              (define extra (+ (word-width (car xs))
+                               (if (null? acc) 0 NORMAL-SPACE)))
+              (if (and (pair? acc) (> (+ width extra) room))
+                  (values (reverse acc) xs)
+                  (fill (cdr xs) (cons (car xs) acc) (+ width extra)))])))
+       ;; a single word wider than the whole measure still has to go somewhere
+       (define span (if (null? span0) (list (car rest)) span0))
+       (define remaining (if (null? span0) (cdr rest) rest0))
+       (define last? (null? remaining))
+
+       ;; How much white is left once the line is filled at ordinary spacing.
+       (define slack
+         (- room (content-width span)
+            (* NORMAL-SPACE (max 0 (sub1 (length span))))))
+
+       ;; Divide the next word into the line.
+       ;;
+       ;; Moxon says a line ends "with a Word or a Syllable and a Division"
+       ;; -- division is one of the two normal ways to end a line, not a last
+       ;; resort. It had been a last resort here, firing only for a word wider
+       ;; than the entire measure, so the simulation never divided at all
+       ;; while the Folio divides on about one line in twenty. A compositor
+       ;; who cannot divide must pad instead, and the padding fell on his
+       ;; spellings.
+       ;; The coefficient is calibrated, not chosen: the Folio divides on
+       ;; 5.1 lines in a hundred across these five scenes of Much Ado (74
+       ;; divisions in 1,449 lines of type), and the quarto on 5.6.
+       (define split
+         (and (not last?)
+              (> slack THICK)
+              (< (rnd g) (* 1.5 (profile-contracts prof)))
+              (let-values ([(h t) (divide c (car remaining) (- slack NORMAL-SPACE))])
+                (and h (cons h t)))))
+
+       (cond
+         [split
+          (define line (justify cv (append span (list (car split)))
+                                measure indent pressure))
+          (if line
+              (loop (cons (cdr split) (cdr remaining)) 0 (cons line out))
+              (loop remaining 0
+                    (cons (or (justify cv span measure indent pressure)
+                              (quad-out span measure indent 'prose))
+                          out)))]
+
+         ;; would one more word go in, if the line were pinched?
+         [(and (not last?)
+               (< (rnd g) (min 0.95 (+ (profile-contracts prof) (* pressure 0.4))))
+               (justify cv (append span (list (car remaining)))
+                        measure indent pressure))
+          => (lambda (line) (loop (cdr remaining) 0 (cons line out)))]
+
+         [last?
+          (reverse (cons (quad-out span measure indent 'prose) out))]
+
+         [else
+          ;; drop a word at a time until the line justifies. The greedy fill
+          ;; makes this succeed at once in all but pathological cases.
+          (let retry ([span span] [back '()])
+            (define line (justify cv span measure indent pressure))
+            (cond
+              [line (loop (append back remaining) 0 (cons line out))]
+              [(> (length span) 1)
+               (retry (take span (sub1 (length span)))
+                      (cons (last span) back))]
+              [else (loop (append back remaining) 0
+                          (cons (quad-out span measure indent 'prose) out))]))])])))
+
+;; ---------------------------------------------------------------------------
+;; Verse
+;; ---------------------------------------------------------------------------
+
+;; A verse line is one line of type, quadded out; if it will not go in it is
+;; squeezed, and if it still will not go in it is turned over.
+(define (set-verse c text spec pressure #:lead [lead '()])
+  (define cv (comp-conventions c))
+  (define measure (page-spec-measure spec))
+  (define indent (page-spec-verse-indent spec))
+  (define room (- measure indent))
+  (define made0
+    (append lead (for/list ([p (in-list (read-copy c text))]) (make-word c p))))
+  (define gaps (max 0 (sub1 (length made0))))
+
+  ;; The compositor's first resort is thinner spaces; only when the finest
+  ;; space in the box will not save him does he begin altering words.
+  (define-values (made notes)
+    (let loop ([ws made0] [notes '()] [rounds 0])
+      (define needed (+ (content-width ws) (* HAIR gaps)))
+      (cond
+        [(or (<= needed room) (>= rounds 10)) (values ws notes)]
+        [else
+         (define-values (new note) (squeeze cv ws (- needed room)))
+         (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
+
+  (define needed (+ (content-width made) (* HAIR gaps)))
+  (cond
+    [(<= needed room)
+     (define line (quad-out made measure indent 'verse))
+     (list (if (null? notes)
+               line
+               (struct-copy set-line line
+                            [justification
+                             (string-append "squeezed into the measure: "
+                                            (string-join (reverse notes) "; "))])))]
+    [else
+     ;; The tail is turned over on to the next line, ranged to the right so
+     ;; that the reader can see it is not a new verse line. A very long line
+     ;; may be turned over more than once.
+     (add-event! c (make-event
+                    'justification
+                    (format "verse line turned over (~a em over the measure)"
+                            (real->decimal-string (ems (- needed room)) 2))
+                    #:compositor (profile-name (comp-profile c))))
+     (let loop ([rest made] [first? #t] [out '()])
+       (cond
+         [(null? rest) (reverse out)]
+         [else
+          (define span
+            (let fill ([xs rest] [acc '()] [width 0])
+              (cond
+                [(null? xs) (reverse acc)]
+                [else
+                 (define extra (+ (word-width (car xs))
+                                  (if (null? acc) 0 THIN)))
+                 (if (and (pair? acc) (> (+ width extra) room))
+                     (reverse acc)
+                     (fill (cdr xs) (cons (car xs) acc) (+ width extra)))])))
+          (define span* (if (null? span) (list (car rest)) span))
+          (define line
+            (if first?
+                (struct-copy set-line (quad-out span* measure indent 'verse)
+                             [justification
+                              "line too long for the measure; turned over"])
+                (struct-copy set-line (range-right span* measure 'verse)
+                             [turned-over? #t]
+                             [justification "turn-over, ranged to the right"])))
+          (loop (drop rest (length span*)) #f (cons line out))]))]))
+
+;; ---------------------------------------------------------------------------
+;; The other furniture
+;; ---------------------------------------------------------------------------
+
+(define (set-stage-direction c text spec)
+  (define measure (page-spec-measure spec))
+  (define ws (for/list ([p (in-list (read-copy c text))])
+               (make-word c p #:italic? #t)))
+  (define content (+ (content-width ws) (* NORMAL-SPACE (max 0 (sub1 (length ws))))))
+  (cond
+    [(<= content (- measure EM-QUAD))
+     (list (struct-copy set-line
+                        (make-line ws (make-list (max 0 (sub1 (length ws))) NORMAL-SPACE)
+                                   (max 0 (- measure content)) measure 'stage
+                                   #:italic? #t #:quadded? #t)
+                        [justification "direction ranged right in italic"]))]
+    [else
+     (define sub (page-spec (page-spec-measure spec) (page-spec-lines spec)
+                            (page-spec-verse-indent spec) 0))
+     (for/list ([l (in-list (set-prose c text sub 0.0 #:first-indent? #f))])
+       (struct-copy set-line l
+                    [kind 'stage] [italic? #t]
+                    [words (for/list ([w (in-list (set-line-words l))])
+                             (struct-copy word w [italic? #t]))]))]))
+
+;; A head is set in capitals and centred, and broken over as many lines as the
+;; measure requires -- capitals are wide, and a title very soon outruns the
+;; stick.
+(define (set-heading c text spec)
+  (define measure (page-spec-measure spec))
+  (define ws (for/list ([p (in-list (read-copy c text))])
+               (make-word c (cons (string-upcase (car p)) (string-upcase (cdr p))))))
+  (define rows
+    (let loop ([xs ws] [cur '()] [width 0] [out '()])
+      (cond
+        [(null? xs) (reverse (if (null? cur) out (cons (reverse cur) out)))]
+        [else
+         (define extra (+ (word-width (car xs)) (if (null? cur) 0 EN-QUAD)))
+         (if (and (pair? cur) (> (+ width extra) measure))
+             (loop xs '() 0 (cons (reverse cur) out))
+             (loop (cdr xs) (cons (car xs) cur) (+ width extra) out))])))
+  (for/list ([row (in-list rows)])
+    (define gaps (max 0 (sub1 (length row))))
+    (define content (+ (content-width row) (* EN-QUAD gaps)))
+    (make-line row (make-list gaps EN-QUAD)
+               (max 0 (quotient (- measure content) 2)) measure 'heading
+               #:quadded? #t #:justification "head, centred")))
+
+;; Prefixes are abbreviated to whatever the line can spare, which is why the
+;; same speaker is Ham., Ha. and Hamlet. within a page -- and why prefix forms
+;; are themselves compositorial evidence. The cut is made after a consonant:
+;; Ros. not Rose., Qu. not Quee., which is how the Folio's forms actually look.
+(define (speech-prefix c name pressure)
+  (define g (comp-rng c))
+  (define n0 (cond [(<= pressure 0) 4] [(> pressure 0.6) 2] [else 3]))
+  (define n (if (< (rnd g) 0.18) (min (string-length name) (+ n0 2)) n0))
+  (define cut (substring name 0 (max 2 (min (string-length name) n))))
+  (define trimmed
+    (if (string=? cut name)
+        cut
+        (let loop ([s cut])
+          (if (and (> (string-length s) 2)
+                   (memv (char-downcase (string-ref s (sub1 (string-length s))))
+                         '(#\a #\e #\i #\o #\u)))
+              (loop (substring s 0 (sub1 (string-length s))))
+              s))))
+  (define wd (make-word c (string-append trimmed ".") #:italic? #t))
+  (struct-copy word wd [causes (list "speech prefix abbreviated")]))
+
+;; ---------------------------------------------------------------------------
+;; Picking the sorts
+;; ---------------------------------------------------------------------------
+
+(define (pick-line! c l page lineno)
+  (define prof (comp-profile c))
+  (define tc (comp-case c))
+  (define new-words
+    (for/list ([w (in-list (set-line-words l))] [wi (in-naturals)])
+      (define pieces '())
+      (define printed
+        (apply string-append
+               (for/list ([ch (in-string (word-composed w))] [ci (in-naturals)])
+                 (define d (pick! tc ch #:careless (profile-care prof)))
+                 (when (draw-piece d)
+                   (set! pieces (cons (cons ci (draw-piece d)) pieces))
+                   (note-recurrence! tc (draw-piece d)
+                                     (list page lineno wi ci)))
+                 (when (and (draw-event d) (not (eq? (draw-event d) 'distinctive)))
+                   (add-event!
+                    c (make-event (case (draw-event d)
+                                    [(shortage wrong-fount) 'shift]
+                                    [else 'accident])
+                                  (draw-detail d)
+                                  #:page page #:line lineno #:word wi
+                                  #:compositor (profile-name prof)
+                                  #:before (string (draw-wanted d))
+                                  #:after (draw-got d))))
+                 (draw-got d))))
+      (struct-copy word w [printed printed] [pieces (reverse pieces)])))
+  (struct-copy set-line l [words new-words]))
+
+(module+ test
+  (require rackunit)
+
+  (define cv (conventions #t #t #t #t))
+  (define (fresh [name "B"] [seed 1623])
+    (make-comp (hash-ref PROFILES name)
+               (make-type-case #:rng (make-rng seed))
+               cv (make-rng seed)))
+
+  (define spec (page-spec (* 21 UNITS-PER-EM) 38 0 EM-QUAD))
+
+  ;; No line may overhang the measure. `make-line' enforces it, so a run that
+  ;; produces one raises rather than printing something unlockable.
+  (define c (fresh))
+  (define prose
+    (set-prose c (string-append
+                  "That if you be honest and fair, your honesty should admit "
+                  "no discourse to your beauty. Could beauty have better "
+                  "commerce than with honesty?")
+               spec 0.0))
+  (check-true (>= (length prose) 3) "prose breaks into several lines")
+  ;; Nothing is lost between copy and stick.
+  (check-equal? (for/sum ([l (in-list prose)]) (length (set-line-words l)))
+                24 "every word of the copy is standing in type")
+  (for ([l (in-list prose)])
+    (check-true (<= (line-set-width l) (page-spec-measure spec))
+                (format "line overhangs: ~s" (line-text l))))
+
+  ;; Every justified line but the last fills the measure exactly.
+  (for ([l (in-list (drop-right prose 1))])
+    (check-equal? (line-set-width l) (page-spec-measure spec)
+                  (format "line does not fill the measure: ~s" (line-text l))))
+
+  ;; Verse turned over rather than overhanging.
+  (define c2 (fresh "A"))
+  (define verse
+    (set-verse c2 (string-append "And thus the native hue of resolution is "
+                                 "sicklied over with the pale cast of thought")
+               spec 0.0))
+  (check-true (>= (length verse) 2) "a long verse line is turned over")
+  (for ([l (in-list verse)])
+    (check-true (<= (line-set-width l) (page-spec-measure spec))))
+
+  ;; Trying a word and rejecting it leaves the originals untouched. This is
+  ;; the bug class that the Python snapshot/restore existed to prevent.
+  (define c3 (fresh))
+  (define w1 (make-word c3 "cannot"))
+  (define w2 (revise cv w1 "canot" "justification: double n reduced"))
+  (check-equal? (word-final w1) "cannot" "the original word is unchanged")
+  (check-equal? (word-final w2) "canot")
+  (check-true (< (word-width w2) (word-width w1)))
+  (check-equal? (word-causes w1) '())
+
+  ;; Squeezing returns a new list and does not touch the old one.
+  (define ws (list (make-word c3 "and") (make-word c3 "the") (make-word c3 "cannot")))
+  (define-values (ws2 note) (squeeze cv ws 1))
+  (check-not-false ws2)
+  (check-equal? (map word-final ws) '("and" "the" "cannot"))
+  (check-false (equal? (map word-final ws) (map word-final ws2)))
+
+  ;; A speech prefix is cut after a consonant.
+  (check-equal? (word-final (speech-prefix c3 "Queen" 0.0)) "Qu.")
+  (check-equal? (word-final (speech-prefix c3 "Rosencrantz" 0.5)) "Ros.")
+
+  ;; A head too wide for the measure is broken, not overhung.
+  (define heads (set-heading c3 "The Tragedie of Hamlet Prince of Denmarke" spec))
+  (check-true (>= (length heads) 2))
+  (for ([l (in-list heads)])
+    (check-true (<= (line-set-width l) (page-spec-measure spec)))))

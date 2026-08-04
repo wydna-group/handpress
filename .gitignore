@@ -1,0 +1,8 @@
+compiled/
+doc/
+out/
+out-*/
+*.bak
+
+# Not mine to publish
+samples/defenders/
