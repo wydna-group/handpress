@@ -417,6 +417,40 @@ carried on the @racket[book].}
 Per sort: the bill it started with, the fewest ever left in the box, and the
 proportion out at the worst moment.}
 
+@subsection{Signatures, and who puts them there}
+@declare-exporting[handpress/book]
+
+Signing is the compositor's act, not the imposer's. McKerrow finds the
+Elizabethan men ``normally finished a page of work at a time, adding catchword
+and signature (if necessary) before proceeding to the next one'', rather than
+setting long columns and dividing them into pages afterwards. So the signature
+in the direction line is put there by whoever set the page.
+
+And the number of leaves signed was that man's own habit. McKerrow: ``there
+cannot be said to have been in early times any definite practice ... we may
+have anything from the first two to every leaf.'' Hinman saw the same at
+Jaggard's, where in a quarto one man might sign the first two leaves and
+another the first three.
+
+This program used to sign half the leaves of every gathering, uniformly,
+because the format said so. Now each workman has his own count. Set one man to
+work and the book is regular; set five and it is not:
+
+@verbatim|{
+  [A]          Signed: first 3 leaf/leaves of each gathering, recto
+  [A,B,C,D,E]  Signed: first 2 to 3 leaves, recto; irregular, the men
+                       differing in the habit
+}|
+
+@margin-note{Which man signed how many, neither source says. Assigning
+particular counts to Hinman's A and B would manufacture exactly the kind of
+evidence this program exists to test, so the count is drawn per workman from
+the run's seed. The phenomenon is attested; the attribution is not.}
+
+Both the Bowers signing statement and the summary in the report now count what
+the sheets actually show rather than asserting the format's rule, which is what
+a descriptive bibliographer does and what this program was not doing.
+
 @subsection{The corrector}
 @declare-exporting[handpress/corrector]
 

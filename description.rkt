@@ -52,15 +52,46 @@
           (book-collation b) leaves))
 
 ;; Bowers's $-notation: "$3 signed A-D" means the first three leaves of each
-;; of gatherings A to D carry a signature. Ours are regular, so the statement
-;; is short.
+;; of gatherings A to D carry a signature.
+;;
+;; This is counted from the pages rather than assumed from the format, because
+;; the signing is not regular. It is the compositor who signs -- McKerrow finds
+;; the men "adding catchword and signature (if necessary)" as each page was
+;; finished -- and the number of leaves he signed was his own habit: "there
+;; cannot be said to have been in early times any definite practice ... we may
+;; have anything from the first two to every leaf." A descriptive bibliographer
+;; reports what the sheets show, so where the men disagree the statement says
+;; so instead of averaging them away.
 (define (signing-statement b)
   (define fmt (book-fmt b))
-  (define n (signed-leaves fmt))
-  (define first (signature-letter 0))
-  (define last (signature-letter (sub1 (book-gatherings b))))
-  (format "$~a signed ~a; rom. caps with arabic numerals; versos unsigned."
-          n (if (string=? first last) first (format "~a-~a" first last))))
+  (define per-gathering
+    (for/list ([gat (in-range (book-gatherings b))])
+      (define sigs
+        (for/list ([p (in-list (book-pages b))]
+                   #:when (and (= (page-ref-gathering (page-pref p)) gat)
+                               (not (string=? (page-signature p) ""))))
+          (page-ref-leaf (page-pref p))))
+      (if (null? sigs) 0 (apply max sigs))))
+  (define counts (sort (remove-duplicates (filter positive? per-gathering)) <))
+  (define first-sig (signature-letter 0))
+  (define last-sig (signature-letter (sub1 (book-gatherings b))))
+  (define range
+    (if (string=? first-sig last-sig)
+        first-sig
+        (format "~a-~a" first-sig last-sig)))
+  (cond
+    [(null? counts)
+     (format "unsigned throughout (~a)." range)]
+    [(= 1 (length counts))
+     (format "$~a signed ~a; rom. caps with arabic numerals; versos unsigned."
+             (car counts) range)]
+    [else
+     ;; irregular: give the range and note it, as Bowers requires
+     (format (string-append "$~a-~a signed ~a (irregularly: the number of "
+                            "leaves signed varies from gathering to gathering, "
+                            "as the men who set them differed in the habit); "
+                            "rom. caps with arabic numerals; versos unsigned.")
+             (car counts) (apply max counts) range)]))
 
 (define (type-line b)
   (define fmt (book-fmt b))

@@ -593,8 +593,26 @@
                   (book-format-columns fmt)
                   (* (book-format-lines fmt) (book-format-columns fmt)))
           (format "  Formes:      ~a" (length (book-formes b)))
-          (format "  Signed:      first ~a leaf/leaves of each gathering, recto"
-                  (signed-leaves fmt))
+          ;; counted from the sheets, not assumed from the format: signing is
+          ;; the compositor's own act and the number of leaves he signed was
+          ;; his own habit
+          (let* ([per (for/list ([gat (in-range (book-gatherings b))])
+                        (define ls
+                          (for/list ([p (in-list (book-pages b))]
+                                     #:when (and (= (page-ref-gathering (page-pref p)) gat)
+                                                 (not (string=? (page-signature p) ""))))
+                            (page-ref-leaf (page-pref p))))
+                        (if (null? ls) 0 (apply max ls)))]
+                 [ns (sort (remove-duplicates (filter positive? per)) <)])
+            (cond
+              [(null? ns) "  Signed:      unsigned throughout"]
+              [(= 1 (length ns))
+               (format "  Signed:      first ~a leaf/leaves of each gathering, recto"
+                       (car ns))]
+              [else
+               (format (string-append "  Signed:      first ~a to ~a leaves, recto; "
+                                      "irregular, the men differing in the habit")
+                       (car ns) (apply max ns))]))
           "  Catchwords:  on every page"
           ""
           "  Stints, in the order the pages were actually set:")

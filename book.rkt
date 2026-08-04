@@ -308,6 +308,29 @@
                          (make-rng (+ (house-seed h) (* 7 i)))))))
   (define order (house-compositor-names h))
 
+  ;; How many leaves of a gathering each man signs.
+  ;;
+  ;; Signing is the compositor's own act, not the imposer's: McKerrow finds
+  ;; that the men "normally finished a page of work at a time, adding catchword
+  ;; and signature (if necessary) before proceeding to the next one". And the
+  ;; count was not fixed -- "there cannot be said to have been in early times
+  ;; any definite practice ... we may have anything from the first two to every
+  ;; leaf". Hinman saw the same inconsistency at Jaggard's, where in a quarto
+  ;; one man might sign the first two leaves and another the first three.
+  ;;
+  ;; So the practice varies by the man. Which man signed how many, neither
+  ;; source says, and assigning particular counts to Hinman's A and B would be
+  ;; manufacturing evidence of exactly the kind this program is supposed to
+  ;; test. The count is therefore drawn per workman from the run's seed: the
+  ;; phenomenon is attested, the attribution is not.
+  (define signs-for
+    (for/hash ([name (in-list order)] [i (in-naturals)])
+      (define base (signed-leaves fmt))
+      (define gg (make-rng (+ (house-seed h) 3001 (* 13 i))))
+      (values name
+              (max 1 (min (book-format-leaves fmt)
+                          (+ base (if (< (rnd gg) 0.4) 1 0)))))))
+
   (define segments0
     (cast-off units (page-spec-measure spec) capacity g (house-cast-off-accuracy h)))
   (define n-pages (length segments0))
@@ -431,7 +454,9 @@
                             (+ (* gathering (book-format-pages fmt)) pos)))))
            (define units-for-page (append carry (cast-off-segment-units seg)))
            (define-values (pg leftover)
-             (set-page h man units-for-page r fm spec capacity))
+             (set-page h man units-for-page r fm spec capacity
+                       (hash-ref signs-for (profile-name (comp-profile man))
+                                 (signed-leaves fmt))))
            (hash-set! pages (cons gathering page-no) pg)
            (set! stint-log (cons (cons (profile-name (comp-profile man))
                                        (page-ref-signature r))
@@ -498,7 +523,7 @@
 
 ;; ---------------------------------------------------------------------------
 
-(define (set-page h man units r fm spec capacity)
+(define (set-page h man units r fm spec capacity signs)
   (define sig (page-ref-signature r))
   (define has-copy?
     (for/or ([u (in-list units)]) (not (eq? (copy-unit-kind u) 'blank))))
@@ -547,7 +572,7 @@
                 (profile-name (comp-profile man))
                 #f ""
                 (if (and (page-ref-recto? r)
-                         (<= (page-ref-leaf r) (signed-leaves (house-fmt h))))
+                         (<= (page-ref-leaf r) signs))
                     (page-ref-signed r) "")
                 pressure note (forme-name fm) omitted)
           (if (null? leftover) '() (leftover-units man units spec capacity))))
