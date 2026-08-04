@@ -210,7 +210,63 @@ def main():
         for k in sorted(varied):
             forms = " ".join('("%s" . %d)' % (w, c) for w, c in varied[k])
             f.write('  ("%s" %s)\n' % (k, forms))
-        f.write(" ))\n")
+        # Which spelling in each group is the one still current. This is what
+        # lets the same setting be shown either way -- the compositor's heere
+        # read as here -- which is all a modernised edition is. Without a
+        # modern wordlist there is nothing to say, and the section is empty.
+        f.write(" )\n (modern\n")
+        # (old . current) pairs.
+        #
+        # Two different moves are recorded here, and both are resolved now
+        # rather than at run time. The first is the shared letters: u and v
+        # are one letter in this printing, v written initially and u medially
+        # whatever the sound, so `vpon' is `upon' while `very' stays `very'.
+        # No positional rule can tell those apart -- the swap has to be tried
+        # against a modern wordlist and kept only if a word comes out. The
+        # wordlist is a build input and is not redistributed; only its verdict
+        # on these public-domain forms is.
+        def swap(s, a, b):
+            return "".join(b if c == a else c for c in s)
+
+        letters = 0
+        for w in sorted(counts):
+            if w in modern:
+                continue
+            for cand in (swap(w, "v", "u"), swap(w, "u", "v"),
+                         swap(w, "i", "j"),
+                         swap(swap(w, "v", "u"), "i", "j"),
+                         swap(swap(w, "u", "v"), "i", "j")):
+                if cand != w and cand in modern:
+                    f.write('  ("%s" . "%s")\n' % (w, cand))
+                    letters += 1
+                    break
+        print("%d forms modernised by undoing u/v and i/j" % letters,
+              file=sys.stderr)
+        pairs = 0
+        for k in sorted(varied):
+            forms = [w for w, _ in varied[k]]
+            mod = [w for w in forms if w in modern]
+            if len(mod) != 1:
+                continue                  # ambiguous, or nothing current
+            for w in forms:
+                if w != mod[0]:
+                    f.write('  ("%s" . "%s")\n' % (w, mod[0]))
+                    pairs += 1
+        # The attested forms that are still current words. Needed at run time
+        # to undo u/v and i/j, which no positional rule can do: in this
+        # printing u and v are one letter, v written initially and u medially
+        # whatever the sound, so `vpon' is `upon' but `very' is `very'. The
+        # only way back is to try the swap and see whether a real word comes
+        # out. This is a subset of the corpus, so it carries the corpus's own
+        # public-domain standing.
+        f.write(" (current\n  ")
+        cur = sorted(w for w in counts if w in modern)
+        for w in cur:
+            f.write('"%s" ' % w)
+        f.write(")\n ))\n")
+        print("%d old spellings mapped to a current one" % pairs, file=sys.stderr)
+        print("%d attested forms are still current words" % len(cur),
+              file=sys.stderr)
 
     print("%d files, %d attested forms, %d variant groups -> %s"
           % (files, len(counts), len(varied), args.out))

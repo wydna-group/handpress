@@ -34,16 +34,26 @@
          attested? frequency variants-of
          commonest-form longer-forms-of shorter-forms-of
          lexicon-skeleton
-         load-standard current-standard standard? sanctioned?)
+         load-standard current-standard standard? sanctioned?
+         modern-form current-word? undo-uv-ij)
 
 (define-runtime-path default-lexicon-file "samples/ado-lexicon.rktd")
 (define-runtime-path default-standard-file "samples/mulcaster.rktd")
 
 ;; `attested' maps a form to its count; `groups' maps a skeleton to the forms
 ;; sharing it, commonest first; `index' maps a form to its skeleton.
-(struct lexicon (attested groups index source) #:transparent)
+;; `modern' maps an old spelling to the one still current, where the corpus
+;; records both. It is the same evidence read the other way: the group that
+;; lets a compositor choose `heere' over `here' for a tight line also lets the
+;; page be shown as `here' afterwards, which is all a modernised edition is.
+;; `current' holds those attested forms that are still words today, which is
+;; what lets u/v and i/j be undone. No positional rule can do it: in this
+;; printing u and v are one letter, v written initially and u medially
+;; whatever the sound, so `vpon' is `upon' while `very' is `very'. The only
+;; way back is to try the swap and keep it if a real word comes out.
+(struct lexicon (attested groups index modern current source) #:transparent)
 
-(define EMPTY (lexicon (hash) (hash) (hash) "none"))
+(define EMPTY (lexicon (hash) (hash) (hash) (hash) (set) "none"))
 
 ;; The same reduction the builder applies, and it has to stay the same or the
 ;; index will not find its own groups. See tools/build-lexicon.py for why the
@@ -75,7 +85,13 @@
      (define index
        (for*/hash ([(k forms) (in-hash groups)] [f (in-list forms)])
          (values (car f) k)))
-     (lexicon attested groups index (path->string path))]))
+     (define modern
+       (for/hash ([p (in-list (section 'modern))])
+         (values (car p) (cdr p))))
+     (define current
+       (for/set ([w (in-list (section 'current))] #:when (string? w))
+         w))
+     (lexicon attested groups index modern current (path->string path))]))
 
 (define current-lexicon (make-parameter (load-lexicon)))
 
@@ -120,6 +136,32 @@
 ;; the only thing that produced it was a rule.
 (define (sanctioned? w [lx (current-lexicon)] [st (current-standard)])
   (or (attested? w lx) (standard? w st)))
+
+(define (current-word? w [lx (current-lexicon)])
+  (set-member? (lexicon-current lx) (string-downcase w)))
+
+;; Undo the shared letters: v written for u, i written for j.
+;;
+;; Tried, not deduced. The swaps are applied and kept only if what comes out
+;; is a word still in use, so `vpon' becomes `upon' and `iudge' becomes
+;; `judge', while `very' and `it' are left alone because the swap would spoil
+;; them. Where the corpus has never seen the word either way, nothing is done:
+;; a guess here would be the same fault this program exists to remove.
+(define (undo-uv-ij w [lx (current-lexicon)])
+  (or (modern-form w lx) w))
+
+;; The spelling still current, where the corpus records one. Case is carried
+;; over from the form given, so `Heere' comes back `Here'.
+(define (modern-form w [lx (current-lexicon)])
+  (define hit (hash-ref (lexicon-modern lx) (string-downcase w) #f))
+  (cond
+    [(not hit) #f]
+    [(and (> (string-length w) 0)
+          (char-upper-case? (string-ref w 0))
+          (> (string-length hit) 0))
+     (string-append (string (char-upcase (string-ref hit 0)))
+                    (substring hit 1))]
+    [else hit]))
 
 (define (attested? w [lx (current-lexicon)])
   (hash-has-key? (lexicon-attested lx) (string-downcase w)))
@@ -191,4 +233,18 @@
   ;; `here' reduce to the same skeleton, and only the modern wordlist keeps
   ;; them apart -- which is why tools/build-lexicon.py wants one.
   (check-false (member "her" (map car (variants-of "here" lx)))
-               "her is a different word from here, not a spelling of it"))
+               "her is a different word from here, not a spelling of it")
+
+  ;; Reading the setting the other way. u and v are one letter here, v written
+  ;; initially and u medially whatever the sound, so no positional rule can
+  ;; undo it -- the swap is tried and kept only if a word comes out.
+  (parameterize ([current-lexicon lx])
+    (check-equal? (undo-uv-ij "vpon") "upon")
+    (check-equal? (undo-uv-ij "haue") "have")
+    (check-equal? (undo-uv-ij "very") "very" "the swap would spoil this one")
+    (check-equal? (undo-uv-ij "Vrsley") "Vrsley"
+                  "a name the corpus does not know is left alone")
+    ;; and the spelling itself, where both forms are recorded
+    (check-equal? (modern-form "heere") "here")
+    (check-equal? (modern-form "Heere") "Here" "case is carried over")
+    (check-false (modern-form "here") "already current")))

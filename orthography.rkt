@@ -73,7 +73,7 @@
          SPELLING-TESTS SPELLING-PATTERNS
          head-form preferred pattern-form pattern-witness
          contractions expansions
-         apply-conventions strip-conventions
+         apply-conventions strip-conventions modernise modernise-word
          apply-uv apply-ij apply-long-s apply-ligatures
          split-point match-case)
 
@@ -534,6 +534,44 @@
 ;; out of English printing well before Jaggard.
 (struct conventions (long-s? uv? ij? ligatures? [scribal? #:auto])
   #:transparent #:auto-value #f)
+
+;; ---------------------------------------------------------------------------
+;; Reading the setting the other way
+;;
+;; A modernised edition does not undo the printing. It shows the same setting
+;; in a spelling the reader has: the compositor still chose `heere' for a tight
+;; line, and the line is still tight, but the page can be read as `here'. The
+;; two are the same text differently presented, which is exactly what the TEI
+;; <choice> of <orig> and <reg> encodes, and this produces the <reg> half.
+;;
+;; Three things are undone, in order:
+;;
+;;   the letter-forms   long s, u for v, i for j, the ligatures
+;;   the spelling       heere for here, where the corpus records both
+;;   the elisions       rul'd for ruled, which no lexicon will hold
+;;
+;; What cannot be undone is left alone, and silently: a word the corpus has
+;; never seen keeps whatever the compositor gave it, because guessing would be
+;; the same fault this program has spent its life removing.
+;; ---------------------------------------------------------------------------
+
+(define (modernise-word word)
+  (define plain (strip-conventions word))
+  (define-values (core0 tail) (split-point plain))
+  (define core (undo-uv-ij core0))
+  (define lifted (or (modern-form core) core))
+  ;; -'d for -ed is a contraction, not a spelling, so no variant group will
+  ;; record it; the apostrophe is simply filled back in.
+  (define opened
+    (cond
+      [(regexp-match #px"^(.*[^aeiouAEIOU])'d$" lifted)
+       => (lambda (m) (string-append (cadr m) "ed"))]
+      [else lifted]))
+  (string-append opened tail))
+
+(define (modernise s)
+  (regexp-replace* #px"[A-Za-zſ'’ﬀﬁﬂﬃﬄ]+" s
+                   (lambda (w) (modernise-word w))))
 
 (define (apply-conventions cv word)
   (let* ([s word]

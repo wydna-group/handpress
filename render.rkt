@@ -10,14 +10,26 @@
 
 (require racket/list racket/string racket/math racket/file
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt" "press.rkt"
-         "description.rkt" "typecase.rkt")
+         "description.rkt" "typecase.rkt"
+         (only-in "orthography.rkt" modernise))
 
 (provide render-line-text render-page-text render-book-text
-         render-page-html render-book-html html-escape)
+         render-page-html render-book-html html-escape
+         show-modernised?)
 
 ;; ---------------------------------------------------------------------------
 ;; Plain text
 ;; ---------------------------------------------------------------------------
+
+;; Whether the page is shown in the spelling it was set in, or in the reader's.
+;;
+;; This changes nothing about the setting: the line is as tight as it ever was
+;; and the compositor still chose the longer form to fill it. Only the letters
+;; the reader sees are different, which is the whole of what a modernised
+;; edition offers -- and the reason the TEI keeps both halves of a <choice>.
+(define show-modernised? (make-parameter #f))
+
+(define (show s) (if (show-modernised?) (modernise s) s))
 
 (define (render-line-text l chars [readings #f] [sig ""] [lineno 0])
   (cond
@@ -32,8 +44,8 @@
          [else
           (define w (car ws))
           (define text
-            (or (and readings (hash-ref readings (list sig lineno i) #f))
-                (word-printed w)))
+            (show (or (and readings (hash-ref readings (list sig lineno i) #f))
+                      (word-printed w))))
           (define col (exact-round (* x scale)))
           (define len*
             (cond

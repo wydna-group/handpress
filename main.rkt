@@ -66,6 +66,7 @@
                        #:numbers? [numbers? #f]
                        #:long-s? [long-s? #t]
                        #:modern-uv? [modern-uv? #f]
+                       #:modern-spelling? [modern-spelling? #f]
                        #:html? [html? #f]
                        #:tei? [tei? #f]
                        #:xslt? [xslt? #f]
@@ -91,6 +92,10 @@
   (define b (set-book h copy kind))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
                        #:edition edition))
+  ;; The setting is finished before this point and is not affected by it. The
+  ;; parameter governs only how the page is shown -- the same forme read in
+  ;; the reader's spelling instead of the compositor's.
+  (show-modernised? modern-spelling?)
   (define facsimile (render-book-text b #:numbers? numbers?))
   (define report (full-report b r names))
 
@@ -166,6 +171,7 @@
   (define numbers? #f)
   (define long-s? #t)
   (define modern-uv? #f)
+  (define modern-spelling? #f)
   (define html? #f)
   (define tei? #f)
   (define xslt? #f)
@@ -207,6 +213,8 @@
      [("--numbers") "number every fifth line of type" (set! numbers? #t)]
      [("--no-long-s") "set short s throughout" (set! long-s? #f)]
      [("--modern-uv") "keep modern u/v and i/j" (set! modern-uv? #t)]
+     [("--modern-spelling") "show the same setting in modern spelling"
+      (set! modern-spelling? #t)]
      [("--html") "also write an HTML facsimile, direct from the type" (set! html? #t)]
      [("--tei") "also write a TEI P5 encoding" (set! tei? #t)]
      [("--xslt") "write the TEI and transform it to HTML with XSLT" (set! xslt? #t)]
@@ -227,6 +235,7 @@
                        #:edition edition #:condition condition
                        #:title title #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
+                       #:modern-spelling? modern-spelling?
                        #:html? html? #:tei? tei? #:xslt? xslt?
                        #:witness witness #:layout layout #:quiet? quiet?)))
 
