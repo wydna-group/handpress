@@ -1,9 +1,11 @@
 ﻿#lang scribble/manual
-@(require (for-label racket/base racket/contract
+@(require scribble/core scriblib/footnote "bib.rkt"
+          (for-label racket/base racket/contract
                      handpress/metrics handpress/typecase handpress/orthography
                      handpress/copytext handpress/corrector handpress/compositor
                      handpress/imposition handpress/book handpress/press
-                     handpress/render handpress/analysis))
+                     handpress/render handpress/analysis handpress/lexicon
+                     handpress/pagination handpress/deviation))
 
 @title{handpress: a simulation of hand-press composition}
 
@@ -720,6 +722,142 @@ facsimile shows. Since the copies were gathered at random from the heaps they
 disagree, so @tt{--witness copya} and @tt{--witness copyb} produce genuinely
 different pages from the same TEI — which is the point of an apparatus.
 
+@section{The lexicon}
+@declare-exporting[handpress/lexicon]
+
+For most of its life this program had no dictionary. Its spelling devices were
+rules — strike off a terminal @tt{-e}, double a consonant, add an @tt{-e} to
+fill out a line — and nothing checked what came out. A rule so arranged will
+produce @tt{theere} and @tt{manne} as readily as @tt{heere} and @tt{doe}, and
+did.
+
+The remedy is not more rules but a reversal of authority. The lexicon says
+which spellings exist; the rules only choose among them. A device that can
+select but not invent cannot fabricate a spelling, however tight the line.
+
+@subsection{What is in it}
+
+@racketmodname[handpress/lexicon] ships with 318,722 spellings attested in
+5,287 books printed between 1580 and 1640, drawn from EEBO-TCP@~cite[eebo-tcp]. They are
+grouped into 45,719 sets of variants of one another, and 18,562 are mapped to
+the form still current.
+
+It answers three questions, and they are genuinely different:
+
+@tabular[#:sep @hspace[2]
+  (list (list @bold{question} @bold{procedure})
+        (list "is this a real spelling?" @racket[attested?])
+        (list "is it one anybody used?" @racket[plausible?])
+        (list "how else was this word spelt?" @racket[variants-of])
+        (list "which spelling is standard?" @racket[commonest-form])
+        (list "which is still current?" @racket[modern-form]))]
+
+@defproc[(attested? [w string?] [lx lexicon? (current-lexicon)]) boolean?]{
+Whether the corpus contains this form at all.}
+
+@defproc[(plausible? [w string?] [lx lexicon? (current-lexicon)]) boolean?]{
+Whether it holds a real share of its own word's occurrences.
+
+This is the more useful test, and a large corpus is what makes the difference
+matter. @tt{theere} occurs seventeen times in 5,287 books against 145,517 for
+@tt{here}, and @tt{wheere} six. Those are not spellings anybody chose; they are
+the sweepings of a very large floor — foreign words, slips, mis-keyings. Set
+beside them @tt{manne} at 1,147 occurrences and @tt{somme} at 467 are real
+usage. The threshold is @racket[plausible-share], one in two hundred, and it is
+a judgement stated in the open rather than buried.@note{This distinction cost
+the author some embarrassment. Working from the 24,000 words of the two
+@emph{Much Ado} texts, I asserted in code, comments and three commit messages
+that nine forms the old rules could produce were ``not early modern spellings
+at all''. Against 5,287 books, six of the nine occur. The claim was true of my
+sample and false of the language, which is the characteristic failure of a
+corpus too small for the question asked of it.}}
+
+@defproc[(variants-of [w string?] [lx lexicon? (current-lexicon)])
+         (listof (cons/c string? exact-integer?))]{
+Every attested spelling of the same word, commonest first. This is what a
+compositor short of room chooses from.}
+
+@defproc[(modern-form [w string?] [lx lexicon? (current-lexicon)])
+         (or/c string? #f)]{
+The spelling still in use, where the corpus records one; @racket[#f] otherwise.
+Drives @tt{--modern-spelling}.}
+
+@subsection{How the variants are grouped}
+
+Without a modern wordlist to anchor it, @tt{her} becomes a spelling of
+@tt{here}. The reduction that correctly joins @tt{heere} to @tt{here} joins
+@tt{here} to @tt{her} by exactly the same steps, and no rule about letters
+distinguishes the two cases. What does distinguish them is that @tt{her} is
+itself a current word, and a current word is not a misspelling of another
+current word.@note{This is the design of @citet[vard], arrived at here
+independently and after making the error it exists to prevent — which is at
+least a good way to understand why a tool is built as it is.}
+
+So the grouping runs in three steps:
+
+@itemlist[#:style 'ordered
+ @item{Reduce each form to a @deftech{skeleton} that collapses the period's
+       orthographic alternations — the shared letters @tt{u}/@tt{v} and
+       @tt{i}/@tt{j}, doubled letters, a terminal @tt{-e}. Forms sharing a
+       skeleton are candidates for one another.}
+ @item{Split each group against a modern wordlist, so that every current word
+       keeps its own variants and takes none of its neighbour's.}
+ @item{Assign each old form to the single nearest current word by edit
+       distance, so @tt{heere} goes to @tt{here} — one letter away — and not
+       also to @tt{her}, which is two.}]
+
+The reduction is deliberately conservative and guarded by length. Without the
+guard it merges @tt{as} with @tt{asse} and @tt{at} with @tt{ate}: different
+words, run together because they happen to differ by a doubled letter and a
+terminal @tt{e}. A false merge is worse than a missed one, because it puts a
+wrong @emph{reading} into the compositor's hand rather than merely a wrong
+spelling.
+
+@margin-note{It still errs. @tt{runne} is assigned to @tt{rune} rather than
+@tt{run}, the first being nearer by edit distance. Nothing about the letters
+separates that case from @tt{heere}/@tt{here}, where distance gives the right
+answer. This is why VARD and its relatives keep a human in the loop, and why
+@tt{--modern-spelling} should be read as approximate.}
+
+@subsection{Rebuilding it}
+
+The shipped lexicon covers 1580–1640. For another period, another language of
+book, or a narrower window, rebuild it. Two commands, and an hour:
+
+@verbatim|{
+# 1.65 GB of TEI XML from Oxford, filtered to a date range by each
+# text's own imprint
+python tools/fetch-eebo.py --dest corpus --from 1580 --to 1640
+
+# a wordlist, from any Hunspell dictionary already on the machine
+python tools/make-wordlist.py path/to/en-GB.dic tools/modern-en.txt
+
+# the lexicon itself
+python tools/build-lexicon.py corpus/texts \
+       -o lexicon/eebo-1580-1640.rktd \
+       --modern tools/modern-en.txt --min 5
+}|
+
+@tabular[#:sep @hspace[2]
+  (list (list @bold{option} @bold{effect})
+        (list @tt{--min} "ignore forms occurring fewer than this many times; a hapax in a keyed corpus is as likely to be a transcription slip as a spelling")
+        (list @tt{--modern} "the wordlist that anchors the grouping. Without it the groups merge different words, and the builder says so")
+        (list @elem{@tt{--from}, @tt{--to}} "printing years, taken from each text's own header rather than a catalogue"))]
+
+A run picks its lexicon in this order: the file named by the
+@envvar{HANDPRESS_LEXICON} environment variable, then the shipped
+@filepath{lexicon/eebo-1580-1640.rktd}, then the small
+@filepath{samples/ado-lexicon.rktd} built from the two @emph{Much Ado} texts.
+The last is kept because it is small enough to read, and because the difference
+between it and the real one is instructive: on the same copy the proportion of
+words altered to fit the measure rises from 8.70 per thousand to 29.38 when a
+corpus is behind it. The compositor then has genuine variants to choose among
+instead of the handful a rule could invent.
+
+@margin-note{The modern wordlist is a build input and is not redistributed.
+Only its verdict on public-domain forms is, which is a judgement about the
+corpus rather than a copy of the dictionary.}
+
 @section{Calibration}
 @declare-exporting[handpress/validate]
 
@@ -738,9 +876,20 @@ full, because it is the only part of this document that is not inference:
 The measurements come from the 1600 quarto of @emph{Much Ado About Nothing}
 and the 1623 Folio text set from it: 11,990 words of real copy-text and a real
 setting from it, which is the only kind of evidence that can settle any of
-this. Hinman established the descent; Halliwell-Phillipps inferred that the
-copy was ``a play-house copy of the edition of 1600, an exemplar of it, with a
-few manuscript directions and notes'', which is the corrector's stage exactly.
+this.@note{Transcriptions from @citet[ise]. @citet[hinman] establishes the
+descent; Halliwell-Phillipps, quoted in @citet[furness], inferred that the copy
+was ``a play-house copy of the edition of 1600, an exemplar of it, with a few
+manuscript directions and notes'' — which is the corrector's stage exactly. In
+the same appendix P. A. Daniel judges that most of the variation is the
+printer's rather than the annotator's, which is the assumption this program had
+been making without warrant.}
+
+@bold{A caution about the size of this evidence.} Eleven thousand words is
+enough to catch an error of an order of magnitude and not enough to settle a
+question of usage. Several confident claims made from it — see the footnote to
+@racket[plausible?] — turned out to be true of the sample and false of the
+language. Where a figure below rests on the two @emph{Much Ado} texts alone, it
+should be read as a bound rather than a measurement.
 
 @bold{The instructive failure.} The program used to produce @tt{implēētatiō}
 for @emph{implementation}, stacking tilde contractions on a single word, and
@@ -822,29 +971,48 @@ exist.''
 So the honest use of this machine is not to confirm the method but to break
 it. Only the failures are evidence; the successes are arithmetic.}
 
-@section{Reading}
+@section{The sources}
 
-@itemlist[
- @item{W. W. Greg, @emph{The Shakespeare First Folio} (1955)}
- @item{Charlton Hinman, @emph{The Printing and Proof-Reading of the First
-       Folio of Shakespeare}, 2 vols (1963)}
- @item{Joseph Moxon, @emph{Mechanick Exercises on the Whole Art of Printing}
-       (1683–4)}
- @item{Philip Gaskell, @emph{A New Introduction to Bibliography} (1972); and
-       ``The lay of the case'', @emph{Studies in Bibliography} xxii (1969)}
- @item{Percy Simpson, @emph{Proof-Reading in the Sixteenth, Seventeenth and
-       Eighteenth Centuries} (1935; repr. 1970, with Harry Carter's foreword,
-       which is where most of the corrections to Simpson actually are)}
- @item{Fredson Bowers, @emph{Principles of Bibliographical Description}
-       (1949) — the form of the description}
- @item{Peter W. M. Blayney, @emph{The Texts of King Lear and their Origins}
-       (1982) — Okes's compositors, and copy preparation}
- @item{R. B. McKerrow, @emph{An Introduction to Bibliography for Literary
-       Students} (1927) — imposition}
- @item{H. H. Furness, ed., @emph{Much Ado About Nothing}, New Variorum
-       (1899) — the collation the calibration is measured against}
- @item{D. F. McKenzie, ``Printers of the Mind'', @emph{Studies in
-       Bibliography} xxii (1969) — on the limits of all of this}]
+Everything this program does is drawn from somewhere, and the sources are not
+of one kind. The distinction matters more than an alphabetical list suggests,
+because it decides how much weight a claim will bear.
+
+@bold{The manuals} — @citet[moxon], @citet[smith] — were written by printers
+for printers. They are the only sources that describe the work from inside, and
+they describe it as it @emph{ought} to be done. The lay of the case, the
+quantities of the spaces, the reaching, the reader who speaks the copy aloud:
+all of that is Moxon's, and where this program models a procedure rather than
+an outcome it is usually following him.
+
+@bold{The archives} — @citet[mckenzie-cambridge], and the proof-sheets behind
+@citet[simpson] — are records made at the time for other purposes, which is
+what makes them evidence rather than inference. Nearly every correction this
+program has had to make came from the first of them. Its production times, its
+compositors' output in ens, its finding that setting by formes ``was followed
+occasionally but was certainly not normal'', and its Vouchers showing that men
+took over from one another in long blocks rather than alternating, between them
+overturned four separate assumptions in the code.
+
+@bold{The analyses} — @citet[greg], @citet[hinman], @citet[bowers],
+@citet[blayney], @citet[mckerrow], and behind them @citet[satchell] — are
+reconstructions from the printed books themselves. This is the New
+Bibliography, and this program stands in an odd relation to it: it implements
+the method in order to test it, and reports where it fails. @citet[hinman] is
+the largest single debt — the compositor spellings, the type-recurrence
+method, the proof-reading, the pagination errors, and the caveat about
+justification that the whole method turns on.
+
+@bold{The objection} — @citet[mckenzie-printers] — is the paper this program
+cannot answer and does not try to. See @secref["The_objection"].
+
+@bold{The texts and data} are @citet[ise] for the old-spelling transcriptions
+used in calibration, @citet[furness] for the collation they are measured
+against, @citet[mulcaster] for what the period held correct spelling to be, and
+@citet[eebo-tcp] for what was actually printed. @citet[vard] is not used but
+solves the same variant-grouping problem, and its design settles a question met
+here independently.
+
+@(generate-bibliography #:sec-title "Bibliography")
 
 @section{What the archives say about rates}
 

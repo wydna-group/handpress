@@ -6,6 +6,6 @@
   "A simulation of hand-press composition, and of the New Bibliography run back over the result")
 
 (define deps '("base" "rackunit-lib"))
-(define build-deps '("scribble-lib" "racket-doc" "rackunit-lib"))
+(define build-deps '("scribble-lib" "racket-doc" "rackunit-lib" "scribble-doc"))
 
 (define scribblings '(("scribblings/handpress.scrbl" ())))

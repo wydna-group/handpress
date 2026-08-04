@@ -25,6 +25,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [Installing](#installing)
 - [Command line](#command-line)
 - [What is modelled](#what-is-modelled)
+- [The lexicon](#the-lexicon)
 - [Calibration](#calibration)
 - [Running it backwards](#running-it-backwards)
 - [What it does not do](#what-it-does-not-do)
@@ -105,6 +106,8 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--fount` | condition of the type: `new`, `used`, `worn`, `foul` |
 | `--skeletons` | how many skeleton formes are in use |
 | `--formes-standing` | formes of type standing before distribution |
+| `--stint-sheets` | sheets a man sets before the frame changes hands (default: by shop size) |
+| `--paging-error` | how freely the paging goes wrong, 0–1 (default 0.04) |
 
 ### At press
 
@@ -125,6 +128,7 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--numbers` | number every fifth line |
 | `--no-long-s` | set short `s` throughout |
 | `--modern-uv` | keep modern u/v and i/j |
+| `--modern-spelling` | show the same setting in modern spelling |
 | `--pages`, `--quiet` | how much to print to the terminal |
 
 ## What is modelled
@@ -212,6 +216,82 @@ was free. `--stint-sheets` sets the mean block length.
 The uncomfortable consequence: those boundaries fall where the shop's *other*
 commitments put them, so "the compositorial pattern within any such book will
 rarely have any internal significance." It records the house's other work.
+
+### The lexicon
+
+For most of its life this program had no dictionary. Its spelling devices were
+rules — strike off a terminal `-e`, double a consonant, add an `-e` to fill a
+line — and nothing checked the result. A rule so arranged produces `theere` and
+`manne` as readily as `heere` and `doe`, and did.
+
+The remedy is a reversal of authority. **The lexicon says which spellings
+exist; the rules only choose among them.** A device that can select but not
+invent cannot fabricate a spelling, however tight the line.
+
+`lexicon/eebo-1580-1640.rktd` holds **318,722 spellings attested in 5,287 books
+printed 1580–1640**, in 45,719 variant groups, with 18,562 mapped to the form
+still current. It answers three different questions:
+
+| question | procedure |
+|---|---|
+| is this a real spelling? | `attested?` |
+| is it one anybody actually used? | `plausible?` |
+| how else was this word spelt? | `variants-of` |
+| which spelling is standard? | `commonest-form` |
+| which is still current? | `modern-form` |
+
+`plausible?` is the useful one, and a big corpus is what makes the difference
+matter. `theere` occurs 17 times against 145,517 for `here` — not a spelling
+anybody chose, but the sweepings of a very large floor. Beside it `manne` at
+1,147 and `somme` at 467 are real usage. The threshold is one occurrence in two
+hundred, stated in the open rather than buried.
+
+**How the grouping works.** Without a modern wordlist to anchor it, `her`
+becomes a spelling of `here` — the reduction that correctly joins `heere` to
+`here` joins `here` to `her` by identical steps. What separates them is that
+`her` is itself a current word, and a current word is not a misspelling of
+another. So:
+
+1. reduce each form to a **skeleton** collapsing the period's alternations —
+   `u`/`v`, `i`/`j`, doubled letters, terminal `-e`
+2. split each group against a modern wordlist, so every current word keeps its
+   own variants and takes none of its neighbour's
+3. assign each old form to the single **nearest** current word by edit distance,
+   so `heere` goes to `here` (one letter) and not also to `her` (two)
+
+It still errs: `runne` is assigned to `rune` rather than `run`, being nearer.
+Nothing about the letters separates that from `heere`/`here`, where distance
+gives the right answer — which is why VARD and its relatives keep a human in
+the loop, and why `--modern-spelling` is approximate.
+
+**Rebuilding it** — for another period, another kind of book, or a narrower
+window. Two commands and about an hour:
+
+```sh
+# 1.65 GB of TEI XML from Oxford, filtered by each text's own imprint date
+python tools/fetch-eebo.py --dest corpus --from 1580 --to 1640
+
+# a wordlist, from any Hunspell dictionary already on the machine
+python tools/make-wordlist.py path/to/en-GB.dic tools/modern-en.txt
+
+# the lexicon itself
+python tools/build-lexicon.py corpus/texts \
+       -o lexicon/eebo-1580-1640.rktd \
+       --modern tools/modern-en.txt --min 5
+```
+
+`--min` ignores forms below a count (a hapax in a keyed corpus is as likely a
+transcription slip as a spelling); `--modern` supplies the anchor, and the
+builder warns if you omit it.
+
+A run picks its lexicon in this order: `$HANDPRESS_LEXICON`, then the shipped
+one, then `samples/ado-lexicon.rktd` — 2,370 forms from the two *Much Ado*
+texts. The last is kept because it is small enough to read and because the
+difference is instructive: on the same copy, words altered to fit the measure
+rise from 8.70 per thousand to 29.38 once a real corpus is behind them.
+
+The modern wordlist is a **build input** and is not redistributed; only its
+verdict on public-domain forms is.
 
 ### Spelling habit
 
@@ -310,23 +390,75 @@ report, every time.
 
 ## Sources
 
-- W. W. Greg, *The Shakespeare First Folio* (1955)
-- Charlton Hinman, *The Printing and Proof-Reading of the First Folio of
-  Shakespeare*, 2 vols (1963) — the compositor spellings and the justification
-  caveat
-- Joseph Moxon, *Mechanick Exercises on the Whole Art of Printing* (1683) —
-  the lay of the case, the spaces, the reaching
-- Philip Gaskell, *A New Introduction to Bibliography* (1972) — the bill of
-  letter, casting off, formats
-- Fredson Bowers, *Principles of Bibliographical Description* (1949) — the
+They are not of one kind, and the difference decides how much weight a claim
+will bear.
+
+### The manuals — written by printers, for printers
+
+The only sources that describe the work from inside. They describe it as it
+*ought* to be done, which is their strength and their limit.
+
+- **Joseph Moxon**, *Mechanick Exercises on the Whole Art of Printing*
+  (1683–4) — the lay of the case, the quantities of the spaces, the reaching,
+  and the reader who speaks the copy aloud to the corrector
+- **John Smith**, *The Printer's Grammar* (1755) — later, and useful mainly
+  where it confirms Moxon
+
+### The archives — records made at the time, for other purposes
+
+Which is what makes them evidence rather than inference. Nearly every
+correction this program has had to make came from the first of these.
+
+- **D. F. McKenzie**, *The Cambridge University Press 1696–1712: A
+  Bibliographical Study*, 2 vols (1966) — production times, compositors'
+  output in ens, the finding that setting by formes was *not* normal, and the
+  Vouchers showing men taking over from one another in long blocks
+- **Percy Simpson**, *Proof-Reading in the Sixteenth, Seventeenth and
+  Eighteenth Centuries* (1935; repr. 1970 with Harry Carter's foreword, where
+  most of the corrections to Simpson actually are)
+
+### The analyses — reconstructions from the printed books
+
+The New Bibliography. This program stands oddly towards it: implementing the
+method in order to test it, and reporting where it fails.
+
+- **Charlton Hinman**, *The Printing and Proof-Reading of the First Folio of
+  Shakespeare*, 2 vols (1963) — the largest single debt. Compositor spellings,
+  type recurrence, proof-reading, the pagination errors, and the caveat about
+  justification the whole method turns on
+- **W. W. Greg**, *The Shakespeare First Folio* (1955)
+- **Fredson Bowers**, *Principles of Bibliographical Description* (1949) — the
   form of the description
-- Peter W. M. Blayney, *The Texts of King Lear and their Origins* (1982) —
-  Okes's compositors, copy preparation
-- D. F. McKenzie, "Printers of the Mind" (1969) — the objection
-- R. B. McKerrow, *An Introduction to Bibliography for Literary Students*
-  (1927) — imposition
-- H. H. Furness, ed., *Much Ado About Nothing*, New Variorum (1899) — the
-  collation used for calibration
+- **Peter W. M. Blayney**, *The Texts of King Lear and their Origins* (1982) —
+  Okes's compositors, copy preparation, and the practice of tabulating
+  justified and unjustified occurrences apart
+- **R. B. McKerrow**, *An Introduction to Bibliography for Literary Students*
+  (1927) — imposition, signing, catchwords
+- **Philip Gaskell**, *A New Introduction to Bibliography* (1972) — the bill
+  of letter, casting off, formats, and the shop-size rule for dividing copy;
+  and "The lay of the case", *Studies in Bibliography* xxii (1969)
+- **Thomas Satchell** (1920), extended by Willoughby — the first of the
+  spelling tests, which Hinman built on
+
+### The objection
+
+- **D. F. McKenzie**, "Printers of the Mind", *Studies in Bibliography* xxii
+  (1969) — the paper this program cannot answer and does not try to
+
+### Texts and data
+
+- **Internet Shakespeare Editions** — old-spelling transcriptions of the
+  *Much Ado* quarto and Folio, used for calibration
+- **H. H. Furness**, ed., *Much Ado About Nothing*, New Variorum (1899) — the
+  collation those measurements are checked against
+- **Richard Mulcaster**, *The First Part of the Elementarie* (1582) — the
+  General Table of some 8,000 words in the spellings he recommends, and the
+  rule that a terminal E lengthens the vowel before it
+- **EEBO-TCP Phase I** — public domain since 2015 under the ODC-PDDL; the
+  5,287 texts printed 1580–1640 are the attestation lexicon
+- **Baron & Rayson**, *VARD 2* (2008) — not used, but it solves the same
+  variant-grouping problem, and its design settles a question met here
+  independently
 
 ## Licence
 
