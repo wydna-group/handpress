@@ -349,9 +349,24 @@ principal reason for the shared setting was not to make more economical use of
 a limited supply of type but to find work for a waiting compositor'' (i. 116).
 Labour scheduling, not metal.
 
+@bold{But Hinman argues the opposite, for the Folio, and he is not guessing
+either.} His case is that Jaggard simply did not own enough type: ``shortage
+of type may have rendered it impracticable to set the book in the conventional
+way. If so, the size of the supply was one of the factors which made the
+alternative method desirable'' — setting by formes needing ``only enough type
+to set four pages''.
+
+So the two authorities disagree, and the disagreement is not a muddle. They
+are describing different shops fifty years apart: a London trade house
+printing an unusually large folio against its type stock, and a university
+press with time on its hands and men to keep busy. Economy of type can be
+decisive in one and irrelevant in the other. What cannot be done is to take
+either as a general law of the hand press, which is what this program's
+documentation was doing.
+
 So the table above says what setting by formes would have saved a house that
-did it. It does not establish that any house did it for that reason, and the
-one shop whose records survive mostly did not do it at all. Hinman's evidence
+did it. Whether any given house did it for that reason is a question about
+that house. Hinman's evidence
 that the Folio @emph{was} set by formes is separate and stands on its own
 footing — it rests on type recurrence, not on economy — and McKenzie names
 that same test as the one that would have settled his own question: ``One

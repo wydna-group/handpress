@@ -57,6 +57,12 @@
    "do"      (hash "A" "doe"  "B" "do"  "C" "doe"  "D" "doe")
    "go"      (hash "A" "goe"  "B" "go"  "C" "goe"  "D" "goe")
    "here"    (hash "A" "here" "B" "heere" "C" "heere" "D" "here")
+   ;; A fourth test Hinman uses in the same way as the three above, and one
+   ;; that also separates C from B: "'howre' is an A spelling, B almost
+   ;; invariably using 'houre'", and two howre spellings in a disputed page
+   ;; "make C the likelier of the two even here, since B characteristically
+   ;; spells this word 'houre'".
+   "hour"    (hash "A" "howre" "B" "houre" "C" "howre")
    "grief"   (hash "A" "griefe"   "B" "greefe")
    "grieve"  (hash "A" "grieve"   "B" "greeve")
    "traitor" (hash "A" "traytor"  "B" "traitor")

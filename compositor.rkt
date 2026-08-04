@@ -160,14 +160,30 @@
                      "Okes's second hand, in four short stints across H-L. "
                      "Sets do, go, heere and -or, and avoids the apostrophe "
                      "where B would use it"))
-   "E" (profile "E" (tests-for "A") 2.6 0.030 0.020 0.55 #f 0.45 "A"
+   ;; E's spellings are B's, not A's. Hinman states the confusion twice and
+   ;; in both directions: "material set by Compositor E has been confused with
+   ;; work set by B", and the older attributions assigned "much or all of E's
+   ;; work in the Tragedies to B" -- just as C's work was confused with A's.
+   ;; This program had E carrying A's habits, which inverted the very mistake
+   ;; the scholarship made.
+   ;;
+   ;; What separates E from B is not direction but strength. E "tended to
+   ;; follow his copy far more closely than B (or than A, or C, or even D)",
+   ;; and "none of his preferences can be said to be strong ones", so "his
+   ;; spelling is likely not only to be mixed but to reflect many of the
+   ;; peculiarities of the materials from which he worked". A low
+   ;; habit-strength is exactly that: a man whose page reports his copy rather
+   ;; than himself.
+   "E" (profile "E" (tests-for "B") 2.6 0.030 0.020 0.55 #f 0.28 "B"
                 (string-append
                  "the prentice hand; a substitute rather than a regular, who "
                  "stepped in to keep the Folio going when one of the other "
                  "men was wanted elsewhere, and who had no case or working "
-                 "space of his own. His spellings are A's, so no spelling "
-                 "test will separate them -- which is why the third hand went "
-                 "unnoticed until Hinman found it in the type"))))
+                 "space of his own. He leans the same way as B on do, go and "
+                 "heere but leans weakly, following his copy more closely "
+                 "than any of the others, so a spelling test reads his pages "
+                 "as B's -- which is how his stint went unnoticed until "
+                 "Hinman found it in the type"))))
 
 (struct page-spec (measure lines verse-indent prose-indent) #:transparent)
 

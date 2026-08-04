@@ -165,14 +165,22 @@ Setting by formes from the middle of the gathering outward (5, 8 / 6, 7 /
 3, 10 …) lets each sheet go to press and come back to the boxes before the next
 is begun.
 
-That is a calculation, not a motive. McKenzie searched the Cambridge Vouchers
-for the practice and found setting by formes "was followed occasionally but was
-certainly *not* normal" (i. 115); and where work *was* shared, the reason was
-likely "not to make more economical use of a limited supply of type but to find
-work for a waiting compositor" (i. 116) — labour scheduling, not metal. The
-table says what the practice would have saved a house that followed it, not why
-any house did. Hinman's evidence that the Folio *was* set by formes rests on
-type recurrence and stands separately.
+That is a calculation, and the two authorities disagree about whether it was
+ever a motive.
+
+Hinman says it was, for the Folio: Jaggard did not own enough type, so
+"shortage of type may have rendered it impracticable to set the book in the
+conventional way," setting by formes needing "only enough type to set four
+pages". McKenzie searched the Cambridge Vouchers and found the practice "was
+followed occasionally but was certainly *not* normal" (i. 115); and where work
+*was* shared, the reason was likely "not to make more economical use of a
+limited supply of type but to find work for a waiting compositor" (i. 116) —
+labour scheduling, not metal.
+
+They are describing different shops fifty years apart — a London trade house
+printing an outsized folio against its stock, and a university press with men
+to keep busy. Type economy can be decisive in one and irrelevant in the other.
+What the table cannot support is either as a general law of the hand press.
 
 ### Justification
 
