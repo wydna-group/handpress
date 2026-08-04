@@ -176,7 +176,13 @@ def main():
                 continue
             best = min(mods, key=lambda m: (distance(w, m), -freq[m]))
             buckets[best].append((w, c))
-        return [v for v in buckets.values() if len(v) > 1] or [forms]
+        # No fallback to the unsplit group. If every modern word in the group
+        # turns out to have no variants of its own, the right answer is that
+        # there are no variants here at all -- not that the whole group is one
+        # word after all. Returning [forms] put `not' and `note' back together
+        # (436 and 12 occurrences, both ordinary English words), and a device
+        # then set `note' for `not' on the authority of the lexicon itself.
+        return [v for v in buckets.values() if len(v) > 1]
 
     varied = {}
     for k, v in groups.items():

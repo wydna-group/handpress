@@ -48,9 +48,26 @@
   (regexp-match? #px"^[A-Za-zſ']+$" s))
 
 (define (warranted? produced base)
-  (or (not (spelling? produced))
-      (sanctioned? produced)
-      (not (sanctioned? base))))
+  (define group (map car (variants-of base)))
+  (cond
+    ;; signs are not the lexicon's business
+    [(not (spelling? produced)) #t]
+    ;; Where the corpus knows this word's spellings, the produced form must be
+    ;; one of them. Merely being *a* word is not enough: `not' and `note' are
+    ;; both English, and a device that turns one into the other has changed
+    ;; the reading, not the spelling. This is the same trap as `her' for
+    ;; `here', and the variant groups are what avoid it.
+    [(pair? group)
+     (and (member (string-downcase produced) group) #t)]
+    ;; A word the corpus knows, with no variants recorded, was set one way
+    ;; only. Then any alteration is wrong, and it is not enough that the
+    ;; result happens to be some other English word -- that is exactly how
+    ;; `not' came to be set as `note'.
+    [(attested? base) #f]
+    ;; Otherwise the corpus has nothing to say, so the weaker test applies and
+    ;; the rules keep their old freedom. With a lexicon of a few thousand
+    ;; forms that is most words; with a corpus behind it, few.
+    [else (or (sanctioned? produced) (not (sanctioned? base)))]))
 
 (provide (struct-out variant) (struct-out conventions)
          SPELLING-TESTS SPELLING-PATTERNS
@@ -430,9 +447,17 @@
      (and (hash-has-key? long-forms lcore)
           (add (string-append (match-case core (hash-ref long-forms lcore)) tail)
                (format "full form ~a" (hash-ref long-forms lcore))))
-     ;; terminal -e added to a word ending in a consonant
+     ;; Terminal -e added to a word ending in a consonant.
+     ;;
+     ;; Not after s. Mulcaster's rule is that the terminal E lengthens the
+     ;; vowel before it -- his own example is mad and made -- and a final s is
+     ;; almost always a plural or a possessive, where there is no vowel to
+     ;; lengthen and no such form ever stood. Left in, this device turned
+     ;; `marks' into `markse', `wars' into `warse' and `man's' into `man'se',
+     ;; and since the long s is medial in all three the page then showed
+     ;; `markſe' and `warſe'. Nothing of the kind was ever set.
      (and (> len 2)
-          (memv (string-ref lcore (sub1 len)) (string->list "bdfgklmnprstvz"))
+          (memv (string-ref lcore (sub1 len)) (string->list "bdfgklmnprtvz"))
           (not (hash-has-key? long-forms lcore))
           (add (string-append core "e" tail) "terminal -e added"))
      ;; -all for -al, -ll for -l

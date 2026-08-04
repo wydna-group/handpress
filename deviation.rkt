@@ -235,14 +235,25 @@
               "octavo takes far more pages than folio")
 
   ;; And the rates follow the format rather than being fixed. The quarto's
-  ;; 21-em measure leaves room, so the man's own habits show; the narrower
-  ;; measures squeeze him and the line speaks instead. This inversion is the
-  ;; whole reason for measuring per run.
+  ;; 21-em measure leaves room and its fitting rate is the lowest of the
+  ;; three; the narrower folio column and octavo page force the compositor's
+  ;; hand oftener. That the numbers move at all with the format is the whole
+  ;; reason for measuring per run.
+  ;;
+  ;; The ordering of habit against fitting is deliberately not asserted. It
+  ;; used to be -- fitting exceeded habit in folio -- until the spelling
+  ;; devices were gated on the lexicon, which cut fitting by some sixty per
+  ;; cent because most of what the program had been calling justification was
+  ;; unattested forms. What survives is a lower bound: the lexicon holds a few
+  ;; thousand forms, so many real variants are unknown to it too, and the
+  ;; figure should rise again when a corpus is behind it.
   (define (rate h k) (/ (exact->inexact (hash-ref h k)) (hash-ref h 'words)))
-  (check-true (> (rate q 'habit) (rate q 'fitting))
-              "in quarto the man outweighs the measure")
-  (check-true (> (rate f 'fitting) (rate f 'habit))
-              "in folio the measure outweighs the man")
+  (check-true (< (rate q 'fitting) (rate o 'fitting))
+              "the wide quarto measure forces fewer alterations than the octavo")
+  (check-true (> (- (apply max (map (lambda (h) (rate h 'fitting)) (list f q o)))
+                    (apply min (map (lambda (h) (rate h 'fitting)) (list f q o))))
+                 0.001)
+              "the fitting rate is a property of the run, not a constant")
 
   ;; A narrower measure divides more words.
   (define (div h) (/ (exact->inexact (hash-ref h 'divided)) (hash-ref h 'lines)))
