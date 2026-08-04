@@ -95,13 +95,36 @@ so the strain falls where the prose is. What makes the practice workable at
 all is that early spelling is @emph{elastic}: ``In the days when abbreviations
 were to some extent optional copy was to some extent elastic'' (Harry Carter).
 
+@bold{The error has to run both ways.} This closed a segment whenever the next
+unit would carry the estimate past the page, so a page was never allotted more
+copy than it held and every error ran short. Measured across the samples, every
+page came out spun out or exact and none was crowded.
+
+That is not a small inaccuracy. It silently disabled three separate mechanisms
+downstream: the branch that drops copy for want of room, the report's count of
+dropped lines, and the catchword mismatch — each of which then looked like
+working code that simply never fired.
+
+The man marking up the copy judges by eye how much manuscript makes a page,
+and when the surplus looks small he commits it and is sometimes wrong. So a
+unit that overruns may still be taken in, with a probability that falls away as
+the surplus grows: a line over is easily missed, and the rare four- or
+five-line misjudgement is what actually costs text, because there is not that
+much white on the page to take out. He is wrong oftener with prose than with
+verse, which is Gaskell's point and the reason @tt{slip} exists.
+
 @defproc[(cast-off [units (listof copy-unit?)] [measure exact-integer?]
                    [lines-per-page exact-integer?] [g pseudo-random-generator?]
                    [accuracy real? 0.93])
          (listof cast-off-segment?)]{
-Measures the copy out into pages, imperfectly. @racket[accuracy] scales the
-difficulty; it does not level it, since the kind of copy matters more than the
-skill of the man.}
+Measures the copy out into pages, imperfectly, and in both directions.
+@racket[accuracy] scales the difficulty; it does not level it, since the kind
+of copy matters more than the skill of the man.
+
+On the @emph{Much Ado} prose at the default accuracy this now gives twelve
+crowded pages against twelve spun out. Dropped copy stays rare — the crowding
+devices absorb most of the strain, which is what they are for — but it happens,
+and when it does the catchword left facing the gap no longer answers.}
 
 @subsection{Justification}
 @declare-exporting[handpress/compositor]
@@ -437,15 +460,11 @@ This program took the catchword from the next page's first printed word, which
 guarantees the two always agree. @racket[add-catchwords] now prefers the copy
 reading where the following page dropped any.
 
-@margin-note{Which currently changes nothing observable, and the reason is
-worth recording. @racket[cast-off] closes a segment @emph{before} adding the
-unit that would overflow it, so a page is never allocated more copy than it
-holds; the setter then caps at capacity. Page pressure is therefore always
-zero or negative — spun out or exact, never crowded — no copy is ever dropped,
-and the mismatch McKerrow describes cannot arise. Real casting off errs both
-ways. Until that is fixed the catchword derivation is right in principle and
-inert in practice, and the report's count of non-answering catchwords will read
-zero for the same reason.}
+This was inert until the casting off was made to err in both directions (see
+@secref["Casting_off"]). With that repaired the diagnostic appears where it
+should — at @tt{--cast-off 0.6} on the @emph{Much Ado} prose, @tt{E4r} catches
+@tt{but} from the copy while @tt{E4v} opens @tt{Change}, because five lines
+went missing between them.
 
 @subsection{Signatures, and who puts them there}
 @declare-exporting[handpress/book]

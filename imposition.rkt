@@ -204,8 +204,33 @@
                                   (hash-ref slip (copy-unit-kind u) 1.0))))
              (max 0 (+ est0 (rnd-choice g '(-1 1))))
              est0))
+       ;; Where the boundary falls, and which way the error runs.
+       ;;
+       ;; This used to close a segment whenever the next unit would carry the
+       ;; estimate past the page, so a page was never allotted more copy than
+       ;; it held. The error could then only ever be short: measured across the
+       ;; samples every page came out spun out or exact and none was crowded,
+       ;; which made the omission branch, the report's count of dropped lines,
+       ;; and the catchword mismatch all unreachable.
+       ;;
+       ;; Real casting off errs both ways. The man marking up the copy is
+       ;; judging by eye and by count how much manuscript makes a page, and
+       ;; when the surplus looks small he commits it -- and is sometimes wrong.
+       ;; He is wrong oftener with prose than with verse, which is Gaskell's
+       ;; point and the reason `slip' exists.
+       (define over (- (+ used est) lines-per-page))
+       ;; The bigger the surplus the likelier he is to see it, so the chance of
+       ;; committing it falls away as it grows. A one-line overrun is easily
+       ;; missed and gets absorbed by taking out a white line; the rare
+       ;; four- or five-line misjudgement is what actually costs text, because
+       ;; there is not that much white on the page to take out.
+       (define misjudges?
+         (and (> over 0) (<= over 6)
+              (< (rnd g) (* 2.0 (- 1.0 accuracy)
+                            (hash-ref slip (copy-unit-kind u) 1.0)
+                            (/ 1.0 over)))))
        (cond
-         [(and (> (+ used est) lines-per-page) (pair? current))
+         [(and (> over 0) (pair? current) (not misjudges?))
           (loop us '() 0
                 (cons (cast-off-segment (length segments) (reverse current) used "")
                       segments))]
@@ -289,6 +314,28 @@
   ;; gathering standing.
   (check-equal? (setting-order FOLIO-IN-SIXES 0 #t) '(5 8 6 7 3 10 4 9 1 12 2 11))
   (check-equal? (setting-order FOLIO-IN-SIXES 0 #f) '(1 2 3 4 5 6 7 8 9 10 11 12))
+
+  ;; Casting off must be able to err in both directions.
+  ;;
+  ;; The rule used to close a segment before any unit that would carry the
+  ;; estimate past the page, so a page could never be allotted more copy than
+  ;; it held and every error ran short. That silently disabled the crowding
+  ;; devices, the omission branch, and the catchword mismatch. A one-sided
+  ;; error is not a small inaccuracy here; it removes a whole class of
+  ;; evidence, so it is worth a test of its own.
+  (let ()
+    (define (segment-lengths acc seed)
+      (define g (make-rng seed))
+      (define units
+        (for/list ([i (in-range 400)])
+          (copy-unit 'prose (make-string 60 #\a) i #f)))
+      (for/list ([s (in-list (cast-off units 2400 38 g acc))])
+        (cast-off-segment-estimated-lines s)))
+    (define ls (append (segment-lengths 0.75 1) (segment-lengths 0.75 2)))
+    (check-true (for/or ([n (in-list ls)]) (> n 38))
+                "some page is cast off long")
+    (check-true (for/or ([n (in-list ls)]) (< n 38))
+                "some page is cast off short"))
 
   ;; Every page of a gathering belongs to exactly one forme.
   (for ([fmt (in-list (list QUARTO OCTAVO FOLIO-IN-SIXES))])

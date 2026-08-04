@@ -660,7 +660,38 @@
                                  out))])))
 
 (module+ test
-  (require rackunit)
+  (require rackunit racket/file racket/runtime-path)
+
+  (define-runtime-path ado-sample "samples/ado/_all-q1600.txt")
+
+  ;; The chain from a mis-cast page to a catchword that does not answer.
+  ;;
+  ;; Each link here was unreachable until the casting off was made to err in
+  ;; both directions: no page was ever over-full, so no copy was dropped, so
+  ;; the catchword always agreed with the page it faced. McKerrow's diagnostic
+  ;; -- "a correct catchword in cases where the opening words of the next page
+  ;; are wrong" -- could not occur. This pins all three.
+  (let ()
+    (define txt (file->string ado-sample))
+    (define b (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
+                                    #:seed 1 #:cast-off-accuracy 0.6)
+                        txt 'prose))
+    (define ps (book-pages b))
+    (check-true (for/or ([p (in-list ps)]) (> (page-pressure p) 0))
+                "some page is crowded")
+    (check-true (for/or ([p (in-list ps)]) (< (page-pressure p) 0))
+                "some page is spun out")
+    (check-true (for/or ([p (in-list ps)]) (pair? (page-omitted p)))
+                "copy is dropped where the page will not hold it")
+    (check-true
+     (for/or ([p (in-list ps)] [n (in-list (cdr ps))])
+       (define opens
+         (for/or ([l (in-list (page-all-lines n))])
+           (and (pair? (set-line-words l))
+                (word-printed (car (set-line-words l))))))
+       (and opens (not (string=? (page-catchword p) ""))
+            (not (string=? (page-catchword p) opens))))
+     "a catchword does not answer the page it faces"))
 
   (define sample
     (string-append
