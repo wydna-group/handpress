@@ -27,15 +27,17 @@
 ;;; the mechanism and too thin to be relied on. Point the builder at a slice of
 ;;; EEBO-TCP for a real one.
 
-(require racket/list racket/string racket/runtime-path)
+(require racket/list racket/string racket/set racket/runtime-path)
 
 (provide (struct-out lexicon)
          load-lexicon current-lexicon
          attested? frequency variants-of
          commonest-form longer-forms-of shorter-forms-of
-         lexicon-skeleton)
+         lexicon-skeleton
+         load-standard current-standard standard? sanctioned?)
 
 (define-runtime-path default-lexicon-file "samples/ado-lexicon.rktd")
+(define-runtime-path default-standard-file "samples/mulcaster.rktd")
 
 ;; `attested' maps a form to its count; `groups' maps a skeleton to the forms
 ;; sharing it, commonest first; `index' maps a form to its skeleton.
@@ -76,6 +78,48 @@
      (lexicon attested groups index (path->string path))]))
 
 (define current-lexicon (make-parameter (load-lexicon)))
+
+;; ---------------------------------------------------------------------------
+;; The standard, as against the practice
+;;
+;; Mulcaster's General Table (1582) is the other half of the evidence, and it
+;; answers a different question. The corpus records what compositors set; the
+;; table records what the period held to be right. They disagree exactly where
+;; one would hope: the table has `here' and `do' but not `heere', `doe',
+;; `goe', `sinne', `downe' or `breake', every one of which the corpus attests
+;; in quantity.
+;;
+;; So a form falls into one of three cases, and the third is the one that
+;; matters:
+;;
+;;   in the table            the standard form, and what normalising aims at
+;;   in the corpus only      a real variant, free for fitting a line
+;;   in neither              not English -- never to be produced
+;; ---------------------------------------------------------------------------
+
+(define (load-standard [path default-standard-file])
+  (cond
+    [(not (file-exists? path)) (set)]
+    [else
+     (define data (with-input-from-file path read))
+     (define words
+       (cond [(and (list? data) (assq 'words data)) => (lambda (p) (cdr p))]
+             [(list? data) data]
+             [else '()]))
+     (for/set ([w (in-list words)] #:when (string? w)) (string-downcase w))]))
+
+(define current-standard (make-parameter (load-standard)))
+
+(define (standard? w [st (current-standard)])
+  (set-member? st (string-downcase w)))
+
+;; Is there any warrant for this spelling at all?
+;;
+;; The gate the spelling devices pass through. A form the trade used or the
+;; period approved may be set; one that appears in neither may not, because
+;; the only thing that produced it was a rule.
+(define (sanctioned? w [lx (current-lexicon)] [st (current-standard)])
+  (or (attested? w lx) (standard? w st)))
 
 (define (attested? w [lx (current-lexicon)])
   (hash-has-key? (lexicon-attested lx) (string-downcase w)))

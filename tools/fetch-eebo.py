@@ -107,6 +107,22 @@ def download(url, path):
     print()
 
 
+# A printing year, as opposed to the year the TCP keyed the text. Each header
+# carries several dates -- the transcription date (2003-01), a fileDesc date
+# (2000-00) and the imprint date -- so the year is taken from the first one
+# that could belong to a hand-press book.
+IMPRINT = re.compile(r"<DATE[^>]*>([^<]{0,80})</DATE>", re.I | re.S)
+OLD_YEAR = re.compile(r"\b(1[4-7]\d\d)\b")
+
+
+def printing_year(head):
+    for d in IMPRINT.findall(head):
+        m = OLD_YEAR.search(d)
+        if m:
+            return int(m.group(1))
+    return None
+
+
 def find_metadata(z):
     """The one CSV in the archive, whatever they have called it this release."""
     for n in z.namelist():
@@ -193,6 +209,7 @@ def extract(zippath, args):
         out = os.path.join(args.dest, "texts")
         os.makedirs(out, exist_ok=True)
         n = 0
+        skipped = 0
         for name in z.namelist():
             # Oxford serves TEI XML; the builder strips the markup itself.
             if not name.lower().endswith((".xml", ".txt")) or name.endswith("/"):
@@ -202,11 +219,24 @@ def extract(zippath, args):
                 tcp = re.match(r"([AB]\d{5})", base)
                 if not tcp or tcp.group(1) not in wanted:
                     continue
-            with z.open(name) as src, open(os.path.join(out, base), "wb") as dst:
-                dst.write(src.read())
+            body = z.read(name)
+            # The Oxford archives carry no metadata csv -- that was the
+            # Wisconsin release -- so the date comes from the text's own
+            # header, which is better anyway: it is the book's imprint rather
+            # than a catalogue's guess.
+            if not args.all:
+                head = body[:12000].decode("utf-8", "replace")
+                y = printing_year(head)
+                if y is None or not (args.lo <= y <= args.hi):
+                    skipped += 1
+                    continue
+            with open(os.path.join(out, base), "wb") as dst:
+                dst.write(body)
             n += 1
             if n % 500 == 0:
                 print("  extracted %d" % n)
+        if skipped:
+            print("  %d outside %d-%d" % (skipped, args.lo, args.hi))
 
     print("  %s: %d texts -> %s" % (os.path.basename(zippath), n, out))
     if not args.keep_zip and not args.zippath and os.path.exists(zippath):

@@ -24,7 +24,33 @@
 ;;; page is suspect as evidence of habit -- a point Hinman presses against his
 ;;; own method at i. 186-7.
 
-(require racket/string racket/list racket/match "metrics.rkt")
+(require racket/string racket/list racket/match "metrics.rkt" "lexicon.rkt")
+
+;; The gate every produced spelling passes through.
+;;
+;; The devices below are rules, and a rule will cheerfully produce `theere' or
+;; `manne' if nothing stops it -- neither occurs once in 24,000 words of Q1600
+;; and F1623, nor in Mulcaster's table of 1582. They are not spellings; they
+;; are artefacts of an unchecked rule.
+;;
+;; So a form is refused when it has no warrant *and the word it came from
+;; does*. That proviso matters: proper names, and the many words no corpus of
+;; this size will contain, are left to the rules as before, because absence of
+;; evidence about `Benedicke' is not evidence about `Benedicke'. Where the
+;; base word is known, though, its variants are knowable too, and a form
+;; nobody ever set is refused.
+;; Signs are not spellings, and a word list cannot vouch for them. The
+;; ampersand, the stroke over a vowel standing for a following nasal, the
+;; superscript letters of `wᶜʰ' -- these are marks the trade made, not
+;; spellings of English words, and no corpus of words will contain them. Only
+;; forms written out in letters are the lexicon's business.
+(define (spelling? s)
+  (regexp-match? #px"^[A-Za-zſ']+$" s))
+
+(define (warranted? produced base)
+  (or (not (spelling? produced))
+      (sanctioned? produced)
+      (not (sanctioned? base))))
 
 (provide (struct-out variant) (struct-out conventions)
          SPELLING-TESTS SPELLING-PATTERNS
@@ -304,7 +330,10 @@
   (define-values (core tail) (split-point word))
   (define base (w word))
   (define lcore (string-downcase core))
-  (define (add form device) (variant form (- (w form) base) device))
+  (define (add form device)
+    (define-values (fcore _t) (split-point form))
+    (and (warranted? fcore core)
+         (variant form (- (w form) base) device)))
   (sort
    (filter values
     (list
@@ -390,7 +419,10 @@
   (define base (w word))
   (define lcore (string-downcase core))
   (define len (string-length lcore))
-  (define (add form device) (variant form (- (w form) base) device))
+  (define (add form device)
+    (define-values (fcore _t) (split-point form))
+    (and (warranted? fcore core)
+         (variant form (- (w form) base) device)))
   (sort
    (filter values
     (list
@@ -553,6 +585,23 @@
   ;; ... but it does apply to a final nasal.
   (check-not-false (for/or ([v (in-list (contractions "them" #:scribal? #t))])
                      (string=? (variant-form v) "thē")))
+  ;; The gate. A device may only produce a spelling somebody actually used or
+  ;; the period approved; the nine forms below are neither, and were invented
+  ;; by rule. Nothing here should be able to reach the compositor's stick.
+  (for ([bad (in-list '("theere" "wheere" "manne" "somme" "welle"
+                        "wille" "himme" "themme" "whenne"))])
+    (define from (regexp-replace #px"(e|m|l)\\1?e?$" bad "\\1"))
+    (check-false
+     (for/or ([v (in-list (append (expansions from) (contractions from)))])
+       (string=? (string-downcase (variant-form v)) bad))
+     (format "no device may produce ~s" bad)))
+
+  ;; But signs are not spellings, and no word list can vouch for them. The
+  ;; ampersand and the stroke standing for a nasal must survive the gate.
+  (check-not-false (for/or ([v (in-list (contractions "them" #:scribal? #t))])
+                     (string=? (variant-form v) "thē"))
+                   "the nasal stroke is a sign, not a spelling")
+
   ;; The ampersand is not a scribal sign and stays available: the Folio has
   ;; fourteen of them in the same twelve thousand words.
   (check-not-false (for/or ([v (in-list (contractions "and"))])
