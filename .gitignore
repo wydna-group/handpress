@@ -10,3 +10,6 @@ tools/modern-en.txt
 corpus/
 *.rktd.bak
 corpus/
+areopagitica*
+out-areo/
+out-chk/

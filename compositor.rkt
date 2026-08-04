@@ -465,6 +465,30 @@
 ;; the rule the manuals give and entirely the rule compositors followed when
 ;; the manuals were not to hand. Both halves keep the copy-word they came
 ;; from, so nothing is lost to the record by dividing.
+;; Can this stand as the beginning of a syllable?
+;;
+;; A vowel can; a single consonant before a vowel can; and so can the handful
+;; of consonant pairs English admits at the head of one. Anything else -- `rt',
+;; `mp', `ct' -- cannot, and a word must not be broken so as to leave it.
+(define ONSETS
+  '("bl" "br" "ch" "cl" "cr" "dr" "dw" "fl" "fr" "gl" "gn" "gr" "kn" "ph"
+    "pl" "pr" "qu" "sc" "sh" "sk" "sl" "sm" "sn" "sp" "sq" "st" "sw" "th"
+    "tr" "tw" "wh" "wr" "sch" "scr" "shr" "spl" "spr" "str" "thr"))
+
+(define (vowel? ch) (and (memv (char-downcase ch) '(#\a #\e #\i #\o #\u #\y)) #t))
+
+(define (syllable-start? s)
+  (define t (string-downcase (strip-conventions s)))
+  (define n (string-length t))
+  (cond
+    [(zero? n) #f]
+    [(vowel? (string-ref t 0)) #t]
+    [(= n 1) #f]
+    [(vowel? (string-ref t 1)) #t]                       ; consonant + vowel
+    [(and (>= n 3) (member (substring t 0 3) ONSETS)) #t]
+    [(member (substring t 0 2) ONSETS) #t]
+    [else #f]))
+
 (define (divide c w room)
   (define cv (comp-conventions c))
   (define text (word-final w))
@@ -472,16 +496,28 @@
   (cond
     [(< n 5) (values #f #f)]
     [else
-     (let try ([cut (- n 2)])
+     ;; and nothing shorter than three letters after it either, so the search
+     ;; for a cut begins three from the end rather than two
+     (let try ([cut (- n 3)])
        (cond
-         [(< cut 2) (values #f #f)]
+         ;; Nothing shorter than three letters before the hyphen. A compositor
+         ;; with less room than that does not set `co- / mmons'; he turns the
+         ;; whole word over to the next line and lets this one run short.
+         [(< cut 3) (values #f #f)]
          [else
           (define head-text (string-append (substring text 0 cut) "-"))
           (cond
             [(> (width-of-word (apply-conventions cv head-text)) room)
              (try (sub1 cut))]
-            [(not (memv (char-downcase (string-ref text (sub1 cut)))
-                        '(#\a #\e #\i #\o #\u)))
+            ;; A word breaks at a syllable, and where the syllable falls is a
+            ;; property of what comes *after* the cut, not before it. The old
+            ;; rule asked only that the head end in a vowel, which let
+            ;; `libertie' break as `libe- / rtie' -- a fragment no compositor
+            ;; ever set, since `rt' cannot begin an English syllable. Asking
+            ;; instead that the tail begin as a syllable does begin gives
+            ;; `liber- / tie', and `diminu- / tion', and `ſpo- / ken'.
+            [(not (and (regexp-match? #px"[aeiouyAEIOUY]" (substring text 0 cut))
+                       (syllable-start? (substring text cut))))
              (try (sub1 cut))]
             [else
              (define head (make-word c (cons (word-copy w) head-text)))
