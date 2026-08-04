@@ -163,7 +163,16 @@ A house setting straight through the copy cannot perfect the first sheet until
 page 12 is set, so eleven pages stand locked up and the case runs to 46% empty.
 Setting by formes from the middle of the gathering outward (5, 8 / 6, 7 /
 3, 10 …) lets each sheet go to press and come back to the boxes before the next
-is begun. That difference is the economic case for casting off.
+is begun.
+
+That is a calculation, not a motive. McKenzie searched the Cambridge Vouchers
+for the practice and found setting by formes "was followed occasionally but was
+certainly *not* normal" (i. 115); and where work *was* shared, the reason was
+likely "not to make more economical use of a limited supply of type but to find
+work for a waiting compositor" (i. 116) — labour scheduling, not metal. The
+table says what the practice would have saved a house that followed it, not why
+any house did. Hinman's evidence that the Folio *was* set by formes rests on
+type recurrence and stands separately.
 
 ### Justification
 

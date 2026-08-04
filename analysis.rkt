@@ -635,6 +635,35 @@ WHAT THE SCORES ABOVE DO NOT SHOW
   performing it ... from day to day". Of normality in that second sense he
   says flatly: "it doesn't exist."
 
+  That is not an impression. Table 9 of the Cambridge study gives production
+  times for 36 books of ten sheets or more, and the rates run from 0.16
+  sheets a week (Terence 12mo, 16 sheets, 97 weeks) to 4.9 (the Threnodia,
+  34 sheets, 7 weeks) -- a spread of thirty to one. Only seven of the 36
+  averaged more than two sheets a week.
+
+  The sharpest figures are the reprints, where the book is the same, the
+  shop is the same, and only the occasion differs:
+
+      Bennet, Answer to the Dissenters   21 sheets    18 weeks
+                        second printing  21 sheets     9 weeks
+                         third printing  21 sheets    17 weeks
+      Le Clerc, Physica                  22 sheets    23 weeks
+                        second printing  22 sheets     8 weeks
+      Bennet, Confutation of Popery      24 sheets    30 weeks
+                        second printing  24 sheets    15 weeks
+
+  The same book took twice or three times as long depending on nothing the
+  book itself records. Any argument that reasons from a book's appearance to
+  the manner of its printing has to survive that, and mostly cannot.
+
+  A second finding bears directly on what this program assumes. McKenzie
+  went through the Vouchers looking for setting by formes and concluded it
+  "was followed occasionally but was certainly not normal" (i. 115); and
+  where work was shared between compositors, the likely motive was "not to
+  make more economical use of a limited supply of type but to find work for
+  a waiting compositor" (i. 116). The standing-type figures above are
+  therefore arithmetic about a practice, not evidence of one.
+
   The honest use of a machine like this is therefore not to confirm the
   method but to break it: to generate books under conditions the analyser
   does not know about -- concurrent production, work interrupted for weeks,

@@ -291,9 +291,32 @@ has a price, and the program counts it. Setting the same play both ways:
 A house setting straight through the copy cannot perfect the first sheet until
 page 12 is set, so eleven pages stand locked up and the case runs to 46 per
 cent empty. A house that casts off and sets by formes can print each sheet and
-return it to the boxes before beginning the next. That difference is the
-economic case for casting off, and it is why the practice existed at all
-despite the risk of miscalculation.
+return it to the boxes before beginning the next.
+
+@bold{But that is a calculation, not a motive, and the archives do not support
+turning it into one.} McKenzie went through the Cambridge Vouchers looking for
+exactly this practice and concluded that setting by formes ``was followed
+occasionally but was certainly @emph{not} normal'' (@emph{Cambridge University
+Press}, i. 115). Worse for the economic story, where work @emph{was} shared he
+found the likely reason was the opposite of the one modelled here: ``the
+principal reason for the shared setting was not to make more economical use of
+a limited supply of type but to find work for a waiting compositor'' (i. 116).
+Labour scheduling, not metal.
+
+So the table above says what setting by formes would have saved a house that
+did it. It does not establish that any house did it for that reason, and the
+one shop whose records survive mostly did not do it at all. Hinman's evidence
+that the Folio @emph{was} set by formes is separate and stands on its own
+footing — it rests on type recurrence, not on economy — and McKenzie names
+that same test as the one that would have settled his own question: ``One
+distinctive sort appearing in both formes of a sheet would of course outweigh
+all the ambiguous testimony of the Vouchers, for it would prove conclusively
+that one forme could not have been set until type from the other had been
+distributed.'' At Cambridge the evidence was lacking. In the Folio it was not.
+
+This program tracks the distinctive sorts that would constitute that evidence
+but does not yet reconstruct forme order from them. Until it does, the
+standing-type figures are arithmetic about a practice, not proof of one.
 
 Capital @tt{B} is the sort under most strain in @emph{Much Ado} either way —
 Beatrice, Benedicke, Balthasar, Borachio against a bill of 224. That is the
