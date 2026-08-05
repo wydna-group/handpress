@@ -828,9 +828,24 @@
   (define new-words
     (for/list ([w (in-list (set-line-words l))] [wi (in-naturals)])
       (define pieces '())
+      ;; A long s followed by t, h, i or another long s is one sort in an
+      ;; English fount, not two, and the compositor reaches for the ligature
+      ;; when the box has one. It prints as its two letters either way -- the
+      ;; page is the same; the box that emptied is not. When the ligature box
+      ;; is empty he sets the letters singly, which is what Okes's men did.
+      (define composed (word-composed w))
+      (define skip (box -1))
       (define printed
         (apply string-append
-               (for/list ([ch (in-string (word-composed w))] [ci (in-naturals)])
+               (for/list ([ch (in-string composed)] [ci (in-naturals)])
+                 (cond
+                   [(= ci (unbox skip)) ""]
+                   [(and (char=? ch #\ſ) (< (add1 ci) (string-length composed))
+                         (take-ligature! tc (string-ref composed (add1 ci))))
+                    => (lambda (lig)
+                         (set-box! skip (add1 ci))
+                         (hash-ref LIGATURE-PRINTS lig ""))]
+                   [else
                  (define d (pick! tc ch #:careless (profile-care prof)))
                  (when (draw-piece d)
                    (set! pieces (cons (cons ci (draw-piece d)) pieces))
@@ -839,7 +854,8 @@
                  (when (and (draw-event d) (not (eq? (draw-event d) 'distinctive)))
                    (add-event!
                     c (make-event (case (draw-event d)
-                                    [(shortage wrong-fount) 'shift]
+                                    [(shortage wrong-fount cannibalized
+                                      blank-for-proof) 'shift]
                                     ;; Its own kind, because it is not an
                                     ;; error: the word reads correctly and the
                                     ;; corrector has nothing to mark. It is
@@ -852,7 +868,7 @@
                                   #:compositor (profile-name prof)
                                   #:before (string (draw-wanted d))
                                   #:after (draw-got d))))
-                 (draw-got d))))
+                    (draw-got d)]))))
       (struct-copy word w [printed printed] [pieces (reverse pieces)])))
   (struct-copy set-line l [words new-words]))
 

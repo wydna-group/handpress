@@ -17,9 +17,10 @@
 
 (provide (struct-out draw) (struct-out tcase) (struct-out sort-piece)
          make-type-case pick! distribute! distribute-pieces! scarcest
-         case-depletion take! replenish! inversion-boost
+         case-depletion take! replenish! inversion-boost cannibalize!
          supply-factor box-fraction
          ADJACENT TURNED-PAIRS INVERSION-RATES FOUNT-SORTS
+         LONG-S-LIGATURES LIGATURE-PRINTS take-ligature!
          LOWER-CASE-LEFT LOWER-CASE-RIGHT UPPER-CASE-LAY
          damage-vocabulary damage-for damage-phrase CONDITIONS batter!
          note-recurrence! sort-piece-note)
@@ -132,6 +133,38 @@
 ;; measured rate for one sort, which is all anybody has measured.
 (define INVERSION-RATES (hash #\s (/ 1.0 150)))
 
+;; ---------------------------------------------------------------------------
+;; The long-s ligatures
+;; ---------------------------------------------------------------------------
+;; ſt, ſh, ſi and ſſ were cast as single sorts, and in an English fount they
+;; were the commonest ligatures of all. A compositor setting `ſhould' reaches
+;; for one piece of metal, not two -- unless that box is empty, in which case
+;; he sets the two letters separately and nobody but a bibliographer can tell.
+;;
+;; That is the whole reason to model them: the page looks the same either way,
+;; but the boxes that empty are different, and a shortage of ſt is a fact about
+;; the fount that shows up in the recurrence evidence.
+;;
+;; ſh, ſi and ſſ have no Unicode characters. They are given private-use
+;; codepoints for the box and print as their two letters, so nothing outside
+;; this module ever sees them.
+(define LONG-S-LIGATURES
+  (hash #\t #\ﬅ #\h #\uE000 #\i #\uE001 #\ſ #\uE002))
+
+(define LIGATURE-PRINTS
+  (hash #\ﬅ "ſt" #\uE000 "ſh" #\uE001 "ſi" #\uE002 "ſſ"))
+
+;; Take a long-s ligature for `ſ' followed by `next', if the fount has one and
+;; the box is not empty. Returns the sort drawn, or #f -- in which case the
+;; caller sets the two letters singly, which is what Okes's men did with the
+;; three-letter ligatures he was short of.
+(define (take-ligature! tc next)
+  (define lig (hash-ref LONG-S-LIGATURES next #f))
+  (and lig
+       (hash-has-key? (tcase-boxes tc) lig)
+       (> (hash-ref (tcase-boxes tc) lig 0) 0)
+       (begin (take! tc lig) lig)))
+
 ;; The compositor's shifts when a box is empty, in order of preference.
 ;;
 ;; The three-letter ligatures break in two stages, not one. Okes owned about
@@ -214,7 +247,7 @@
 
 (define lower-bill
   (hash #\e 2907 #\t 1606 #\o 1588 #\a 1479 #\r 1230 #\h 1275
-        #\n 1174 #\i 1046 #\u 812  #\l 770  #\d 766  #\ſ 745
+        #\n 1174 #\i 1046 #\u 812  #\l 770  #\d 766  #\ſ 343
         #\m 576  #\s 540  #\y 500  #\w 469  #\f 384  #\g 367
         #\c 361  #\p 301  #\b 270  #\k 218  #\v 80   #\q 60
         #\x 40   #\z 30   #\j 8
@@ -228,6 +261,20 @@
         ;; Hence the three-letter ligatures are scarce and SUBSTITUTIONS breaks
         ;; them the way his men did.
         #\ﬀ 18 #\ﬁ 48 #\ﬂ 71 #\ﬃ 8 #\ﬄ 6
+        ;; The long-s ligatures, which are sorts in their own right and were
+        ;; the commonest ligatures an English fount held. Blayney's counts for
+        ;; _Lear_: ſt 200 -- more than ﬀ, ﬁ and ﬂ together -- then ſh 83 and
+        ;; ſi 48. Until now the program had no such sorts, so their work fell
+        ;; back on the plain long s and its box had to be inflated from the
+        ;; measured 343 to 745 to carry it. With the ligatures present, ſ
+        ;; returns to what Blayney actually counted.
+        ;;
+        ;; Only ſt has a Unicode character (U+FB05). The others are given
+        ;; private-use codepoints, which never reach the page: a ligature draws
+        ;; from its own box and prints as its two letters, because what matters
+        ;; bibliographically is which box emptied, not whether the two letters
+        ;; were kerned together in the face.
+        #\ﬅ 200 #\uE000 83 #\uE001 48 #\uE002 60
         ;; Points, from van den Keere's registre rather than from Lear, and for
         ;; a reason Blayney gives: "Early printers evidently considered many
         ;; roman and italic points to be interchangeable (with each other and to
@@ -407,7 +454,8 @@
 ;; from a badly-struck matrix: ch -> (vector remaining multiplier). See
 ;; `replenish!'.
 (struct tcase (boxes initial low exhausted distributed foulness turn-rate rng
-                     distinctive recurrence counter inverted replenished)
+                     distinctive recurrence counter inverted replenished
+                     cannibalized blanks)
   #:transparent)
 
 ;; Every sort that leaves a box leaves it through here, so the low-water mark
@@ -467,6 +515,55 @@
 ;; That last inference is the whole of Hinman's method in miniature, run on one
 ;; sort instead of six hundred, and it is a good deal cheaper to check.
 (define DEFECTIVE-BATCH 0.15)
+
+;; ---------------------------------------------------------------------------
+;; Cannibalization
+;; ---------------------------------------------------------------------------
+;; A box that has run dry is not the end of the sorts. The rest of them are
+;; standing in type a few feet away, in pages already set and not yet printed,
+;; and a compositor who needs one takes it out of them.
+;;
+;; Blayney catches it repeatedly. Six E's were wanted for a page of _Lear_ and
+;; "the compositors had found 5 Es and an E from somewhere else. Two of these
+;; six types, both set by C, are identifiable as having been taken from H3r,
+;; which contained 6 Es ... There is no sign that the page had been
+;; distributed, but as the H(o) page containing most of the desired sorts it
+;; had certainly been cannibalized" (i. 132). And more generally: "Okes did not
+;; own enough type to allow sixteen pages of _Lear_ ... to stand without having
+;; their margins cannibalized for capitals" (i. 111).
+;;
+;; The margins are the point, and they are the constraint. "If types are taken
+;; from the middle of an undistributed page there is a risk that several lines
+;; will be pied, making the eventual distribution more difficult. The safest
+;; place from which to have taken Es, therefore, would have been the marginal
+;; speech prefixes" (i. 136). A standing page is a locked block of metal under
+;; tension: pull a sort from the middle of a line and the line may spill. So
+;; only a small share of what stands is safely reachable, and that share is
+;; what limits this.
+;;
+;; The share is a judgement -- the marginal fraction of a page is not something
+;; Blayney counts -- but its existence is not, and neither is the consequence:
+;; without it the program borrowed a wrong-fount sort 248 times in one book,
+;; where Okes's books show a handful.
+(define CANNIBAL-SHARE 0.06)
+
+;; The chance of the fourth expedient rather than the fifth, once robbing has
+;; failed. Rare by construction: Blayney demonstrates one instance in a book.
+(define BLANK-FOR-PROOF 0.25)
+
+;; How much of this sort is standing in type: everything the fount holds that
+;; is not in the box. Cannibalizing gives one of them back, and the page it
+;; came from now has a hole in it.
+(define (cannibalize! tc ch)
+  (define standing (- (hash-ref (tcase-initial tc) ch 0)
+                      (max 0 (hash-ref (tcase-boxes tc) ch 0))))
+  (define taken (hash-ref (tcase-cannibalized tc) ch 0))
+  (cond
+    [(< taken (* CANNIBAL-SHARE standing))
+     (hash-update! (tcase-cannibalized tc) ch add1 0)
+     (hash-update! (tcase-boxes tc) ch add1 0)
+     #t]
+    [else #f]))
 (define REPLENISH-AFTER 40)
 
 (define (replenish! tc ch n)
@@ -526,7 +623,7 @@
                                (damage-for ch rng))))))
   (tcase boxes (hash-copy boxes) (hash-copy boxes) (make-hash) (make-hash)
          foulness turn-rate rng distinctive (make-hash) counter
-         (make-hash) (make-hash)))
+         (make-hash) (make-hash) (make-hash) (make-hash)))
 
 ;; Types are battered at press as well as in the case. A sound sort may become
 ;; distinctive part-way through a book, which is why Hinman could date some
@@ -578,11 +675,34 @@
         (for ([c (in-string shift)]) (take! tc c))
         (draw ch shift 'shortage
               (format "~a wanting; ~a set in its room" ch shift) #f)]
+       ;; No shift will serve. Before borrowing from another fount, the
+       ;; compositor robs the type already standing -- see `cannibalize!'.
+       [(cannibalize! tc ch)
+        (take! tc ch)
+        (draw ch (string ch) 'cannibalized
+              (format "~a wanting; taken from the margin of a standing page" ch)
+              #f)]
+       ;; Nothing safe to rob either. Blayney watches compositor B in exactly
+       ;; this corner, wanting a W with no W to be had, and take the fourth
+       ;; course: "to set an 'M' or a ligature face down so that the foot
+       ;; printed as two black rectangles, and to insert the right type during
+       ;; proofing when supplies were again available" (i. 161). He proves it
+       ;; happened at I4v36, where the type that eventually filled the space
+       ;; cannot have been available until a later sheet had been set.
+       ;;
+       ;; A deliberate blank, and the only expedient on the ladder that makes
+       ;; press-correction *necessary* rather than optional: the forme cannot
+       ;; go to press as it stands.
+       [(< (rnd g) BLANK-FOR-PROOF)
+        (bump! (tcase-blanks tc) ch)
+        (draw ch "▮" 'blank-for-proof
+              (format "~a wanting; a sort set face down, to be inserted at proof" ch)
+              #f)]
        [else
-        ;; No shift will serve, so the sort is borrowed from another fount
-        ;; standing in the shop. The reading is right and the letter wrong --
-        ;; a wrong-fount sort, and a gift to the bibliographer, since it dates
-        ;; the page against the shop's other work.
+        ;; And last, the sort is borrowed from another fount standing in the
+        ;; shop. The reading is right and the letter wrong -- a wrong-fount
+        ;; sort, and a gift to the bibliographer, since it dates the page
+        ;; against the shop's other work.
         (draw ch (string ch) 'wrong-fount
               (format "~a wanting; a wrong-fount ~a borrowed" ch ch) #f)])]
 
@@ -637,6 +757,10 @@
 ;; Return a printed-off forme to the case.
 (define (distribute! tc text)
   (define boxes (tcase-boxes tc))
+  ;; The robbed pages have gone back into the case, so whatever was taken out
+  ;; of their margins is no longer a hole in anything. The budget starts again
+  ;; against whatever is standing next.
+  (hash-clear! (tcase-cannibalized tc))
   (for ([ch (in-string text)])
     (when (hash-has-key? boxes ch)
       (hash-update! boxes ch add1)
@@ -809,6 +933,48 @@
     (check-equal? (supply-factor tc3 "honeſtie" "honeſty") 0.59)
     (check-equal? (supply-factor tc3 "honeſty" "honeſtie") 1.0
                   "the i box does not feel a handful of -ie endings"))
+
+  ;; The ladder of expedients when a box is dry. Blayney watches compositor B
+  ;; work down it wanting a W; the program must have the rungs in the same
+  ;; order, and cannibalization -- robbing type already standing -- is the one
+  ;; that was missing and that a shop actually reached for most.
+  (let ([tc4 (make-type-case #:rng (make-rng 1608))])
+    ;; Nothing standing yet, so nothing to rob.
+    (check-false (cannibalize! tc4 #\e) "cannot rob a page that is not set")
+    ;; Set most of the e box, and the standing pages become a resource.
+    (define bill (hash-ref (tcase-initial tc4) #\e))
+    (hash-set! (tcase-boxes tc4) #\e 0)
+    (check-true (cannibalize! tc4 #\e) "the margins of a standing page can be robbed")
+    ;; But only the margins. Blayney: taking from the middle of an
+    ;; undistributed page risks pieing the lines, so most of what stands is
+    ;; not safely reachable and the budget runs out well short of it.
+    (define got
+      (let loop ([n 1])
+        (hash-set! (tcase-boxes tc4) #\e 0)
+        (if (and (< n bill) (cannibalize! tc4 #\e)) (loop (add1 n)) n)))
+    (check-true (< got (* 0.2 bill))
+                "only a small share of standing type is safe to take")
+    ;; And distribution wipes the slate: the robbed pages are back in the case.
+    (distribute! tc4 "")
+    (hash-set! (tcase-boxes tc4) #\e 0)
+    (check-true (cannibalize! tc4 #\e) "after distribution there is nothing robbed"))
+
+  ;; The long-s ligatures are sorts, drawn from their own boxes, and they print
+  ;; as their two letters. The page is the same either way; the box that
+  ;; empties is not, which is the whole reason to model them.
+  (let ([tc5 (make-type-case #:rng (make-rng 1608))])
+    (check-true (> (hash-ref (tcase-initial tc5) #\uFB05) 0) "the fount has st")
+    (define before (hash-ref (tcase-boxes tc5) #\uFB05))
+    (check-equal? (take-ligature! tc5 #\t) #\uFB05 "st is one sort")
+    (check-equal? (hash-ref (tcase-boxes tc5) #\uFB05) (sub1 before)
+                  "and taking it empties that box, not the long s box")
+    (check-equal? (hash-ref LIGATURE-PRINTS #\uFB05) "ſt"
+                  "but it prints as two letters")
+    (check-false (take-ligature! tc5 #\z) "there is no sz ligature")
+    ;; Empty the box and the compositor sets the letters singly, which is what
+    ;; Okes's men did with the ligatures he was short of.
+    (hash-set! (tcase-boxes tc5) #\uFB05 0)
+    (check-false (take-ligature! tc5 #\t) "an empty ligature box is no ligature"))
 
   ;; W is the scarce sort, which is why VV appears in early books.
   (check-true (< (hash-ref (tcase-boxes tc) #\W)

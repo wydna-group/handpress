@@ -87,26 +87,44 @@ one piece of work in disguise, which is the interesting part.
 Mining *The Texts of King Lear* fixed six things (see §5 and the commit) and
 opened four. These are ordered by how much they would change.
 
-- [ ] **Cannibalization, and the ladder of shifts.** The fount is now Okes's
-      size, and that is right; but the *responses* to a shortage are still one
-      rung of a five-rung ladder. Blayney watches compositor B want a `W` and
-      work down it: set `VV`; take the sort out of a page already standing,
-      preferring the margins and speech prefixes because "if types are taken
-      from the middle of an undistributed page there is a risk that several
-      lines will be pied"; distribute a forme early; **set an `M` or a ligature
-      face down so that the foot printed as two black rectangles, and insert
-      the right type during proofing**; buy or borrow more. The program has the
-      first rung and a crude version of the third. It has no cannibalization at
-      all, which is why *Areopagitica* still shows 248 wrong-fount sorts where
-      Okes's books show a handful. The face-down placeholder is the prettiest
-      of them: a deliberate blank that makes press-correction *necessary*
-      rather than optional.
+- [x] **Cannibalization, and the ladder of shifts.** Done. Blayney watches
+      compositor B want a `W` with none to be had and work down five rungs:
+      set `VV`; rob a page already standing, preferring the margins and speech
+      prefixes because "if types are taken from the middle of an undistributed
+      page there is a risk that several lines will be pied"; distribute a forme
+      early; set an `M` or a ligature **face down** so the foot printed as two
+      black rectangles, and insert the right type at proof; buy or borrow more.
+      The program had rungs one, three and five.
 
-- [ ] **`ſt`, `ſh`, `ſi` as sorts.** `ſt` at 200 is Okes's commonest ligature by
-      a wide margin — more than `ﬀ`, `ﬁ` and `ﬂ` together — and the program has
-      no such sort, so their work falls back on the plain long s and the box is
-      inflated to 745 to cover it. The glyph pipeline already carries long s as
-      markup rather than as text, so this may be cheaper than it looks.
+      Cannibalization is capped at the marginal share of what stands, which is
+      the constraint Blayney gives — a standing page is a locked block of metal
+      under tension, and only its edges are safe to pull from. The share is a
+      judgement; the cap is not, and neither is what happens without it. On
+      *Areopagitica* the ladder now reads
+
+      | rung | events |
+      |---|---|
+      | robbed from a standing page | 226 |
+      | wrong-fount sort borrowed | 13 |
+      | face down, to be filled at proof | 4 |
+
+      against 248 wrong-fount sorts before, in a book where Okes's own show a
+      handful. The face-down placeholder is the one expedient on the ladder
+      that makes press-correction *necessary* rather than optional: the forme
+      cannot go to press as it stands. Nothing yet acts on that, and it is the
+      obvious next thing — see §2.
+
+- [x] **`ſt`, `ſh`, `ſi` as sorts.** Done, and cheaper than it looked. `ſt` at
+      200 is Okes's commonest ligature by a wide margin, more than `ﬀ`, `ﬁ` and
+      `ﬂ` together; `ſh` is 83 and `ſi` 48. The long-s box could come back from
+      the inflated 745 to the 343 Blayney measured.
+
+      The Unicode problem turned out not to be one. Only `ſt` has a character
+      (U+FB05); the others get private-use codepoints that never leave the type
+      case, because a ligature **prints as its two letters**. The page is
+      identical either way. What differs is which box emptied — and a shortage
+      of `ſt` is a fact about the fount that shows in the recurrence evidence,
+      which is the entire reason to model them.
 
 - [ ] **Turner's rule, run against the truth.** The best experiment in the
       book, and the program is the only thing that can settle it. Turner's
