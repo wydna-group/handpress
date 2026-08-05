@@ -79,6 +79,31 @@ one piece of work in disguise, which is the interesting part.
       signed and whether some of them migrate to the end — which is East's
       case exactly, and is where this meets binding.
 
+- [ ] **The title-page, generated.** It is preliminary matter and should be
+      set like the rest of it, not supplied by hand: title, author, the
+      publisher's device, and an imprint in the period's own formula —
+      *Printed by N.O. for Nathaniel Butter, and are to be sold at his shop in
+      Pauls Church-yard, 1608*. Blayney's Appendix II is a corpus of
+      **titlepage transcripts** for one shop across five years, which is
+      exactly the evidence needed for the formulae, the abbreviation of the
+      printer's name to initials, and the way the date is set. Mine that before
+      writing any of it. Note also that Blayney says the *Lear* title-page was
+      "the first part of the book to be set", then distributed — so a generated
+      title-page must be able to be set first and printed last, which is the
+      awkward case for the type accounting.
+
+- [ ] **Folding and gathering, with the binder's errors.** Wanted, and one
+      caution recorded now so it is not quietly forgotten: **neither Gaskell
+      nor McKerrow gives an error rate.** McKerrow gives the *detection* — how
+      to tell a cancel from "a leaf that has at some time been loose, and in
+      rebinding has been stuck in at a wrong level" (fig. 21) — and the kinds
+      of fault, but no frequency. Everything in this program that was set from
+      a guessed rate has been wrong by an order of magnitude, so the rate here
+      must be an explicit parameter with no authority claimed for it, and the
+      report must say so. The *kinds* are safe to model from the sources:
+      a sheet folded inside out, a gathering bound out of order, a sheet
+      duplicated or omitted, a loose leaf refixed at the wrong level.
+
 - [ ] **Binding.** Sheets folded, gathered and sewn — and got wrong. Sheets
       bound out of order, inverted, duplicated, omitted. This is the one stage
       where the *book* diverges from the *printing*, and the analysis ought to
