@@ -870,6 +870,24 @@
                                   #:after (draw-got d))))
                     (draw-got d)]))))
       (struct-copy word w [printed printed] [pieces (reverse pieces)])))
+  ;; And the white. A gap is metal too -- an em quad, an en, a thick, a thin --
+  ;; picked from its own box like any other sort, and it can run out. Until now
+  ;; the program treated the spacing as arithmetic and drew nothing for it,
+  ;; which made space-metal the one part of the forme that could never be
+  ;; short. Blayney makes it the hinge of the whole _Lear_ reconstruction: a
+  ;; play is short lines and quadded-out ends, and "what _Lear_ used in the
+  ;; quantities most unprecedented ... was space-metal".
+  (for ([gap (in-list (cons (set-line-indent l) (set-line-spaces l)))]
+        #:when (> gap 0))
+    (define-values (pieces short?) (take-space! tc gap))
+    ;; Recorded against the page so that it goes back to the boxes when the
+    ;; forme is distributed, exactly as the letters do.
+    (note-white! tc page pieces)
+    (when short?
+      (add-event! c (make-event 'shift
+                                "space-metal wanting; the white made up of smaller pieces"
+                                #:page page #:line lineno
+                                #:compositor (profile-name prof)))))
   (struct-copy set-line l [words new-words]))
 
 (module+ test

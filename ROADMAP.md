@@ -143,6 +143,47 @@ opened four. These are ordered by how much they would change.
       the comma box should be shared across every fount in the house. Matters
       as soon as there is more than one fount, i.e. with §3.
 
+- [x] **Space-metal is type.** Added, and it turns out to be the biggest thing
+      the model was missing. A gap in a line is a piece of metal a shade lower
+      than the face so that it takes no ink: it is cast, it sits in a box, it
+      is picked by hand, it runs out, and it is distributed. The program had
+      been treating the spacing as arithmetic, which is the one thing it is
+      not — space-metal was the only part of a forme that could never be short.
+
+      Blayney makes it the hinge of the whole *Lear* reconstruction. Okes "had
+      not printed a play before … This fact put an unprecedented strain on the
+      supplies of numerous sorts", and "what *Lear* used in the quantities most
+      unprecedented in the pica books of 1605-7 was **space-metal**."
+
+      No bill of the period tabulates quads, so the quantities come from
+      measured demand: a quarto page here runs to 1,311 letters and 253
+      word-gaps, so **16% of everything set is white**, and a dozen pages
+      standing lock up some three thousand word-spaces. Which gives the figure
+      worth stating plainly — **the thick space is as common in a fount as the
+      letter e**, and its box has to be about as deep. The fount total rises
+      from 21,953 to 31,200 because Blayney's table counts letters, capitals,
+      points and ligatures and no quads at all.
+
+      Provisioned from *prose* demand, the play strain then falls out by itself,
+      which is the check that matters:
+
+      | | em quad | thick | hair |
+      |---|---|---|---|
+      | prose (*Areopagitica*) | 8% out | 52% | 80% |
+      | drama (*Much Ado*) | **100% out** | 56% | 25% |
+
+      A play empties the em-quad box and prose never touches it, because every
+      short speech line is quadded out to the measure. That is Blayney's
+      asymmetry, reproduced rather than fitted.
+
+      Still to do, and both from the same page of Blayney: space-metal was
+      shared between founts of the same body ("pica spaces are pica spaces,
+      irrespective of fount"), like the points — so it belongs to the house and
+      not to the fount, which matters at §3. And the white had to be
+      distributed *first*, which "would have left the pages in a condition in
+      which they could not have been tied" — the material property of the
+      quads decided whether a book's type could be kept standing at all.
+
 ## 1. Defects — investigated
 
 Four were listed here. Measuring them found that two were not what they

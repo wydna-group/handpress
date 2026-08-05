@@ -18,6 +18,7 @@
 (provide (struct-out draw) (struct-out tcase) (struct-out sort-piece)
          make-type-case pick! distribute! distribute-pieces! scarcest
          case-depletion take! replenish! inversion-boost cannibalize!
+         take-space! distribute-space! note-white! SPACE-BODIES
          supply-factor box-fraction
          ADJACENT TURNED-PAIRS INVERSION-RATES FOUNT-SORTS
          LONG-S-LIGATURES LIGATURE-PRINTS take-ligature!
@@ -275,6 +276,52 @@
         ;; bibliographically is which box emptied, not whether the two letters
         ;; were kerned together in the face.
         #\ﬅ 200 #\uE000 83 #\uE001 48 #\uE002 60
+        ;; ---------------------------------------------------------------
+        ;; Space-metal
+        ;; ---------------------------------------------------------------
+        ;; Spaces and quadrats are type. They are cast, they sit in boxes, they
+        ;; are picked by hand, they run out, and they are distributed -- and
+        ;; the program had been treating them as arithmetic, which is the one
+        ;; thing they are not. A gap in a line is a piece of metal a shade
+        ;; lower than the face so that it takes no ink.
+        ;;
+        ;; Blayney makes it the hinge of the whole _Lear_ reconstruction.
+        ;; Okes "had not printed a play before ... This fact put an
+        ;; unprecedented strain on the supplies of numerous sorts, and it will
+        ;; be shown that the effect of this strain on the text was considerably
+        ;; greater than might be expected. And what _Lear_ used in the
+        ;; quantities most unprecedented in the pica books of 1605-7 was
+        ;; space-metal" (i. 144). A play is short lines, quadded-out ends and
+        ;; marginal prefixes; it eats quads where prose eats letters.
+        ;;
+        ;; The quantities are measured from the demand rather than found in a
+        ;; bill, because no bill of this period tabulates them. A quarto page
+        ;; here runs to 1,311 letters and 253 word-gaps -- so 16% of everything
+        ;; set is space -- and with a dozen pages standing some three thousand
+        ;; word-spaces are locked up at once. Which gives the result worth
+        ;; stating plainly: **the thick space is as common in a fount as the
+        ;; letter e**, and the box has to be about as deep.
+        ;;
+        ;; The quantities follow the same principle as the letters: the fount
+        ;; must hold enough to fill the pages that stand, plus a working stock
+        ;; in the case. Some three thousand word-gaps stand at once, so the
+        ;; thick-space box is four thousand. Provisioned to the standing pages
+        ;; alone it cascaded -- every line that could not find a thick space
+        ;; made the white out of middles, then thins, then hairs, and drained
+        ;; the whole ladder.
+        ;;
+        ;; This leaves prose comfortable and a play under strain, which is the
+        ;; asymmetry Blayney describes. Areopagitica is prose and never empties
+        ;; the em-quad box; a text of short lines and quadded-out ends would.
+        ;;
+        ;; Unicode has characters for exactly these bodies, so they need no
+        ;; private-use codepoints and they never print anything but white.
+        #\u2001 900   ; em quad     -- indents, and quadding out a short line
+        #\u2000 1200  ; en quad     -- the half, and figures range on it
+        #\u2004 4000  ; thick space -- the normal word space of the house
+        #\u2005 800   ; middle space
+        #\u2006 900   ; thin space
+        #\u200A 1400  ; hair space
         ;; Points, from van den Keere's registre rather than from Lear, and for
         ;; a reason Blayney gives: "Early printers evidently considered many
         ;; roman and italic points to be interchangeable (with each other and to
@@ -336,8 +383,15 @@
 (define (sort-weight ch)
   (or (hash-ref lower-bill ch #f) (hash-ref upper-bill ch #f) 100))
 
+;; The largest *letter* box. Space-metal is excluded deliberately: the thick
+;; space now outnumbers every letter, and it sits in one of the biggest boxes
+;; under the hand -- but foul case is a letter phenomenon. A space picked from
+;; the wrong box prints white either way and nobody can tell, so the quads have
+;; no business setting the scale for how far a hand has to reach for a `z'.
 (define max-bill-weight
-  (apply max (append (hash-values lower-bill) (hash-values upper-bill))))
+  (apply max (for/list ([(k v) (in-hash lower-bill)]
+                        #:unless (char-whitespace? k))
+               v)))
 
 ;; 1.0 for the commonest sorts; up to about 3 for the rarest and for capitals.
 (define (reach-factor ch)
@@ -367,7 +421,14 @@
 ;; So the default is now the small quarto house, not the great folio house, and
 ;; the case runs short because Okes's case ran short. Pass --case-scale 2.3 for
 ;; something on Jaggard's footing.
-(define FOUNT-SORTS 22000)
+;;
+;; The figure is 27,900 rather than Blayney's 21,953 because his table counts
+;; letters, capitals, points and ligatures and does not count space-metal --
+;; no bill of the period tabulates it. The quads and spaces added here come to
+;; about 5,900 pieces, and they are additional to the fount he measured, not a
+;; share of it. Left at 22,000 they would have shrunk every letter box by a
+;; fifth and put 53 `i' on a page where he counted 66.
+(define FOUNT-SORTS 31200)
 
 (define total-weight
   (+ (for/sum ([(k v) (in-hash lower-bill)]) v)
@@ -455,7 +516,7 @@
 ;; `replenish!'.
 (struct tcase (boxes initial low exhausted distributed foulness turn-rate rng
                      distinctive recurrence counter inverted replenished
-                     cannibalized blanks)
+                     cannibalized blanks white)
   #:transparent)
 
 ;; Every sort that leaves a box leaves it through here, so the low-water mark
@@ -623,7 +684,7 @@
                                (damage-for ch rng))))))
   (tcase boxes (hash-copy boxes) (hash-copy boxes) (make-hash) (make-hash)
          foulness turn-rate rng distinctive (make-hash) counter
-         (make-hash) (make-hash) (make-hash) (make-hash)))
+         (make-hash) (make-hash) (make-hash) (make-hash) (make-hash)))
 
 ;; Types are battered at press as well as in the case. A sound sort may become
 ;; distinctive part-way through a book, which is why Hinman could date some
@@ -645,6 +706,77 @@
                       '())))))
 
 (define (bump! h k) (hash-update! h k add1 0))
+
+;; ---------------------------------------------------------------------------
+;; Setting the white
+;; ---------------------------------------------------------------------------
+;; A gap in a line is made of pieces of metal, and the compositor builds it out
+;; of the sizes he has: an em quad, an en, a thick, a middle, a thin, a hair.
+;; Largest first, because that is fewest pieces and fewest chances of one
+;; working loose.
+;;
+;; Widths are in 1/120 em so that the ladder divides exactly, which is why this
+;; can be a greedy decomposition rather than an approximation.
+(define SPACE-BODIES
+  ;; width in 1/120 em -> the sort
+  (list (cons 120 #\u2001)      ; em quad
+        (cons 60  #\u2000)      ; en quad
+        (cons 40  #\u2004)      ; thick
+        (cons 30  #\u2005)      ; middle
+        (cons 24  #\u2006)      ; thin
+        (cons 15  #\u200A)))    ; hair
+
+;; Fill `width' from the boxes, taking the largest bodies that will serve and
+;; that are actually in stock. Returns (values pieces short?) -- `short?' when
+;; the white had to be made up out of smaller pieces than it should have been,
+;; or could not be made up at all.
+;;
+;; Running out of space-metal is not a curiosity. Blayney makes it the hinge of
+;; the _Lear_ reconstruction: Okes "had not printed a play before", and "what
+;; _Lear_ used in the quantities most unprecedented in the pica books of 1605-7
+;; was space-metal" (i. 144). A play is short lines and quadded-out ends, and
+;; it eats quads where prose eats letters.
+(define (take-space! tc width)
+  (let loop ([left width] [bodies SPACE-BODIES] [got '()] [short? #f])
+    (cond
+      [(<= left 0) (values (reverse got) short?)]
+      [(null? bodies)
+       ;; Nothing left on the ladder fits, so the remainder is white the
+       ;; compositor could not make up out of metal he had.
+       (values (reverse got) #t)]
+      [else
+       (define body (car bodies))
+       (cond
+         [(> (car body) left) (loop left (cdr bodies) got short?)]
+         [(<= (hash-ref (tcase-boxes tc) (cdr body) 0) 0)
+          ;; That box is empty; he makes the same white out of smaller pieces,
+          ;; which is what a compositor does and what leaves the tell-tale
+          ;; row of thin spaces a bibliographer can see.
+          (bump! (tcase-exhausted tc) (cdr body))
+          (loop left (cdr bodies) got #t)]
+         [else
+          (take! tc (cdr body))
+          (loop (- left (car body)) bodies (cons (cdr body) got) short?)])])))
+
+;; Which white is standing in which page, so that it can go back into the boxes
+;; when the forme is distributed.
+;;
+;; Without this the space boxes drained monotonically -- the white was picked
+;; and never returned -- and every line after the first few pages made its
+;; spacing out of hair spaces because nothing larger was left. It is worth
+;; recording that the symptom looked exactly like a shop short of space-metal,
+;; which is a thing that really happened, so the bug was quite capable of
+;; passing for a finding.
+(define (note-white! tc page pieces)
+  (hash-update! (tcase-white tc) page (lambda (xs) (append pieces xs)) '()))
+
+;; White goes back into the boxes with everything else.
+(define (distribute-space! tc page)
+  (for ([ch (in-list (hash-ref (tcase-white tc) page '()))])
+    (when (hash-has-key? (tcase-boxes tc) ch)
+      (hash-update! (tcase-boxes tc) ch add1)
+      (bump! (tcase-distributed tc) ch)))
+  (hash-remove! (tcase-white tc) page))
 
 ;; Take one sort from the case, with all that may go wrong. `careless` scales
 ;; this compositor's proneness to foul case; an apprentice's stint is
@@ -894,12 +1026,21 @@
   (check-true (< 420 (hash-ref (tcase-initial tc) #\y) 550))
   (check-true (< 930 (hash-ref (tcase-initial tc) #\i) 1150))
 
-  ;; An average page of _Lear_ "contains 66 'i's and 31 'y's" (i. 173). The
-  ;; program's quarto page runs to about 1,400 sorts, so the bill's share for
-  ;; 'i' has to put roughly that many on a page or the two calibrations
-  ;; contradict each other.
-  (define total (for/sum ([(ch n) (in-hash (tcase-initial tc))]) n))
-  (check-true (< 55 (* 1400 (/ (hash-ref (tcase-initial tc) #\i) 1.0 total)) 80)
+  ;; An average page of _Lear_ "contains 66 'i's and 31 'y's" (i. 173). A
+  ;; quarto page here runs to about 1,311 letters, so the bill's share for 'i'
+  ;; has to put roughly that many on a page or the two calibrations contradict
+  ;; each other.
+  ;;
+  ;; Space-metal is excluded from both sides. Blayney's table counts letters,
+  ;; capitals, points and ligatures and no quads, and 66 is a count of letters
+  ;; on a page and not of pieces -- comparing i against a bill that includes
+  ;; the quads would be dividing by the wrong denominator, which is how this
+  ;; first failed when the spaces went in.
+  (define letters
+    (for/sum ([(ch n) (in-hash (tcase-initial tc))]
+              #:unless (char-whitespace? ch))
+      n))
+  (check-true (< 55 (* 1311 (/ (hash-ref (tcase-initial tc) #\i) 1.0 letters)) 80)
               "about 66 i to a page, as Blayney counted")
 
   ;; The turn that leaves the reading alone. Short s inverted is still short s.
@@ -975,6 +1116,40 @@
     ;; Okes's men did with the ligatures he was short of.
     (hash-set! (tcase-boxes tc5) #\uFB05 0)
     (check-false (take-ligature! tc5 #\t) "an empty ligature box is no ligature"))
+
+  ;; Space-metal is type. A gap is built out of the bodies in stock, largest
+  ;; first, and the widths divide exactly so the decomposition is not an
+  ;; approximation.
+  (let ([tc6 (make-type-case #:rng (make-rng 1608))])
+    (define-values (ps short?) (take-space! tc6 120))
+    (check-equal? ps (list #\u2001) "an em of white is one em quad")
+    (check-false short?)
+    (define-values (ps2 s2) (take-space! tc6 55))
+    (check-equal? ps2 (list #\u2004 #\u200A) "a thick and a hair make 55/120")
+    (check-false s2)
+    ;; Empty the thick box and the same white is made of smaller pieces, which
+    ;; is what a compositor does and what leaves a tell-tale row of thins.
+    (hash-set! (tcase-boxes tc6) #\u2004 0)
+    (define-values (ps3 s3) (take-space! tc6 40))
+    (check-true s3 "a thick space wanting is a shortage")
+    (check-false (memv #\u2004 ps3) "and no thick space was set")
+    (check-true (>= (length ps3) 1) "the white was made up out of the ladder"))
+
+  ;; White returns to the boxes when the forme is distributed. Without this the
+  ;; space boxes drained monotonically and every line after the first few pages
+  ;; spaced itself with hairs -- which looked exactly like a shop short of
+  ;; space-metal, and so was quite capable of passing for a finding.
+  (let ([tc7 (make-type-case #:rng (make-rng 1608))])
+    (define before (hash-ref (tcase-boxes tc7) #\u2004))
+    (define-values (ps _s) (take-space! tc7 40))
+    (note-white! tc7 "A1r" ps)
+    (check-equal? (hash-ref (tcase-boxes tc7) #\u2004) (sub1 before))
+    (distribute-space! tc7 "A1r")
+    (check-equal? (hash-ref (tcase-boxes tc7) #\u2004) before
+                  "the white goes back with the letters")
+    (distribute-space! tc7 "A1r")
+    (check-equal? (hash-ref (tcase-boxes tc7) #\u2004) before
+                  "and cannot be returned twice"))
 
   ;; W is the scarce sort, which is why VV appears in early books.
   (check-true (< (hash-ref (tcase-boxes tc) #\W)

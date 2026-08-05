@@ -522,6 +522,7 @@
                    (set! standing-sorts (- standing-sorts (sorts-in p)))
                    (set! pages-standing (sub1 pages-standing))
                    (distribute! tc (page-text p))
+                   (distribute-space! tc (page-sig p))
                    ;; the identifiable types go back to their own boxes and
                    ;; may be picked again for a later forme
                    (distribute-pieces!
