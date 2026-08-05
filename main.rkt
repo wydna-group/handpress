@@ -7,7 +7,7 @@
 (require racket/cmdline racket/file racket/string racket/port racket/list
          racket/system racket/runtime-path
          "book.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
-         "orthography.rkt" "compositor.rkt" "tei.rkt")
+         "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt")
 
 (provide run-handpress apply-xslt)
 
@@ -63,6 +63,14 @@
                        #:edition [edition 750]
                        #:condition [condition 'used]
                        #:title [title "THE HISTORY"]
+                       #:book-title [book-title #f]
+                       #:author [author #f]
+                       #:printer [printer #f]
+                       #:publisher [publisher #f]
+                       #:titlepage? [titlepage? #t]
+                       #:find-prelims? [find-prelims? #t]
+                       #:binding-error [binding-error #f]
+                       #:jaggard? [jaggard? #f]
                        #:pages [pages 0]
                        #:numbers? [numbers? #f]
                        #:long-s? [long-s? #t]
@@ -101,10 +109,18 @@
                         #:paging-error paging-error
                         #:prepare-copy? prepare?
                         #:condition condition
-                        #:title title))
+                        #:title title
+                        #:book-title book-title
+                        #:author author
+                        #:printer printer
+                        #:publisher publisher
+                        #:titlepage? titlepage?
+                        #:find-prelims? find-prelims?
+                        #:sig-alphabet (if jaggard? JAGGARD-LETTERS SIG-LETTERS)))
   (define b (set-book h copy kind))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
-                       #:edition edition))
+                       #:edition edition
+                       #:binding-error (or binding-error BINDING-ERROR-RATE)))
   ;; The setting is finished before this point and is not affected by it. The
   ;; parameter governs only how the page is shown -- the same forme read in
   ;; the reader's spelling instead of the compositor's.
@@ -196,6 +212,14 @@
   (define edition 750)
   (define condition 'used)
   (define title "THE HISTORY")
+  (define book-title #f)
+  (define author #f)
+  (define printer #f)
+  (define publisher #f)
+  (define titlepage? #t)
+  (define find-prelims? #t)
+  (define binding-error #f)
+  (define jaggard? #f)
   (define pages 0)
   (define numbers? #f)
   (define long-s? #t)
@@ -239,6 +263,17 @@
      [("--fount") c "condition of the type: new | used | worn | foul"
                   (set! condition (string->symbol c))]
      [("--title") t "running title" (set! title t)]
+     [("--book-title") t "title as set on the title-page" (set! book-title t)]
+     [("--author") a "author, as named on the title-page" (set! author a)]
+     [("--printer") p "printer named in the imprint" (set! printer p)]
+     [("--publisher") p "bookseller named in the imprint" (set! publisher p)]
+     [("--no-titlepage") "do not generate a title-page" (set! titlepage? #f)]
+     [("--no-prelims") "do not guess at preliminary matter in unmarked copy"
+      (set! find-prelims? #f)]
+     [("--binding-error") x "faults per gathering per copy at the folding (no source gives a rate)"
+      (set! binding-error (string->number x))]
+     [("--jaggard-alphabet") "sign from Jaggard's 20 letters, omitting X, Y and Z"
+      (set! jaggard? #t)]
      [("--pages") n "show only the first N pages on screen"
                   (set! pages (string->number n))]
      [("--no-copy-preparation") "the corrector does not mark up the copy"
@@ -269,7 +304,11 @@
                        #:stint-sheets stint #:paging-error paging-error
                        #:prepare-copy? prepare? #:first-proof first-proof
                        #:edition edition #:condition condition
-                       #:title title #:pages pages #:numbers? numbers?
+                       #:title title #:book-title book-title #:author author
+                       #:printer printer #:publisher publisher
+                       #:titlepage? titlepage? #:find-prelims? find-prelims?
+                       #:binding-error binding-error #:jaggard? jaggard?
+                       #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
                        #:modern-spelling? modern-spelling? #:scribal? scribal? #:year year
                        #:html? html? #:tei? tei? #:xslt? xslt?

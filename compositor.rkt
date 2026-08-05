@@ -36,7 +36,8 @@
          (struct-out profile) (struct-out page-spec)
          PROFILES make-comp comp? comp-profile comp-events comp-rng comp-case
          line-set-width line-text
-         set-prose set-verse set-stage-direction set-heading speech-prefix
+         set-prose set-verse set-stage-direction set-heading set-centred
+         speech-prefix
          pick-line! add-event! comp-event-list
          (contract-out
           [make-line (->* ((listof word?) (listof exact-integer?)
@@ -820,6 +821,52 @@
     (make-line row (make-list gaps EN-QUAD)
                (max 0 (quotient (- measure content) 2)) measure 'heading
                #:quadded? #t #:justification "head, centred")))
+
+;; A title-page line: centred, and left in the case it was given in.
+;;
+;; The difference from a head is not decoration. A head is a line of the text
+;; and is set in capitals; a title-page is a piece of display work in which
+;; every line is centred and the case is chosen line by line -- the title in
+;; capitals, the imprint in lower case, the motto in italic. Blayney's
+;; transcripts record the mixture down to the fount of each line ("Line 1 in
+;; Titling fount 1; lines 3 and 6 (part) in Titling fount 3", Appendix II
+;; no. 56), so upcasing everything would throw away the one thing the
+;; transcripts are most careful about.
+;;
+;; The type is charged to the text case, which is wrong and is reported as
+;; wrong: a real title-page was set from titling founts kept apart from the
+;; body fount, and this program keeps one case. The error is about forty words
+;; a book, all of them large.
+;; A title-page line is centred inside a panel narrower than the text measure.
+;; That is not a nicety: Blayney's transcripts break the Lear title-page after
+;; "the life and", "his three", "and heire to the Earle of Gloſter, and his" --
+;; lines of very unequal length, none of them reaching the measure the text is
+;; set to. Display work was ranged by eye within the width of the ornament and
+;; the rules, not run out to the stick.
+(define TITLE-PANEL 0.9)
+
+(define (set-centred c text spec #:italic? [italic? #f])
+  (define measure (page-spec-measure spec))
+  (define panel (inexact->exact (round (* TITLE-PANEL measure))))
+  (define ws (for/list ([p (in-list (read-copy c text))])
+               (define w (make-word c p))
+               (if italic? (struct-copy word w [italic? #t]) w)))
+  (define rows
+    (let loop ([xs ws] [cur '()] [width 0] [out '()])
+      (cond
+        [(null? xs) (reverse (if (null? cur) out (cons (reverse cur) out)))]
+        [else
+         (define extra (+ (word-width (car xs)) (if (null? cur) 0 NORMAL-SPACE)))
+         (if (and (pair? cur) (> (+ width extra) panel))
+             (loop xs '() 0 (cons (reverse cur) out))
+             (loop (cdr xs) (cons (car xs) cur) (+ width extra) out))])))
+  (for/list ([row (in-list rows)])
+    (define gaps (max 0 (sub1 (length row))))
+    (define content (+ (content-width row) (* NORMAL-SPACE gaps)))
+    (make-line row (make-list gaps NORMAL-SPACE)
+               (max 0 (quotient (- measure content) 2)) measure 'centred
+               #:quadded? #t #:italic? italic?
+               #:justification "title-page line, centred")))
 
 ;; Prefixes are abbreviated to whatever the line can spare, which is why the
 ;; same speaker is Ham., Ha. and Hamlet. within a page -- and why prefix forms

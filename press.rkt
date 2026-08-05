@@ -48,13 +48,14 @@
 ;;; are collated, records only the corrections made too late.
 
 (require racket/list racket/string racket/math
-         "compositor.rkt" "book.rkt" "rng.rkt" "lexicon.rkt"
+         "compositor.rkt" "book.rkt" "imposition.rkt" "binding.rkt"
+         "rng.rkt" "lexicon.rkt"
          (only-in "orthography.rkt" split-point))
 
 (provide (struct-out pvariant) (struct-out forme-state)
          (struct-out printed-copy) (struct-out press-run)
          run-press copy-reading-map collate run-variants
-         forme-state-corrected?)
+         forme-state-corrected? book-quires)
 
 ;; Plausible sophistications: what a corrector puts in when he decides a
 ;; perfectly good reading must be wrong.
@@ -73,9 +74,25 @@
 
 ;; One physical copy of the book, made up from the heaps.
 ;; `states' maps forme-name -> #t if this copy has the corrected state.
-(struct printed-copy (name states) #:transparent)
+(struct printed-copy (name states binding) #:transparent)
 
-(struct press-run (states copies events silent-readings edition) #:transparent)
+;; The gatherings as they reach the warehouse table, with the count of leaves
+;; that actually carry a signature -- taken from what was set, not from what
+;; was intended, because the whole use of the figure is that a gathering with
+;; nothing in its direction line is the one the binder puts in backwards.
+(define (book-quires b)
+  (for/list ([plan (in-list (book-plans b))])
+    (define ps (for/list ([p (in-list (book-pages b))]
+                          #:when (= (page-ref-gathering (page-pref p))
+                                    (gathering-plan-place plan)))
+                 p))
+    (quire (series-mark (gathering-plan-series plan) (gathering-plan-index plan))
+           (gathering-plan-leaves plan)
+           (for/sum ([p (in-list ps)])
+             (if (string=? (page-signature p) "") 0 1)))))
+
+(struct press-run (states copies events silent-readings edition binding-error)
+  #:transparent)
 
 (define (run-variants r)
   (append* (for/list ([(k s) (in-hash (press-run-states r))])
@@ -122,6 +139,10 @@
                    #:consults-copy [consults-copy 0.12]
                    #:sophisticates [sophisticates 0.16]
                    #:first-proof [first-proof 0.0]
+                   ;; Faults per gathering per copy at the folding and sewing.
+                   ;; No source gives one; see binding.rkt, which says so at
+                   ;; length and prints the disclaimer beside every fault.
+                   #:binding-error [binding-error BINDING-ERROR-RATE]
                    #:edition [edition 750])
   (define g (make-rng (+ seed 99)))
 
@@ -311,16 +332,22 @@
        (hash-set! states forme-name
                   (forme-state forme-name #t fraction (reverse variants) 0))]))
 
+  ;; The sheets are gathered, collated, folded and sewn -- and every copy is
+  ;; folded separately, so this is where the copies stop being interchangeable.
+  (define quires (book-quires b))
   (define made
     (for/list ([i (in-range copies)])
+      (define nm (format "Copy ~a" (integer->char (+ (char->integer #\A) i))))
       (printed-copy
-       (format "Copy ~a" (integer->char (+ (char->integer #\A) i)))
+       nm
        (for/hash ([(name s) (in-hash states)])
          (values name
                  (and (forme-state-corrected? s)
-                      (> (rnd g) (forme-state-fraction-uncorrected s))))))))
+                      (> (rnd g) (forme-state-fraction-uncorrected s)))))
+       (bind quires #:name nm #:rate binding-error
+             #:rng (make-rng (+ seed 9001 (* 31 i)))))))
 
-  (press-run states made (reverse log) silent-readings edition))
+  (press-run states made (reverse log) silent-readings edition binding-error))
 
 ;; The readings actually shown by one copy: the silent corrections, which
 ;; every copy has, plus whichever state of each variant forme it was made up

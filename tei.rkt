@@ -32,7 +32,7 @@
 
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
-         "press.rkt" "corrector.rkt" "description.rkt" "pagination.rkt"
+         "press.rkt" "binding.rkt" "corrector.rkt" "description.rkt" "pagination.rkt"
          (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary)
          (only-in "deviation.rkt" deviation-counts word-deviation)
          (only-in "orthography.rkt" strip-conventions))
@@ -64,8 +64,25 @@
   (define wits
     (if run
         (for/list ([pc (in-list (press-run-copies run))] [i (in-naturals)])
-          (format "          <witness xml:id=\"~a\">~a, made up from the heaps</witness>"
-                  (copy-id pc) (esc (printed-copy-name pc))))
+          ;; The binding is a fact about this copy and about no other, which
+          ;; is the whole reason a witness list exists. A fault caught when
+          ;; the book was collated never reached a reader and is recorded as
+          ;; caught rather than omitted, because "no fault" and "a fault put
+          ;; right in the warehouse" are different states of the same copy.
+          (define bc (printed-copy-binding pc))
+          (format "          <witness xml:id=\"~a\">~a, made up from the heaps and sewn as ~a~a</witness>"
+                  (copy-id pc) (esc (printed-copy-name pc))
+                  (esc (string-join
+                        (for/list ([k (in-list (bound-copy-order bc))] [pos (in-naturals)])
+                          (format "~a~a" (quire-mark (list-ref (book-quires b) k))
+                                  (if (memv pos (bound-copy-inverted bc)) "↓" "")))
+                        " "))
+                  (apply string-append
+                         (for/list ([f (in-list (bound-copy-faults bc))])
+                           (format "<hp:fault kind=\"~a\" at=\"~a\" caught=\"~a\">~a</hp:fault>"
+                                   (esc (format "~a" (fault-kind f))) (esc (fault-at f))
+                                   (if (fault-caught? f) "true" "false")
+                                   (esc (fault-note f)))))))
         '()))
   (string-join
    (append
@@ -393,7 +410,7 @@
   (string-append "        " lb "\n"
                  (if (null? ws) "" (string-append "        " (string-join ws "") "\n"))))
 
-(define (page->tei p fmt variants [folio #f])
+(define (page->tei p fmt variants [folio #f] [role "text"])
   (define sig (page-sig p))
   (define rt (page-running-title p))
   (define cols
@@ -423,15 +440,22 @@
    ;; leaves are the same paper, while a folio in sixes is three sheets quired
    ;; one inside another, its outermost being leaves 1 and 6. XSLT 1.0 should
    ;; not have to know that, and the format is here.
-   (format "    <div type=\"page\" n=\"~a\" resp=\"#comp~a\" hp:forme=\"~a\" hp:pressure=\"~a\" hp:leaf=\"~a\" hp:sheet=\"~a\">\n"
-           (esc sig) (esc (page-compositor p)) (esc (page-forme-name p))
+   ;; `role' and `series' are what tells a reader of the file that a leaf is
+   ;; preliminary matter, and there is nowhere else for that to live: the
+   ;; signature alone will not say, because a book signed A for its front
+   ;; matter and B onward for its text looks in the collation exactly like one
+   ;; signed straight through from A.
+   (format "    <div type=\"page\" n=\"~a\" resp=\"#comp~a\" hp:role=\"~a\" hp:series=\"~a\" hp:forme=\"~a\" hp:pressure=\"~a\" hp:leaf=\"~a\" hp:sheet=\"~a\">\n"
+           (esc sig) (esc (page-compositor p)) (esc role)
+           (esc (sig-series-name (page-ref-series (page-pref p))))
+           (esc (page-forme-name p))
            (real->decimal-string (page-pressure p) 2)
-           (esc (format "~a~a" (signature-letter (page-ref-gathering (page-pref p)))
+           (esc (format "~a~a" (page-ref-mark (page-pref p))
                         (page-ref-leaf (page-pref p))))
            (esc (let* ([r (page-pref p)]
                        [n-leaves (book-format-leaves fmt)]
                        [leaf-n (page-ref-leaf r)])
-                  (format "~a~a" (signature-letter (page-ref-gathering r))
+                  (format "~a~a" (page-ref-mark r)
                           (if (<= (book-format-sheets fmt) 1)
                               1
                               (min leaf-n (- (add1 n-leaves) leaf-n)))))))
@@ -473,9 +497,14 @@
    (apply string-append
           (let ([folios (for/hash ([f (in-list (book-paging b))])
                           (values (folio-number-sig f) f))])
+            (define roles
+              (for/hash ([q (in-list (book-plans b))])
+                (values (gathering-plan-place q)
+                        (format "~a" (gathering-plan-role q)))))
             (for/list ([p (in-list (book-pages b))])
               (page->tei p (book-fmt b) variants
-                         (hash-ref folios (page-sig p) #f)))))
+                         (hash-ref folios (page-sig p) #f)
+                         (hash-ref roles (page-ref-gathering (page-pref p)) "text")))))
    "    </body>\n  </text>\n</TEI>\n"))
 
 (module+ test

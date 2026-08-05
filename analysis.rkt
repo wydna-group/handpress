@@ -11,7 +11,7 @@
 (require racket/list racket/string racket/math racket/set
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt" "pagination.rkt"
-         "press.rkt" "render.rkt")
+         "prelims.rkt" "titlepage.rkt" "binding.rkt" "press.rkt" "render.rkt")
 
 (provide (struct-out page-evidence)
          spelling-evidence attribution-report contamination-report
@@ -713,10 +713,157 @@ WHAT THE SCORES ABOVE DO NOT SHOW
 TEXT
   )
 
+;; ---------------------------------------------------------------------------
+;; The preliminaries, and the binding
+;; ---------------------------------------------------------------------------
+
+(define SCHEME-NOTES
+  (hash
+   'stars "* ** *** — the commonest form, Gaskell p. 52."
+   'symbols "* † ‡ § — symbols \"without logical order\" (Gaskell, p. 52)."
+   'lower "text A–, preliminaries a– : \"always quite common\" (Gaskell, p. 52)."
+   'english "text from B, preliminaries A — \"a characteristically English habit ... to allow for a sheet of preliminaries signed A\" (Gaskell, p. 52). One sheet is allowed for; anything past it is signed a, b, c."
+   'continuous "no separate series at all: the main alphabet begins at the preliminaries. Gaskell (p. 8) finds this in reprints, where the extent of the front matter was already known. Where the front matter fills one gathering it is indistinguishable from the English habit above, and the two part company only if it overflows."
+   'unsigned "nothing set in the direction line at all; cited as π after McKerrow (p. 156), \"easily recalled by the p of 'preliminary'\"."
+   'none "no preliminary matter, so no second series."))
+
+(define (prelims-report b [r #f])
+  (define div (book-division b))
+  (define plans (book-plans b))
+  (define front (filter (lambda (p) (eq? (gathering-plan-role p) 'prelim)) plans))
+  (define tp (book-titlepage b))
+  (string-append
+   "THE PRELIMINARIES\n"
+   (make-string 74 #\─) "\n\n"
+   "Collation: " (book-collation b) "\n\n"
+   (if (null? front)
+       "The book has no preliminary gathering: the text begins at A1r.\n"
+       (format "~a preliminary gathering~a, signed ~a. ~a\n"
+               (length front) (if (= 1 (length front)) "" "s")
+               (string-join
+                (for/list ([p (in-list front)])
+                  (format "~a~a" (series-mark (gathering-plan-series p)
+                                              (gathering-plan-index p))
+                          (if (< (gathering-plan-leaves p)
+                                 (book-format-leaves (book-fmt b)))
+                              " (half a sheet, worked and turned)" "")))
+                ", ")
+               (hash-ref SCHEME-NOTES (book-prelim-scheme b) "")))
+   "\n"
+   ;; The overflow, which is McKerrow's inference and this program's to check.
+   (if (and (> (length front) 1) (eq? (book-prelim-scheme b) 'english))
+       (string-append
+        "The second preliminary series is not a style. The house allowed one\n"
+        "sheet signed A and the front matter would not go in it. McKerrow reads\n"
+        "the same signature the same way: of a Masque collating \"?, A4, a4,\n"
+        "B–E4, F2\" he says the work \"begins on B1 and this is preceded by A\n"
+        "and a, the latter signature strongly suggesting that the preliminary\n"
+        "matter was more than the printer had expected and allowed for\"\n"
+        "(p. 182). Here that inference is right, and the program knows it is.\n\n")
+       "")
+   (if tp
+       (format "Title-page, set from the shop's own formulae:\n\n    ~a\n\n"
+               (string-replace (titlepage-transcript tp) " | " "\n    "))
+       "No title-page was generated.\n\n")
+   "How the division was arrived at:\n\n"
+   (division-summary div) "\n\n"
+   (if (and (book-moved-to-end b) (second (book-moved-to-end b)))
+       (format
+        (string-append
+         "~a was NOT bound in front. It was cast off after the text, found to\n"
+         "fit the white leaves left in the last sheet, and printed there —\n"
+         "which is East's case exactly. Tottel's 1575 Treatise of Moral\n"
+         "Philosophy has its Table among the preliminaries; East reprinting it\n"
+         "in 1584 \"found he had room for the Table in the last gathering of the\n"
+         "book and placed it there\" (McKerrow, p. 78). The same matter, in the\n"
+         "same words, preliminary in one edition and terminal in the next,\n"
+         "because of how much room was left.\n\n")
+        (string-join (map prelim-kind-label (first (book-moved-to-end b))) " and "))
+       ;; Said in full when the matter stayed in front, because "nothing
+       ;; moved" and "there was nothing that could move" are different facts
+       ;; and only one of them is about this book.
+       (if (book-moved-to-end b)
+           (format
+            (string-append
+             "~a could have gone to the back and did not. ~a
+"
+             "The two questions are McKerrow's, in his order: East \"found he had
+"
+             "room for the Table in the last gathering of the book and placed it
+"
+             "there\" (p. 78) — so there must be room in the white leaves the text
+"
+             "has already left, and moving it must actually save leaves at the
+"
+             "front. Where it saves nothing the matter stays where it is, which is
+"
+             "Tottel's edition with the same Table before the text.
+
+")
+            (string-join (map prelim-kind-label (first (book-moved-to-end b))) " and ")
+            (case (third (book-moved-to-end b))
+              [(no-room) "There was not enough white paper left in the last sheet to take it."]
+              [else "There was room, but the preliminaries take the same number of leaves either way, so nothing would have been saved."]))
+           ""))
+   (if r (binding-section b r) "")))
+
+(define (binding-section b r)
+  (define copies (press-run-copies r))
+  (define rate (press-run-binding-error r))
+  (define rolls (* (length copies) (length (book-plans b))))
+  (define faults
+    (append* (for/list ([pc (in-list copies)])
+               (for/list ([f (in-list (bound-copy-faults (printed-copy-binding pc)))])
+                 (cons (printed-copy-name pc) f)))))
+  (define uncaught (filter (lambda (p) (not (fault-caught? (cdr p)))) faults))
+  (string-append
+   "\nGATHERING, FOLDING AND SEWING\n"
+   (make-string 74 #\─) "\n\n"
+   ;; The rolls and the expectation are printed whether or not anything
+   ;; happened, because a bare zero cannot tell "did not happen" from "could
+   ;; not happen here", and this program has misdiagnosed a live mechanism as
+   ;; dead for exactly that reason.
+   (format "~a cop~a made up, ~a gathering~a apiece: ~a chances of a fault, of which ~a would be expected at ~a per gathering.\n"
+           (length copies) (if (= 1 (length copies)) "y" "ies")
+           (length (book-plans b))
+           (if (= 1 (length (book-plans b))) "" "s")
+           rolls (real->decimal-string (* rolls rate) 1)
+           (real->decimal-string rate 3))
+   (format "~a fault~a occurred; ~a went out uncorrected.\n\n"
+           (length faults) (if (= 1 (length faults)) "" "s")
+           (length uncaught))
+   (if (null? faults)
+       ""
+       (string-append
+        (string-join
+         (for/list ([p (in-list faults)])
+           (format "  ~a: ~a~a" (car p) (fault-note (cdr p))
+                   (if (fault-caught? (cdr p))
+                       " — found when the book was collated, and put right"
+                       " — NOT found; the copy went out wrong")))
+         "\n")
+        "\n\n"))
+   (wrap (binding-note rate) 74) "\n"))
+
+;; Break a paragraph to a width, for the notes that have to be said in full.
+(define (wrap text width)
+  (let loop ([ws (string-split text)] [line '()] [len 0] [out '()])
+    (cond
+      [(null? ws)
+       (string-join (reverse (if (null? line)
+                                 out
+                                 (cons (string-join (reverse line) " ") out)))
+                    "\n")]
+      [(and (pair? line) (> (+ len 1 (string-length (car ws))) width))
+       (loop ws '() 0 (cons (string-join (reverse line) " ") out))]
+      [else (loop (cdr ws) (cons (car ws) line)
+                  (+ len 1 (string-length (car ws))) out)])))
+
 (define (full-report b [r #f] [names '("A" "B")])
   (define ev (spelling-evidence b names))
   (string-join
    (append (list (description b)
+                 (prelims-report b r)
                  (attribution-report ev names)
                  (contamination-report b)
                  (skeleton-report b)

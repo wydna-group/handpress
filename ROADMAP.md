@@ -9,106 +9,122 @@ good for.
 
 ## 0. Wanted next
 
-Four things asked for, in the order I would build them. The first three are
-one piece of work in disguise, which is the interesting part.
+Five things were asked for and all five are built; what is left of this
+section is what they turned up on the way, and the two places where the
+program still cannot check itself.
 
-- [ ] **Preliminary signatures.** Mined from Gaskell and McKerrow before
-      building, because the hard part turns out not to be the signing.
+- [x] **Preliminary signatures.** `imposition.rkt` now carries a `sig-series`:
+      `* ** ***`, `* † ‡ §`, `¶ ¶¶`, lower-case `a b c`, the main alphabet,
+      and McKerrow's `π` for leaves that carry nothing. A `page-ref` knows
+      which series signs it and where it stands in that series; `π` is a
+      citation mark only and never reaches the direction line. The house may
+      sign from Jaggard's twenty letters (`--jaggard-alphabet`), which doubles
+      three gatherings sooner than everyone else's twenty-three.
 
-      *Why they exist.* "The preliminaries were not included in the main
-      signature series of new books **because it was usual to print them
-      last**; reprints, however, sometimes began the main signature series at
-      the beginning of the preliminaries" (Gaskell 8). McKerrow on the shop
-      floor: "in composing a new book from MS the normal course was to begin at
-      the beginning of the text and proceed straight on to the end, **setting
-      up the title-page and preliminaries last**" (p. 128). So the separate
-      series is a consequence of the printing order, and reprints — where the
-      extent is already known — are the exception that proves it.
+      The collation formula takes runs rather than a count, so it prints
+      `4°: A² B–L⁴` — Blayney's own formula for the First Quarto of *Lear* —
+      and `4°: A⁴ a² B–H⁴` for the English habit.
 
-      *The forms, in Gaskell's order of frequency* (p. 52):
-      - `*  **  ***` — "even commoner" than letters
-      - `*  †  ‡  §` — symbols "without logical order"
-      - main series `A-`, preliminaries `a-` — "always quite common"
-      - main series from **B**, preliminaries `A a b c` — "a characteristically
-        English habit … to allow for a sheet of preliminaries signed A"
-      - `π` for *unsigned* preliminary leaves — McKerrow's own convention
-        (p. 156), "easily recalled by the p of 'preliminary'", adopted by Madan
-        and Greg. Belongs in the collation formula in `description.rkt`.
+- [x] **Telling what the preliminary matter *is*.** `prelims.rkt`. A closed
+      vocabulary of period headings, matched only before the text begins,
+      each kind carrying its own confidence: *the epistle dedicatory* at 0.92,
+      *the names of the speakers* at 0.60, *the argument* at 0.50 — because
+      McKerrow prints two editions of one masque in which the Names are
+      preliminary in the first and the head of the text in the second (p. 182).
+      Declared copy is obeyed; guessed copy is reported as a guess, with the
+      evidence and East's case beside it. `--no-prelims` refuses to guess.
 
-      Also Gaskell n. 33a, which the program should be able to reproduce: "A
-      rare variant used at the **Jaggard** house in early seventeenth-century
-      London was a 20-letter signature alphabet, omitting X, Y, and Z."
-      `SIG-LETTERS` is currently 23 letters for everyone.
+      Two caps, and the second was a bug found by running it: a block that
+      grows past 2,600 words with no further heading to close it is given back
+      to the text, because plain copy gives no signal where the last block
+      ends and a table of contents was swallowing a whole book.
 
-- [ ] **Telling what the preliminary matter *is*.** The real problem, and the
-      sources say it cannot be solved from the text alone.
+- [x] **The title-page, generated.** `titlepage.rkt`, from Blayney's Appendix
+      II — about ninety title-page transcripts from one shop, 1604–9. Counted:
+      the printer is named on 58 of 81 and abbreviated to initials on 19 of 50;
+      `LONDON,` against `AT LONDON` against `Imprinted at London by` runs
+      45 : 9 : 6; a shop is given on 40 of 81, half as *and are to be sold at
+      his shop in*, half as *dwelling in*, and 15 of the 40 name a sign; and
+      about half the dates are set with the figures spaced apart. The address
+      belongs to the bookseller, not the printer, except where there is no
+      bookseller.
 
-      What counts is a short, closed list. McKerrow: "the title, dedication,
-      preface, and, if there is one, list of contents" (p. 25). Gaskell:
-      "the title-page (which may be preceded by a half-title), dedication,
-      preface, table of contents" and, later, "essentially of the title-page,
-      the author's or publisher's prefatory matter and, sometimes, a table of
-      contents."
+      It is emitted as **copy**, not as a page, so it goes through the same
+      compositor as the text and picks up his spelling and his accidents. It
+      is set last and bound first, which is what Blayney's note that the *Lear*
+      title-page was "the first part of the book to be set" makes awkward and
+      what the type accounting has to survive.
 
-      But **the boundary is a printer's decision, not a property of the text**,
-      and McKerrow has the case that proves it. Tottel's 1575 *Treatise of
-      Moral Philosophy* put the Table among the preliminaries. East reprinted
-      it in 1584, started the text at C1 following Tottel — "he then found he
-      had room for the Table in the last gathering of the book and placed it
-      there, with the result that his preliminaries now only" filled half a
-      gathering, and the first eight leaves came out signed A1–4 and B1–4 with
-      the sewing after A4 (p. 78). Same matter, same words, preliminary in one
-      edition and terminal in the next, *because of how much room was left*.
+- [x] **Printing the preliminaries last.** `book.rkt` now casts off the text
+      first, then the front matter, and works the gatherings in printing order
+      while binding them in reading order. Whether the Table goes to the back
+      is decided by two questions rather than by a rate: is there room in the
+      white leaves the text has already left, and does moving it save leaves at
+      the front? Both yes and it moves, which is East; either no and it stays,
+      which is Tottel. The report says which, and why, in both cases.
 
-      So the design follows from the evidence rather than from convenience:
-      1. **Marked-up copy declares it.** TEI `<div type="dedication">`,
-         `type="preface"`, `type="contents"`, `type="title_page"`.
-      2. **Plain copy is guessed**, from a heading vocabulary — *to the
-         reader*, *to the right honourable*, *the epistle dedicatory*,
-         *dedication*, *preface*, *the argument*, *contents*, *advertisement*,
-         *commendatory verses* — and only where it stands before the text
-         begins. `copytext.rkt` already emits `'heading` units, so the hook
-         exists.
-      3. **The guess is overridable and is reported as a guess**, because the
-         two authorities agree the division was decided in the shop. A program
-         that inferred it silently would be claiming to recover a decision
-         from its outcome.
+- [x] **Folding and gathering, with the binder's errors.** `binding.rkt`.
+      Five kinds of fault, all from the sources; the *rate* is an explicit
+      parameter (`--binding-error`) with **no authority claimed for it**, and
+      the report prints the disclaimer beside every fault it lists. What is
+      not invented is the shape: signatures existed "to get them the right way
+      up and in the right order" (Gaskell, p. 79), so an unsigned gathering is
+      likelier to go in wrong *and* likelier to survive the warehouse's check,
+      because the check is the signatures too.
 
-      And the interesting consequence to build for: when the preliminaries are
-      set last, *how much room is left in the final sheet* decides how they are
-      signed and whether some of them migrate to the end — which is East's
-      case exactly, and is where this meets binding.
+---
 
-- [ ] **The title-page, generated.** It is preliminary matter and should be
-      set like the rest of it, not supplied by hand: title, author, the
-      publisher's device, and an imprint in the period's own formula —
-      *Printed by N.O. for Nathaniel Butter, and are to be sold at his shop in
-      Pauls Church-yard, 1608*. Blayney's Appendix II is a corpus of
-      **titlepage transcripts** for one shop across five years, which is
-      exactly the evidence needed for the formulae, the abbreviation of the
-      printer's name to initials, and the way the date is set. Mine that before
-      writing any of it. Note also that Blayney says the *Lear* title-page was
-      "the first part of the book to be set", then distributed — so a generated
-      title-page must be able to be set first and printed last, which is the
-      awkward case for the type accounting.
+### What came out of it
 
-- [ ] **Folding and gathering, with the binder's errors.** Wanted, and one
-      caution recorded now so it is not quietly forgotten: **neither Gaskell
-      nor McKerrow gives an error rate.** McKerrow gives the *detection* — how
-      to tell a cancel from "a leaf that has at some time been loose, and in
-      rebinding has been stuck in at a wrong level" (fig. 21) — and the kinds
-      of fault, but no frequency. Everything in this program that was set from
-      a guessed rate has been wrong by an order of magnitude, so the rate here
-      must be an explicit parameter with no authority claimed for it, and the
-      report must say so. The *kinds* are safe to model from the sources:
-      a sheet folded inside out, a gathering bound out of order, a sheet
-      duplicated or omitted, a loose leaf refixed at the wrong level.
+- **A paragraph longer than a page was never divided when it began the page.**
+      `cast-off` would only split a unit if something was already standing on
+      the page, so a two-hundred-line paragraph was cast off as one page of
+      thirty-eight. Every book whose copy has a long unbroken paragraph was
+      measured wrong by the difference. Found because a generated dedication is
+      one paragraph and would not grow past a single leaf however long it was
+      made.
 
-- [ ] **Binding.** Sheets folded, gathered and sewn — and got wrong. Sheets
-      bound out of order, inverted, duplicated, omitted. This is the one stage
-      where the *book* diverges from the *printing*, and the analysis ought to
-      have to cope with it. It is also where the blank leaves go: fill them
-      with preliminaries and cancels and most of them stop being blank.
+- **Gaskell gives the mechanism by which press-variant states correlate
+      between copies, and this program still draws them independently.**
+      pp. 143–4: the sheets are gathered from the tops of the heaps in
+      signature order, so "the order of printing may have been echoed, either
+      directly or inversely, by the order of gathering, and some of the
+      complete books would tend to contain sheets printed early in their runs,
+      and others sheets printed late". Which way round depends on whether the
+      sheet was perfected inner-forme-first or outer-forme-first. So a copy is
+      **not** a random draw of corrected and uncorrected states — it is a
+      systematic one, and a collation of several copies should show the
+      correlation. `press.rkt` rolls each forme independently. This is the
+      single most testable thing found in this round and it is not built.
+
+- **Half-sheet imposition is modelled, and only for the case that arises.**
+      A two-leaf gathering is one forme worked and turned (Gaskell, p. 83),
+      which halves the formes and the paper — and `A2` is the commonest
+      preliminary arrangement in Blayney's checklist by a wide margin. Blayney
+      has stranger ones got by cutting (`12°: A6 B-N12 P6`) and those are not
+      attempted.
+
+- **The title-page is charged to the text case, and should not be.** A real
+      title-page drew on titling founts kept apart from the body fount;
+      `typecase.rkt` keeps one case. The error is about forty words a book, all
+      of them large, and it is stated in the code rather than hidden.
+
+---
+
+### Still wanted
+
+- [ ] **Correlated press-variant states between copies.** The finding above,
+      built. `press.rkt` should gather each copy from the tops of the heaps in
+      signature order rather than rolling every forme independently, and record
+      for each sheet whether it was perfected inner-forme-first. The payoff is
+      that the analysis half could then be asked a question with a right
+      answer: given a handful of collated copies, can it recover the order of
+      printing from the pattern of corrected states? Gaskell says the
+      information is there.
+
+- [ ] **Turner's rule tested against known truth.** Named here so it does not
+      get lost again: the program knows which forme was printed first and can
+      score any rule that claims to recover it.
 
 - [ ] **Cancels.** Gaskell has Rousseau's publisher urging him "to use up the
       blank leaves of final sheets for printing cancels" — a corrected leaf

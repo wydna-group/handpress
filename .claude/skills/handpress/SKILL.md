@@ -31,6 +31,9 @@ picturesque than the real one.** Assume the next one is too.
 | class spelling habits (`-ie`) | 57% (Blayney) | 82–91% | 57% |
 | wrong-fount sorts | a handful a book | 248 | 13 |
 | gaps a compositor could set | every one | 14% | 95% |
+| the printer named in the imprint | 58 of 81 (Blayney App. II) | — | 72% |
+| the imprint date spaced (`1 6 0 8.`) | about half | — | 50% |
+| binder's faults per gathering | **no source gives a rate** | — | a knob, 0.01 |
 
 Every one of these was wrong in the same direction until it was measured.
 
@@ -45,6 +48,12 @@ Every one of these was wrong in the same direction until it was measured.
   answered here even though `lexicon.rkt` only reads *spellings*.
 - Tables OCR badly. Pull those pages with `d[i].get_text()` and read them by
   eye rather than trusting a grep.
+- **Blayney's Appendix II is a corpus, not an appendix.** Ninety-odd books from
+  one shop, each with a title-page transcript, a collation and a list of
+  ornaments. Every imprint formula and every preliminary arrangement in
+  `titlepage.rkt` and `prelims.rkt` was counted out of it. Starts around PDF
+  379. The collations alone answer questions no prose passage does: `A2 B-L4`,
+  `A4 *4 (−*2:3) B-X4`, `¶4 π A-B6`, `πA8(−A7,8) A-Bb8 Cc1,2[=πA7,8]`.
 
 ## The shape of the program
 
@@ -97,7 +106,22 @@ happen here*.** Say which.
 - **Renames that cross a classification boundary change meaning.** Redefining
   `composed` as the reading made the accident test report 1,048 for 7.
 - **A bare zero cannot distinguish *did not happen* from *cannot happen
-  here*.** Say which — in the report *and* in the TEI.
+  here*.** Say which — in the report *and* in the TEI. The binding section
+  prints the number of chances and the expectation before the count, for this
+  reason.
+- **A rule that only fires when something is already there will never fire on
+  the first one.** `cast-off` would divide a long paragraph only if the page
+  already had something on it, so a two-hundred-line paragraph became one page
+  of thirty-eight. It survived for months because real copy has paragraph
+  breaks and only a generated dedication is one block.
+- **When the sources give an order but no numbers, say so where the numbers
+  are.** Gaskell ranks the preliminary signature forms by frequency and gives
+  no figures; `PRELIM-SCHEMES` carries weights, and the comment above it says
+  the ordering is his and the weights are not.
+- **Prefer a rule to a rate.** Whether the Table migrates to the back is
+  decided by arithmetic on two make-ups — is there room, and does it save
+  leaves — not by a probability. A rate there would have been invented; the
+  rule is McKerrow's own account of what East did.
 
 ## The lexicon
 

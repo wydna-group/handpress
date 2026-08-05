@@ -25,6 +25,8 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [Installing](#installing)
 - [Command line](#command-line)
 - [What is modelled](#what-is-modelled)
+- [The preliminaries](#the-preliminaries)
+- [Gathering, folding and binding](#gathering-folding-and-binding)
 - [The lexicon](#the-lexicon)
 - [Calibration](#calibration)
 - [Running it backwards](#running-it-backwards)
@@ -112,6 +114,13 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--format` | `folio`, `folio6`, `quarto`, `octavo` |
 | `--kind` | `auto`, `verse`, `prose`, `drama` — how the copy is parsed |
 | `--title` | running title |
+| `--book-title` | title as set on the title-page, which is not the running title |
+| `--author` | author, as named on the title-page |
+| `--printer`, `--publisher` | the names in the imprint |
+| `--no-titlepage` | do not generate one |
+| `--no-prelims` | do not guess at preliminary matter in unmarked copy |
+| `--jaggard-alphabet` | sign from Jaggard's twenty letters, omitting X, Y and Z |
+| `--binding-error` | faults per gathering per copy at the folding — **no source gives a rate** |
 | `--edition` | sheets printed; the Cambridge accounts show 400–820 |
 | `--copies` | how many made-up copies to collate for press variants |
 
@@ -230,6 +239,75 @@ They are describing different shops fifty years apart — a London trade house
 printing an outsized folio against its stock, and a university press with men
 to keep busy. Type economy can be decisive in one and irrelevant in the other.
 What the table cannot support is either as a general law of the hand press.
+
+### The preliminaries
+
+The front matter — title-page, dedication, preface, sometimes a table — was
+printed **last** and bound **first**, and everything else about it follows from
+that. Gaskell: "the preliminaries were not included in the main signature
+series of new books because it was usual to print them last" (p. 8). McKerrow
+from the shop floor: "in composing a new book from MS the normal course was to
+begin at the beginning of the text and proceed straight on to the end, setting
+up the title-page and preliminaries last" (p. 128). The compositor who has
+already signed his text A to L cannot give the front matter letters, so he
+gives it a series of its own.
+
+The program sets the text first, then the front matter, and works the
+gatherings in printing order while binding them in reading order. It signs
+them in one of Gaskell's forms (p. 52): `* ** ***`, `* † ‡ §`, lower-case
+`a b c` with the text from A, or the "characteristically English habit" of the
+text from B with the preliminaries signed A. Leaves that carry nothing are
+cited as McKerrow's `π`. A short preliminary gathering is half a sheet worked
+and turned — one forme, not two — which is `A2`, the commonest preliminary
+arrangement in Blayney's checklist by a wide margin.
+
+**Which matter is preliminary cannot be got from the text**, and both
+authorities say so. McKerrow has the case: Tottel's 1575 *Treatise of Moral
+Philosophy* puts its Table among the preliminaries; East reprinting it in 1584
+"found he had room for the Table in the last gathering of the book and placed
+it there" (p. 78). The same matter, in the same words, preliminary in one
+edition and terminal in the next, because of how much room was left. So the
+program guesses from a closed vocabulary of period headings, only before the
+text begins, gives each kind its own confidence, says out loud that it is
+guessing, and can be told not to.
+
+And it reproduces East's decision rather than imitating it. Whether the Table
+goes to the back turns on two questions in McKerrow's order: is there room in
+the white leaves the text has already left, and does moving it save leaves at
+the front? Both yes and it moves; either no and it stays. The report says
+which, and why, in both cases — because "nothing moved" and "there was nothing
+that could move" are different facts about a book.
+
+The title-page is generated as **copy**, not supplied as a page, so it goes
+through the same compositor as the text. Its grammar is measured from Blayney's
+Appendix II, about ninety title-page transcripts from one shop between 1604 and
+1609: the printer is named on 58 of 81 and abbreviated to initials on 19 of 50;
+a shop is given on 40 of 81, half as *and are to be sold at his shop in* and
+half as *dwelling in*; and about half the dates are set with the figures spaced
+apart — `1 6 0 8.` — because the last line of an imprint is short and the
+figures were quadded out to fill it.
+
+### Gathering, folding and binding
+
+The one stage at which the *book* diverges from the *printing*. Two hands in
+two places: the warehouseman gathers in the printing house, walking the line of
+heaps and taking one sheet from each (Gaskell, pp. 143–4); the binder folds and
+sews later and elsewhere. Between them they can drop a sheet, take two, put one
+in backwards, or sew them out of order — and the whole apparatus of signatures
+exists to stop two of those:
+
+> It was necessary, when assembling the sheets of a book, to get them the right
+> way up and in the right order; and to this end each sheet was signed on the
+> first page with a letter of the alphabet … in order to help the binder with
+> his folding. (Gaskell, p. 79)
+
+That sentence is the design. The *kinds* of fault come from the sources, as
+does the fact that made-up books were collated before they went out. **The rate
+does not.** Neither Gaskell nor McKerrow gives one, so `--binding-error` is a
+parameter with no authority claimed for it, and the report prints the
+disclaimer beside every fault it lists. What is not invented is the shape: an
+unsigned gathering is likelier to go in wrong, and likelier to survive the
+warehouse's check when it does, because the check is the signatures too.
 
 ### Justification
 
@@ -512,14 +590,24 @@ method in order to test it, and reporting where it fails.
 
 ## What next
 
-See [ROADMAP.md](ROADMAP.md). Two things are next. **Preliminaries, binding
-and cancels** are one piece of work in disguise: preliminaries were printed
-last, on the spare leaves of the final sheet, which is why they carry their own
-signature series and why most blank leaves in this program should not be blank.
-And **recovering forme order from type recurrence** is the real prize, because
-it is Hinman's central method and this is the only place it can be graded
-against a known truth — Blayney even supplies the threshold at which he says it
-must fail.
+See [ROADMAP.md](ROADMAP.md). The preliminaries, the signature series, the
+generated title-page and the binder's errors are built. Two things are next,
+and both are about grading the method rather than extending the simulation.
+
+**Correlated press-variant states.** Gaskell describes the mechanism and this
+program does not have it: the sheets are gathered from the tops of the heaps in
+signature order, so "the order of printing may have been echoed, either
+directly or inversely, by the order of gathering" (pp. 143–4), and which way
+round depends on whether the sheet was perfected inner-forme-first. A copy is
+therefore not a random draw of corrected and uncorrected states but a
+systematic one. `press.rkt` still rolls every forme independently. Build it and
+the analysis can be asked a question with a right answer: from a handful of
+collated copies, recover the order of printing.
+
+**Recovering forme order from type recurrence** is the real prize, because it
+is Hinman's central method and this is the only place it can be graded against
+a known truth — Blayney even supplies the threshold at which he says it must
+fail.
 
 ## Licence
 

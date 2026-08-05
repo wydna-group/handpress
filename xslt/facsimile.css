@@ -293,3 +293,13 @@ body.plain .dev-divided { box-shadow: none; }
 /* The buttons are controls, not glossed words: they must not inherit the
    help cursor that every annotated word carries. */
 .unit, .unit span, .unit span * { cursor: pointer !important; }
+
+/* Preliminary matter. Nothing on the leaf itself says that it is: a book
+   signed A for its front matter and B onward for its text looks, leaf by
+   leaf, exactly like one signed straight through. What makes it preliminary
+   is that it was set after the text and printed last -- an order of work, not
+   a mark on the paper -- so the page has to be told. */
+.tag .prelim {
+  border-bottom: 1px dotted currentColor; cursor: help; letter-spacing: .06em;
+}
+.leaf.prelim { box-shadow: inset 3px 0 0 rgba(150,110,60,.45); }

@@ -19,20 +19,106 @@
 
 (provide (struct-out book-format) (struct-out page-ref) (struct-out forme)
          (struct-out running-title) (struct-out skeleton)
-         (struct-out cast-off-segment)
+         (struct-out cast-off-segment) (struct-out sig-series) (struct-out sig-run)
          FOLIO FOLIO-IN-SIXES QUARTO OCTAVO FORMATS
          book-format-pages signature-letter page-refs signed-leaves
          sheet-scheme formes-for-gathering setting-order
          collation-formula cast-off make-skeletons title-for
-         page-ref-signature page-ref-signed skeleton-add-use!)
+         page-ref-signature page-ref-signed page-ref-mark skeleton-add-use!
+         SIG-LETTERS JAGGARD-LETTERS
+         MAIN-SERIES LOWER-SERIES STAR-SERIES SYMBOL-SERIES PILCROW-SERIES
+         PI-SERIES PRELIM-SERIES-CHOICES
+         series-mark series-prints? make-main-series)
 
 (define SIG-LETTERS "ABCDEFGHIKLMNOPQRSTVXYZ")  ; J, U and W are not used
 
+;; "A rare variant used at the Jaggard house in early seventeenth-century
+;; London was a 20-letter signature alphabet, omitting X, Y, and Z" (Gaskell
+;; n. 33a). The house that printed the First Folio is the one this program
+;; quotes oftenest, so it may as well be able to sign like it.
+(define JAGGARD-LETTERS "ABCDEFGHIKLMNOPQRSTV")
+
+;; ---------------------------------------------------------------------------
+;; The signature series
+;; ---------------------------------------------------------------------------
+;; A book may run through more than one series of signature marks, and the
+;; reason is the order of work rather than any wish for variety. "The
+;; preliminaries were not included in the main signature series of new books
+;; **because it was usual to print them last**; reprints, however, sometimes
+;; began the main signature series at the beginning of the preliminaries"
+;; (Gaskell 8). McKerrow puts the same thing from the shop floor: "in composing
+;; a new book from MS the normal course was to begin at the beginning of the
+;; text and proceed straight on to the end, setting up the title-page and
+;; preliminaries last" (p. 128).
+;;
+;; So the compositor reaching the end of his copy does not yet know how many
+;; leaves the front matter will want, and cannot give it letters that would
+;; collide with the text he has already signed. He gives it a series of its
+;; own. The forms, in Gaskell's order of frequency (p. 52):
+;;
+;;   *  **  ***          "even commoner" than letters
+;;   *  †  ‡  §          symbols "without logical order"
+;;   a  b  c             main series A-, preliminaries a-: "always quite common"
+;;   A  a  b  c          main series from B: "a characteristically English
+;;                       habit ... to allow for a sheet of preliminaries
+;;                       signed A"
+;;
+;; and, for leaves that carry no signature at all, McKerrow's π (p. 156),
+;; "easily recalled by the p of 'preliminary'", adopted after him by Madan and
+;; Greg. π is a citation mark only: nothing is set in the direction line, which
+;; is the whole point of it.
+;;
+;; ¶ is not in Gaskell's list but is thick on the ground in Blayney's checklist
+;; of one shop's output, where preliminary gatherings are signed ¶2, ¶4 and ¶8
+;; (Appendix II, nos. 2, 20, 47, 62 among others), so it is here as a style of
+;; its own rather than as one symbol among four.
+(struct sig-series (name style alphabet) #:transparent)
+
+(define (make-main-series [alphabet SIG-LETTERS])
+  (sig-series "main" 'letters alphabet))
+
+(define MAIN-SERIES    (make-main-series))
+(define LOWER-SERIES   (sig-series "lower-case" 'lower SIG-LETTERS))
+(define STAR-SERIES    (sig-series "asterisks"  'stars #f))
+(define SYMBOL-SERIES  (sig-series "symbols"    'symbols #f))
+(define PILCROW-SERIES (sig-series "pilcrow"    'pilcrow #f))
+(define PI-SERIES      (sig-series "unsigned"   'pi #f))
+
+;; What a house may choose for its preliminaries, in Gaskell's order.
+(define PRELIM-SERIES-CHOICES
+  (list STAR-SERIES SYMBOL-SERIES LOWER-SERIES PILCROW-SERIES
+        MAIN-SERIES PI-SERIES))
+
+(define SYMBOLS '("*" "†" "‡" "§"))
+
+;; A run of the same mark repeated: * ** ***, ¶ ¶¶ ¶¶¶.
+(define (repeated mark n)
+  (apply string-append (for/list ([_ (in-range (add1 n))]) mark)))
+
 ;; 0 -> A, 22 -> Z, 23 -> Aa, 46 -> Aaa ...
-(define (signature-letter n)
-  (define len (string-length SIG-LETTERS))
+(define (letters-mark alphabet n)
+  (define len (string-length alphabet))
   (define-values (rep idx) (quotient/remainder n len))
-  (make-string (add1 rep) (string-ref SIG-LETTERS idx)))
+  (make-string (add1 rep) (string-ref alphabet idx)))
+
+(define (signature-letter n [alphabet SIG-LETTERS]) (letters-mark alphabet n))
+
+;; The mark a bibliographer writes for the nth gathering of this series.
+(define (series-mark s n)
+  (case (sig-series-style s)
+    [(letters) (letters-mark (or (sig-series-alphabet s) SIG-LETTERS) n)]
+    [(lower)   (string-downcase
+                (letters-mark (or (sig-series-alphabet s) SIG-LETTERS) n))]
+    [(stars)   (repeated "*" n)]
+    [(pilcrow) (repeated "¶" n)]
+    [(symbols) (let-values ([(rep idx) (quotient/remainder n (length SYMBOLS))])
+                 (repeated (list-ref SYMBOLS idx) rep))]
+    [(pi)      (if (zero? n) "π" (format "~aπ" (add1 n)))]
+    [else      (letters-mark SIG-LETTERS n)]))
+
+;; Whether the mark is actually set in the direction line, or is only the
+;; bibliographer's way of pointing at a leaf that carries nothing.
+(define (series-prints? s) (not (eq? (sig-series-style s) 'pi)))
 
 ;; NB: not named `format' -- that is Racket's string formatter, and shadowing
 ;; it in a module this full of report text would be a slow-burning disaster.
@@ -55,9 +141,27 @@
 ;; ---------------------------------------------------------------------------
 
 ;; Page numbers (1-based within the gathering) on each forme of each sheet.
-;; Returns a list of (cons outer-pages inner-pages).
-(define (sheet-scheme f)
+;; Returns a list of (cons outer-pages inner-pages). An empty inner means the
+;; gathering was worked and turned: one forme did both sides.
+(define (sheet-scheme f [leaves (book-format-leaves f)])
   (cond
+    ;; A gathering shorter than the format's own is half a sheet, and was not
+    ;; printed as one. Gaskell, p. 83: in half-sheet imposition "all the pages
+    ;; for a half sheet were imposed in one forme; this forme was first printed
+    ;; on one side of the whole sheet, then the heap of paper was turned (end
+    ;; over end in quarto and octavo, side over side in duodecimo) and printed
+    ;; from the same forme on the other side. Each printed sheet was then slit
+    ;; in half to yield two copies of the same half sheet." One forme, one
+    ;; pull per two copies -- which is why a two-leaf preliminary gathering is
+    ;; so much cheaper than it looks, and why Blayney's shop used A2 for its
+    ;; preliminaries oftener than any other arrangement.
+    ;;
+    ;; The method is only modelled where the short gathering really is half the
+    ;; format, which is the case the program generates. Blayney's checklist has
+    ;; stranger ones (A6 in a duodecimo, 12°: A6 B-N12 P6) that were got by
+    ;; cutting, and those are not attempted here.
+    [(and (= (book-format-sheets f) 1) (< leaves (book-format-leaves f)))
+     (list (cons (for/list ([p (in-range 1 (add1 (* 2 leaves)))]) p) '()))]
     [(> (book-format-sheets f) 1)
      ;; quired in sheets: sheet k holds leaves k and (leaves + 1 - k)
      (for/list ([k (in-range 1 (add1 (book-format-sheets f)))])
@@ -74,23 +178,32 @@
                               #:unless (memv (modulo p 4) '(0 1))) p))
      (list (cons outer inner))]))
 
-(struct page-ref (gathering leaf recto? number) #:transparent)
+;; `series' is the run of marks this gathering belongs to, and `index' its
+;; place in that run. They are separate from `gathering', which stays the
+;; position of the gathering in the finished book: the preliminaries are
+;; gathering 0 of the book and gathering 0 of the star series at once, and
+;; both facts are wanted.
+(struct page-ref (gathering leaf recto? number series index) #:transparent)
+
+(define (page-ref-mark r)
+  (series-mark (page-ref-series r) (page-ref-index r)))
 
 (define (page-ref-signature r)
-  (format "~a~a~a" (signature-letter (page-ref-gathering r))
+  (format "~a~a~a" (page-ref-mark r)
           (page-ref-leaf r) (if (page-ref-recto? r) "r" "v")))
 
 ;; What is actually printed in the direction line, if anything.
 (define (page-ref-signed r)
   (cond
+    [(not (series-prints? (page-ref-series r))) ""]
     [(not (page-ref-recto? r)) ""]
-    [(= (page-ref-leaf r) 1) (signature-letter (page-ref-gathering r))]
-    [else (format "~a~a" (signature-letter (page-ref-gathering r))
-                  (page-ref-leaf r))]))
+    [(= (page-ref-leaf r) 1) (page-ref-mark r)]
+    [else (format "~a~a" (page-ref-mark r) (page-ref-leaf r))]))
 
-(define (page-refs f gathering)
-  (for/list ([p (in-range 1 (add1 (book-format-pages f)))])
-    (page-ref gathering (quotient (add1 p) 2) (odd? p) p)))
+(define (page-refs f gathering [series MAIN-SERIES] [index gathering]
+                   #:leaves [leaves (book-format-leaves f)])
+  (for/list ([p (in-range 1 (add1 (* 2 leaves)))])
+    (page-ref gathering (quotient (add1 p) 2) (odd? p) p series index)))
 
 ;; The first half of the leaves of a gathering carry a signature.
 (define (signed-leaves f) (max 1 (quotient (book-format-leaves f) 2)))
@@ -100,29 +213,39 @@
 ;; ---------------------------------------------------------------------------
 
 (struct forme (gathering sheet side page-numbers [skeleton #:mutable]
-                         [order #:mutable])
+                         [order #:mutable] mark)
   #:transparent)
 
+;; Named by the mark the gathering carries, not by its place in the book: a
+;; skeleton used for the preliminaries should say so.
 (define (forme-name fm)
-  (format "~a sheet ~a ~a" (signature-letter (forme-gathering fm))
-          (forme-sheet fm) (forme-side fm)))
+  (format "~a sheet ~a ~a" (forme-mark fm) (forme-sheet fm) (forme-side fm)))
 
-(define (formes-for-gathering f gathering)
+(define (formes-for-gathering f gathering [series MAIN-SERIES] [index gathering]
+                              #:leaves [leaves (book-format-leaves f)])
+  (define mark (series-mark series index))
   (append*
-   (for/list ([scheme (in-list (sheet-scheme f))] [i (in-naturals 1)])
-     (list (forme gathering i "inner" (sort (cdr scheme) <) #f 0)
-           (forme gathering i "outer" (sort (car scheme) <) #f 0)))))
+   (for/list ([scheme (in-list (sheet-scheme f leaves))] [i (in-naturals 1)])
+     (cond
+       ;; worked and turned: a single forme prints both sides of the half sheet
+       [(null? (cdr scheme))
+        (list (forme gathering i "work and turn" (sort (car scheme) <) #f 0 mark))]
+       [else
+        (list (forme gathering i "inner" (sort (cdr scheme) <) #f 0 mark)
+              (forme gathering i "outer" (sort (car scheme) <) #f 0 mark))]))))
 
 ;; The order in which the pages of a gathering are actually composed. Set
 ;; seriatim they go 1, 2, 3 ...; set by formes the house begins at the middle
 ;; of the gathering, where the casting off is least likely to have gone wrong
 ;; yet, and works outward.
-(define (setting-order f gathering by-formes?)
+(define (setting-order f gathering by-formes?
+                       #:leaves [leaves (book-format-leaves f)])
   (cond
-    [(not by-formes?) (for/list ([p (in-range 1 (add1 (book-format-pages f)))]) p)]
+    [(not by-formes?) (for/list ([p (in-range 1 (add1 (* 2 leaves)))]) p)]
     [else
      (define all
-       (append* (for/list ([fm (in-list (reverse (formes-for-gathering f gathering)))])
+       (append* (for/list ([fm (in-list (reverse (formes-for-gathering
+                                                  f gathering #:leaves leaves)))])
                   (forme-page-numbers fm))))
      (remove-duplicates all)]))
 
@@ -133,20 +256,52 @@
   (apply string-append
          (for/list ([ch (in-string (number->string n))]) (hash-ref sups ch))))
 
+;; A stretch of consecutive gatherings signed from one series. `start' is the
+;; place in the series where the stretch begins, so that a main series which
+;; steps aside for the preliminaries and resumes at B can be described.
+(struct sig-run (series start leaves) #:transparent)
+
+;; One run, compressed the way a bibliographer writes it: consecutive
+;; gatherings of the same extent become A–L⁴, a single one A⁴, and a change of
+;; extent starts a new span. This is what turns eleven gatherings into
+;; "A² B–L⁴", which is Blayney's own formula for the First Quarto of Lear.
+(define (run->string run)
+  (define s (sig-run-series run))
+  (let span ([ls (sig-run-leaves run)] [i (sig-run-start run)] [out '()])
+    (cond
+      [(null? ls) (string-join (reverse out) " ")]
+      [else
+       (define n (car ls))
+       (define same (let count ([xs ls] [k 0])
+                      (if (and (pair? xs) (= (car xs) n)) (count (cdr xs) (add1 k)) k)))
+       (define first-mark (series-mark s i))
+       (define last-mark (series-mark s (+ i same -1)))
+       (span (list-tail ls same) (+ i same)
+             (cons (if (= same 1)
+                       (format "~a~a" first-mark (sup n))
+                       (format "~a–~a~a" first-mark last-mark (sup n)))
+                   out))])))
+
 ;; The bibliographer's shorthand for the make-up of the book.
-(define (collation-formula f gatherings)
+;;
+;; Takes either a plain count of gatherings, for a book all in one series, or
+;; a list of runs.
+(define (collation-formula f runs)
+  (define rs
+    (if (list? runs)
+        runs
+        (list (sig-run MAIN-SERIES 0
+                       (for/list ([_ (in-range runs)]) (book-format-leaves f))))))
+  (define total (for*/sum ([r (in-list rs)] [n (in-list (sig-run-leaves r))]) n))
   (cond
-    [(<= gatherings 0) (format "~a: (no sheets)" (book-format-symbol f))]
+    [(zero? total) (format "~a: (no sheets)" (book-format-symbol f))]
     [else
-     (define first (signature-letter 0))
-     (define last (signature-letter (sub1 gatherings)))
-     (define body
-       (if (= gatherings 1)
-           (format "~a~a" first (sup (book-format-leaves f)))
-           (format "~a–~a~a" first last (sup (book-format-leaves f)))))
-     (define total (* gatherings (book-format-leaves f)))
      (format "~a: ~a  [~a leaves; ~a pages]"
-             (book-format-symbol f) body total (* 2 total))]))
+             (book-format-symbol f)
+             (string-join (for/list ([r (in-list rs)] #:unless (null? (sig-run-leaves r)))
+                            (run->string r))
+                          " ")
+             total (* 2 total))]))
 
 ;; ---------------------------------------------------------------------------
 ;; Casting off
@@ -264,7 +419,16 @@
                             (hash-ref slip (copy-unit-kind u) 1.0)
                             (/ 1.0 over)))))
        (cond
-         [(and (> over 0) (pair? current) (not misjudges?))
+         ;; A paragraph longer than a page has to be broken even when the page
+         ;; is empty, and this used to require `(pair? current)' -- so the
+         ;; first paragraph of a page was never split, and a paragraph of two
+         ;; hundred lines was cast off as one page of thirty-eight. Every book
+         ;; whose copy has a long unbroken paragraph was measured wrong by the
+         ;; difference, and it showed up here because a generated dedication is
+         ;; one paragraph and would not grow past a single leaf however long it
+         ;; was made.
+         [(and (> over 0) (not misjudges?)
+               (or (pair? current) (splittable? u)))
           ;; Fill the page with as much of this paragraph as it will take, and
           ;; carry the remainder to the next.
           (define room (- lines-per-page used))
@@ -279,11 +443,15 @@
                                            (reverse (cons head current))
                                            lines-per-page "")
                          segments))]
-            [else
+            [(pair? current)
              (loop us '() 0
                    (cons (cast-off-segment (length segments) (reverse current)
                                            used "")
-                         segments))])]
+                         segments))]
+            ;; Nothing on the page and nothing to be done: a single unit that
+            ;; will not divide takes its own page and overruns it. That is what
+            ;; a heading or a verse line too long for the measure really does.
+            [else (loop (cdr us) (cons u current) (+ used est) segments)])]
          [else (loop (cdr us) (cons u current) (+ used est) segments)])])))
 
 ;; ---------------------------------------------------------------------------
@@ -387,6 +555,38 @@
     (check-true (for/or ([n (in-list ls)]) (< n 38))
                 "some page is cast off short"))
 
+  ;; A paragraph longer than a page must be broken even when it begins the
+  ;; page. This is the one case the splitting rule used to miss, because it
+  ;; asked whether anything was already on the page before it would divide
+  ;; anything: a single unit of two hundred lines came back as one segment of
+  ;; two hundred, and the book was measured as one page where it wanted six.
+  (let ()
+    (define g (make-rng 5))
+    (define long (copy-unit 'prose (string-join (for/list ([i 1200]) "word") " ") 0 #f))
+    (define segs (cast-off (list long) 2400 38 g 1.0))
+    (check-true (> (length segs) 1)
+                "a long paragraph is divided over pages rather than crammed into one")
+    ;; and no page is allotted more than a page will hold. The old rule gave
+    ;; the whole paragraph to one segment, which this catches directly.
+    (for ([s (in-list segs)])
+      (check-true (<= (cast-off-segment-estimated-lines s) 38)
+                  (format "no segment is allotted ~a lines for a 38-line page"
+                          (cast-off-segment-estimated-lines s))))
+    ;; and nothing is lost in the dividing
+    (define words
+      (for*/sum ([s (in-list segs)] [u (in-list (cast-off-segment-units s))])
+        (length (string-split (copy-unit-text u)))))
+    (check-equal? words 1200 "every word survives the division"))
+
+  ;; A unit that cannot be divided -- a heading, a verse line -- still takes a
+  ;; page rather than sending the loop round for ever on the same unit.
+  (let ()
+    (define g (make-rng 5))
+    (define head (copy-unit 'heading (string-join (for/list ([i 400]) "WORD") " ") 0 #f))
+    (define segs (cast-off (list head) 2400 38 g 1.0))
+    (check-equal? (length segs) 1)
+    (check-equal? (length (cast-off-segment-units (car segs))) 1))
+
   ;; Every page of a gathering belongs to exactly one forme.
   (for ([fmt (in-list (list QUARTO OCTAVO FOLIO-IN-SIXES))])
     (define pages (append* (map forme-page-numbers (formes-for-gathering fmt 0))))
@@ -406,6 +606,55 @@
   (check-equal? (signature-letter 8) "I")
   (check-equal? (signature-letter 9) "K")
   (check-equal? (collation-formula QUARTO 2) "4°: A–B⁴  [8 leaves; 16 pages]")
+
+  ;; The preliminary series, in Gaskell's four forms plus McKerrow's π.
+  (check-equal? (for/list ([n 3]) (series-mark STAR-SERIES n)) '("*" "**" "***"))
+  (check-equal? (for/list ([n 5]) (series-mark SYMBOL-SERIES n))
+                '("*" "†" "‡" "§" "**"))
+  (check-equal? (for/list ([n 3]) (series-mark PILCROW-SERIES n)) '("¶" "¶¶" "¶¶¶"))
+  (check-equal? (for/list ([n 3]) (series-mark LOWER-SERIES n)) '("a" "b" "c"))
+  (check-equal? (series-mark LOWER-SERIES 23) "aa")
+
+  ;; π is a citation mark and nothing else: it stands for a leaf with no
+  ;; signature on it, so it must never be set in the direction line.
+  (check-equal? (series-mark PI-SERIES 0) "π")
+  (check-true (series-prints? STAR-SERIES))
+  (check-false (series-prints? PI-SERIES))
+  (for ([r (in-list (page-refs QUARTO 0 PI-SERIES 0))])
+    (check-equal? (page-ref-signed r) ""
+                  "an unsigned leaf carries no signature"))
+  (check-equal? (page-ref-signature (car (page-refs QUARTO 0 PI-SERIES 0))) "π1r")
+
+  ;; Gaskell n. 33a: Jaggard omitted X, Y and Z, so his 20-letter alphabet
+  ;; doubles three gatherings sooner than everyone else's.
+  (check-equal? (signature-letter 20 JAGGARD-LETTERS) "AA")
+  (check-equal? (signature-letter 20 SIG-LETTERS) "X")
+
+  ;; A star gathering is signed like any other: *, *2, *3.
+  (define stars (page-refs QUARTO 0 STAR-SERIES 1))
+  (check-equal? (page-ref-signed (first stars)) "**")
+  (check-equal? (page-ref-signed (third stars)) "**2")
+
+  ;; Blayney's own formula for the First Quarto of Lear (Appendix II, no. 56):
+  ;; a half-sheet of preliminaries, then the text from B.
+  (check-equal? (collation-formula QUARTO (list (sig-run MAIN-SERIES 0 '(2 4 4 4 4 4 4 4 4 4 4))))
+                "4°: A² B–L⁴  [42 leaves; 84 pages]")
+  ;; The characteristically English habit: main series from B, preliminaries
+  ;; A and a. Blayney no. 84 is 4°: A4 a2 B-H4.
+  (check-equal? (collation-formula
+                 QUARTO (list (sig-run MAIN-SERIES 0 '(4))
+                              (sig-run LOWER-SERIES 0 '(2))
+                              (sig-run MAIN-SERIES 1 '(4 4 4 4 4 4 4))))
+                "4°: A⁴ a² B–H⁴  [34 leaves; 68 pages]")
+
+  ;; Half-sheet imposition: a two-leaf gathering in quarto is one forme worked
+  ;; and turned, not two. This is the commonest preliminary arrangement in
+  ;; Blayney's checklist and it halves the formes the shop must find room for.
+  (define half (formes-for-gathering QUARTO 0 MAIN-SERIES 0 #:leaves 2))
+  (check-equal? (length half) 1)
+  (check-equal? (forme-side (car half)) "work and turn")
+  (check-equal? (forme-page-numbers (car half)) '(1 2 3 4))
+  (check-equal? (length (formes-for-gathering QUARTO 0)) 2)
 
   ;; Setting by formes visits every page exactly once, in a different order.
   (define so (setting-order QUARTO 0 #t))

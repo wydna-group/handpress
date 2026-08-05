@@ -280,11 +280,18 @@
   (define leaf (attr page '|hp:leaf| ""))
   (define sheet (attr page '|hp:sheet| ""))
   (define forme (attr page '|hp:forme| ""))
+  ;; Preliminary leaves are marked because nothing else on the page says so.
+  ;; A book signed A for its front matter and B onward for its text is
+  ;; indistinguishable, leaf by leaf, from one signed straight through; the
+  ;; difference is in the order the formes went to press, and that is in the
+  ;; file rather than on the paper.
+  (define prelim? (string=? (attr page '|hp:role| "text") "prelim"))
+  (define series (attr page '|hp:series| "main"))
   (define comp (string-replace (attr page 'resp "") "#comp" ""))
   (format (string-append
            "<div class=\"leaf plate~a\" data-leaf=\"~a\" data-sheet=\"~a\" data-forme=\"~a\"\n"
            "     style=\"--m:~a;--cols:~a;--lines:~a\">\n"
-           "  <div class=\"tag ~a\">sig. ~a &nbsp;·&nbsp; ~a &nbsp;·&nbsp; Compositor ~a~a</div>\n"
+           "  <div class=\"tag ~a\">sig. ~a &nbsp;·&nbsp; ~a &nbsp;·&nbsp; Compositor ~a~a~a</div>\n"
            "  <div class=\"unit\"><span data-unit=\"leaf\">leaf ~a</span>"
            "<span data-unit=\"sheet\">sheet ~a</span>"
            "<span data-unit=\"forme\">forme</span></div>\n"
@@ -301,7 +308,8 @@
           ;; text runs out partway through its last one ends in blank leaves.
           ;; That is a fact about folding paper, not a failure, and saying so
           ;; keeps it from looking like one.
-          (if (zero? n-lines) " blankleaf" "")
+          (string-append (if (zero? n-lines) " blankleaf" "")
+                         (if prelim? " prelim" ""))
           (esc leaf) (esc sheet) (esc forme)
           measure (max 1 (length cols))
           ;; The *declared* lines to the page, not this page's own count. Every
@@ -313,6 +321,10 @@
           ;; against 1020px, which is visible and wrong.
           (if (> lines-per-page 0) lines-per-page n-lines)
           tag-cls (esc sig) (esc forme) (esc comp) note
+          (if prelim?
+              (format " &nbsp;·&nbsp; <span class=\"prelim\" title=\"Preliminary matter: set after the text and printed last, so it takes a signature series of its own (here: ~a). Gaskell, p. 8; McKerrow, p. 128.\">preliminary</span>"
+                      (esc series))
+              "")
           (esc leaf) (esc sheet)
           (folio-html page recto? #f)
           head

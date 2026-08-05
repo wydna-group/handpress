@@ -18,13 +18,14 @@
 
 (require racket/list racket/string racket/math
          "pagination.rkt" "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
-         "corrector.rkt" "compositor.rkt" "imposition.rkt" "rng.rkt")
+         "corrector.rkt" "compositor.rkt" "imposition.rkt" "prelims.rkt"
+         "titlepage.rkt" "rng.rkt")
 
 (provide (struct-out page) (struct-out book) (struct-out house)
-         (struct-out standing-type)
+         (struct-out standing-type) (struct-out gathering-plan)
          make-house set-book
          page-sig page-all-lines page-text book-gatherings book-collation
-         book-find-page)
+         book-find-page book-runs PRELIM-SCHEMES)
 
 ;; The field is `pref', not `ref': `page-ref' is already the struct that names
 ;; a leaf and side in imposition.rkt, and two bindings of that name in one
@@ -41,7 +42,8 @@
   (string-join (map line-text (page-all-lines p)) "\n"))
 
 (struct book (pages formes skeletons fmt events stints case title
-                    copy-units authors-copy preparation standing paging)
+                    copy-units authors-copy preparation standing paging
+                    plans division titlepage prelim-scheme moved-to-end)
   #:transparent)
 
 ;; The high-water mark of standing type, and the page-by-page ledger behind it.
@@ -51,8 +53,10 @@
   (add1 (for/fold ([m -1]) ([p (in-list (book-pages b))])
           (max m (page-ref-gathering (page-pref p))))))
 
+(define (book-runs b) (plans->runs (book-plans b)))
+
 (define (book-collation b)
-  (collation-formula (book-fmt b) (book-gatherings b)))
+  (collation-formula (book-fmt b) (book-runs b)))
 
 (define (book-find-page b sig)
   (for/or ([p (in-list (book-pages b))]) (and (string=? (page-sig p) sig) p)))
@@ -64,7 +68,8 @@
 (struct house (fmt compositor-names seed by-formes? conventions case-scale
                    cast-off-accuracy n-skeletons formes-standing
                    prepare-copy? title profiles condition stint-sheets
-                   paging-error)
+                   paging-error find-prelims? titlepage? book-title author
+                   printer publisher sig-alphabet)
   #:transparent)
 
 (define (make-house #:fmt [fmt QUARTO]
@@ -116,7 +121,23 @@
                     #:stint-sheets [stint #f]
                     ;; how freely the paging goes wrong; no hand-press
                     ;; book of any length was numbered correctly
-                    #:paging-error [paging-error 0.04])
+                    #:paging-error [paging-error 0.04]
+                    ;; Whether to look for preliminary matter in unmarked copy
+                    ;; at all. The division was a decision taken in the shop
+                    ;; and cannot be recovered from the words, so it is a
+                    ;; guess, and a guess should be refusable. See prelims.rkt.
+                    #:find-prelims? [find-prelims? #t]
+                    #:titlepage? [titlepage? #t]
+                    ;; The title as it is to be set on the title-page, which is
+                    ;; not the running title: "M. William Shak-speare: HIS True
+                    ;; Chronicle Historie ..." against "King Lear".
+                    #:book-title [book-title #f]
+                    #:author [author #f]
+                    #:printer [printer #f]
+                    #:publisher [publisher #f]
+                    ;; Gaskell n. 33a: Jaggard signed from a 20-letter
+                    ;; alphabet, everyone else from 23.
+                    #:sig-alphabet [alphabet SIG-LETTERS])
   (house fmt names seed by-formes? cv case-scale acc nsk
          (max 1 standing) prep? title profiles condition
          (cond
@@ -124,7 +145,8 @@
            [(<= (length names) 3) 4]     ; whole sheets at a time
            [(<= (length names) 5) 2]
            [else 1])                     ; takes, shared about
-         paging-error))
+         paging-error find-prelims? titlepage? book-title author
+         printer publisher alphabet))
 
 (define (house-spec h)
   (page-spec (exact-round (* (book-format-measure-ems (house-fmt h)) UNITS-PER-EM))
@@ -178,6 +200,23 @@
           (define o (flush-run-on out))
           (loop rest pending '()
                 (append (reverse (set-stage-direction c (copy-unit-text u) spec)) o))]
+
+         ;; A title-page line. The `speaker' slot carries the style, which is
+         ;; a squeeze -- copy-unit has no room for one -- but the alternative
+         ;; was a kind per case and a kind per fount.
+         [(centred)
+          (define o (flush-run-on out))
+          (loop rest pending '()
+                (append (reverse (set-centred c (copy-unit-text u) spec
+                                              #:italic? (equal? (copy-unit-speaker u)
+                                                                "italic")))
+                        o))]
+
+         ;; A rule, a device or a plain white line of the title-page: nothing
+         ;; is set, but the depth is taken up.
+         [(rule)
+          (define o (flush-run-on out))
+          (loop rest pending '() (cons (white-line spec) o))]
 
          [(prefix)
           (loop rest (copy-unit-text u) run-on (flush-run-on out))]
@@ -284,6 +323,151 @@
         (take (drop lines from) (- to from)))))
 
 ;; ---------------------------------------------------------------------------
+;; The plan of the book
+;; ---------------------------------------------------------------------------
+
+;; How many gatherings a stretch of front matter wants, and of what extent.
+;; A short one is half a sheet, worked and turned: A2 is the commonest
+;; preliminary arrangement in Blayney's checklist by a wide margin, and it is
+;; half the paper and half the formes of a full gathering.
+(define (leaves-for fmt half-leaves n-pages)
+  (define pages-per (book-format-pages fmt))
+  (let loop ([left n-pages] [out '()])
+    (cond
+      [(<= left 0) (reverse out)]
+      [(<= left (* 2 half-leaves)) (reverse (cons half-leaves out))]
+      [else (loop (- left pages-per) (cons (book-format-leaves fmt) out))])))
+
+;; One gathering, before anything is set in it: which series signs it, where it
+;; sits in that series, how many leaves it has, and which pages of copy it is
+;; to hold. `place' is its position in the finished book; the order in which
+;; the plans are worked is a different order, because the preliminaries are
+;; printed last.
+(struct gathering-plan (role series index leaves segments place) #:transparent)
+
+;; How the preliminaries are signed.
+;;
+;; Gaskell gives the forms in order of frequency (p. 52) but gives no numbers,
+;; and neither does McKerrow. **The ordering below is his; the weights are
+;; not.** They are a guess at the shape of a distribution whose order alone is
+;; attested, and nothing in this program should be read as evidence for them.
+;;
+;;   stars       *  **  ***      "even commoner" than letters
+;;   english     A a b, text from B -- "a characteristically English habit
+;;               ... to allow for a sheet of preliminaries signed A"
+;;   lower       a b c, text from A -- "always quite common"
+;;   symbols     *  †  ‡  §      "without logical order"
+;;   continuous  no separate series at all: Gaskell's reprints, which
+;;               "sometimes began the main signature series at the beginning
+;;               of the preliminaries" because the extent was already known
+;;   unsigned    nothing set at all; McKerrow's π in the collation
+(define PRELIM-SCHEMES
+  '((stars 0.30) (english 0.25) (lower 0.18) (symbols 0.10)
+    (continuous 0.10) (unsigned 0.07)))
+
+(define (choose-prelim-scheme g n-gatherings leaves)
+  (define r (rnd g))
+  (define pick
+    (let loop ([ss PRELIM-SCHEMES] [acc 0.0])
+      (cond
+        [(null? ss) 'stars]
+        [(< r (+ acc (cadr (car ss)))) (car (car ss))]
+        [else (loop (cdr ss) (+ acc (cadr (car ss))))])))
+  ;; An unsigned series is only credible for a leaf or two. Nobody left eight
+  ;; leaves unsigned and expected a binder to fold them right.
+  (if (and (eq? pick 'unsigned)
+           (or (> n-gatherings 1) (> (apply + leaves) 2)))
+      'stars
+      pick))
+
+;; Turn the extents into plans, and settle the signatures.
+;;
+;; The overflow case is McKerrow's, and it is the one worth getting right. Of
+;; the two editions of the Masque of the Gentlemen of Gray's Inn he writes that
+;; the first collates "?, A4, a4, B-E4, F2", and that "even from the make-up
+;; alone we might guess that Ed. 1 is the earlier, for the work itself begins
+;; on B1 and this is preceded by A and a, **the latter signature strongly
+;; suggesting that the preliminary matter was more than the printer had
+;; expected and allowed for**" (p. 182).
+;;
+;; So the second preliminary series is not a style. It is a misjudgement, made
+;; visible: the house allowed one sheet signed A, the front matter would not go
+;; in it, and the overflow had to be signed something else. This program knows
+;; whether the overflow happened, which means the inference McKerrow draws from
+;; the collation can be scored against the truth.
+(define (make-plans fmt g front-leaves front-segs body-gatherings text-segs
+                    alphabet)
+  (define main (make-main-series alphabet))
+  (define pages-per (book-format-pages fmt))
+  (define n-front (length front-leaves))
+  (define scheme
+    (if (zero? n-front) 'none (choose-prelim-scheme g n-front front-leaves)))
+
+  ;; (series . index) for each preliminary gathering, and where the text starts
+  ;; in the main series.
+  (define-values (front-series text-start)
+    (case scheme
+      [(none)       (values '() 0)]
+      [(stars)      (values (for/list ([i n-front]) (cons STAR-SERIES i)) 0)]
+      [(symbols)    (values (for/list ([i n-front]) (cons SYMBOL-SERIES i)) 0)]
+      [(lower)      (values (for/list ([i n-front]) (cons LOWER-SERIES i)) 0)]
+      [(unsigned)   (values (for/list ([i n-front]) (cons PI-SERIES i)) 0)]
+      [(continuous) (values (for/list ([i n-front]) (cons main i)) n-front)]
+      [(english)
+       ;; one sheet signed A was allowed for; anything past it is the overflow
+       (values (cons (cons main 0)
+                     (for/list ([i (in-range (sub1 n-front))])
+                       (cons LOWER-SERIES i)))
+               1)]))
+
+  ;; Hand each plan its slice of the cast-off copy.
+  (define front-plans
+    (let loop ([ls front-leaves] [ss front-series] [segs front-segs]
+               [place 0] [out '()])
+      (cond
+        [(null? ls) (reverse out)]
+        [else
+         (define n (* 2 (car ls)))
+         (loop (cdr ls) (cdr ss) (drop segs (min n (length segs))) (add1 place)
+               (cons (gathering-plan 'prelim (car (car ss)) (cdr (car ss))
+                                     (car ls) (take segs (min n (length segs)))
+                                     place)
+                     out))])))
+  (define text-plans
+    (let loop ([k 0] [segs text-segs] [out '()])
+      (cond
+        [(>= k body-gatherings) (reverse out)]
+        [else
+         (loop (add1 k) (drop segs (min pages-per (length segs)))
+               (cons (gathering-plan 'text main (+ text-start k)
+                                     (book-format-leaves fmt)
+                                     (take segs (min pages-per (length segs)))
+                                     (+ n-front k))
+                     out))])))
+  (values front-plans text-plans scheme))
+
+;; The collation formula, built from the plans in the order they are bound.
+(define (plans->runs ps)
+  (let loop ([ps ps] [out '()])
+    (cond
+      [(null? ps) (reverse out)]
+      [else
+       (define s (gathering-plan-series (car ps)))
+       (define same
+         (let count ([xs ps] [k 0])
+           (if (and (pair? xs)
+                    (eq? (gathering-plan-series (car xs)) s)
+                    (= (gathering-plan-index (car xs))
+                       (+ (gathering-plan-index (car ps)) k)))
+               (count (cdr xs) (add1 k))
+               k)))
+       (loop (list-tail ps same)
+             (cons (sig-run s (gathering-plan-index (car ps))
+                            (for/list ([p (in-list (take ps same))])
+                              (gathering-plan-leaves p)))
+                   out))])))
+
+;; ---------------------------------------------------------------------------
 ;; Setting the book
 ;; ---------------------------------------------------------------------------
 
@@ -336,17 +520,116 @@
               (max 1 (min (book-format-leaves fmt)
                           (+ base (if (< (rnd gg) 0.4) 1 0)))))))
 
-  (define segments0
-    (cast-off units (page-spec-measure spec) capacity g (house-cast-off-accuracy h)))
-  (define n-pages (length segments0))
-  (define gatherings
-    (max 1 (quotient (+ n-pages (sub1 (book-format-pages fmt)))
-                     (book-format-pages fmt))))
-  (define segments
-    (append segments0
-            (for/list ([i (in-range (- (* gatherings (book-format-pages fmt))
-                                       n-pages))])
-              (cast-off-segment (+ n-pages i) '() 0 "blank"))))
+  ;; -------------------------------------------------------------------------
+  ;; What goes in front, and what is printed last
+  ;; -------------------------------------------------------------------------
+  ;; "In composing a new book from MS the normal course was to begin at the
+  ;; beginning of the text and proceed straight on to the end, setting up the
+  ;; title-page and preliminaries last" (McKerrow, p. 128), and the separate
+  ;; signature series exists because of it: the man who has already signed his
+  ;; text A to L cannot give the front matter letters without collision, so he
+  ;; gives it a series of its own.
+  ;;
+  ;; Everything below follows from that order. The body is cast off and set
+  ;; first; what room is left at the back of the last sheet is then known; and
+  ;; only then is it settled how the front matter is to be signed, how many
+  ;; leaves it wants, and whether any of it goes to the back instead.
+  (define measure (page-spec-measure spec))
+  (define acc (house-cast-off-accuracy h))
+  (define pages-per (book-format-pages fmt))
+  (define half-leaves (max 1 (quotient (book-format-leaves fmt) 2)))
+
+  (define div (divide-copy units #:guess? (house-find-prelims? h)))
+  (define tp
+    (and (house-titlepage? h)
+         (make-titlepage #:title (or (house-book-title h) (house-title h))
+                         #:author (house-author h)
+                         #:year (conventions-year (house-conventions h))
+                         #:printer (house-printer h)
+                         #:publisher (house-publisher h)
+                         #:rng (make-rng (+ (house-seed h) 7717)))))
+
+  ;; The Table and the errata are the matter that can go either way. McKerrow:
+  ;; Tottel's Treatise of Moral Philosophy has its Table among the
+  ;; preliminaries; East reprinting it "found he had room for the Table in the
+  ;; last gathering of the book and placed it there" (p. 78). Which side it
+  ;; falls on is decided below, by how much room the body happens to leave.
+  (define-values (movable settled)
+    (partition (lambda (b) (memq (prelim-block-kind b) MIGRATORY-KINDS))
+               (division-prelims div)))
+
+  (define body-segs0 (cast-off (division-body div) measure capacity g acc))
+  (define n-body (length body-segs0))
+  (define body-gatherings
+    (max 1 (quotient (+ n-body (sub1 pages-per)) pages-per)))
+  (define spare (- (* body-gatherings pages-per) n-body))
+
+  (define moving-copy (append* (map prelim-block-units movable)))
+  (define moving-segs
+    (if (null? moving-copy) '() (cast-off moving-copy measure capacity g acc)))
+
+  (define (front-with blocks)
+    (define copy (append (if tp (titlepage-units tp) '())
+                         (append* (map prelim-block-units blocks))))
+    (if (null? copy) '() (cast-off copy measure capacity g acc)))
+
+  ;; Whether the Table goes to the back is decided by two questions, in this
+  ;; order, and neither of them is a coin.
+  ;;
+  ;; Is there room? "He then found he had room for the Table in the last
+  ;; gathering of the book and placed it there" (McKerrow, p. 78). Nobody
+  ;; printed a whole extra sheet at the back to avoid printing one at the
+  ;; front, so it must fit in the white leaves the text has already left.
+  ;;
+  ;; And does moving it save anything? Paper was the largest cost in the shop,
+  ;; and the saving is in leaves: East's preliminaries went from a gathering to
+  ;; half a one by the move. Where the front matter would take the same number
+  ;; of leaves either way there is nothing to be got by moving it, and it stays
+  ;; where it is -- which is Tottel's edition, with the same Table in front.
+  ;;
+  ;; So the rule is arithmetic on the two make-ups rather than a rate. That
+  ;; matters: a rate here would be invented, and this one is not.
+  (define front-leaves-with (leaves-for fmt half-leaves (length (front-with (division-prelims div)))))
+  (define front-leaves-without (leaves-for fmt half-leaves (length (front-with settled))))
+  (define room? (<= (length moving-segs) spare))
+  (define saves? (< (apply + front-leaves-without) (apply + front-leaves-with)))
+  (define moved? (and (pair? moving-segs) room? saves?))
+  ;; Recorded either way. A report that says nothing when the matter stayed in
+  ;; front cannot tell "there was none to move" from "there was, and it did
+  ;; not", and the second is the more interesting fact of the two.
+  (define migration
+    (and (pair? moving-segs)
+         (list (map prelim-block-kind movable) moved?
+               (cond [moved? 'moved]
+                     [(not room?) 'no-room]
+                     [else 'no-saving]))))
+
+  (define front-segs (front-with (if moved? settled (division-prelims div))))
+
+  ;; The body's own pages, with the moved matter after them and white paper
+  ;; after that.
+  (define text-segs
+    (let* ([with-moved (append body-segs0 (if moved? moving-segs '()))]
+           [n (length with-moved)])
+      (append with-moved
+              (for/list ([i (in-range (- (* body-gatherings pages-per) n))])
+                (cast-off-segment (+ n i) '() 0 "blank")))))
+
+  (define front-leaves (leaves-for fmt half-leaves (length front-segs)))
+
+  (define front-padded
+    (let ([want (for/sum ([l (in-list front-leaves)]) (* 2 l))]
+          [n (length front-segs)])
+      (append front-segs
+              (for/list ([i (in-range (- want n))])
+                (cast-off-segment (+ n i) '() 0 "blank")))))
+
+  (define-values (front-plans text-plans prelim-scheme)
+    (make-plans fmt g front-leaves front-padded body-gatherings text-segs
+                (house-sig-alphabet h)))
+  ;; Reading order for the finished book; printing order for the shop.
+  (define plans (append front-plans text-plans))
+  (define printing-plans (append text-plans front-plans))
 
   (define skeletons
     (make-skeletons (house-n-skeletons h)
@@ -436,11 +719,24 @@
   (define type-ceiling
     (* 2/3 (for/sum ([(ch n) (in-hash (tcase-initial tc))]) n)))
 
-  (for ([gathering (in-range gatherings)])
+  ;; The gatherings are worked in printing order, not in reading order: the
+  ;; text from A (or B) to the end, and the preliminaries after it. Everything
+  ;; that depends on the order of work therefore falls out right without being
+  ;; told -- the skeletons reach the title-page last, the cases are at their
+  ;; thinnest in the middle of the text rather than at the front, and the type
+  ;; of the last text sheet is still standing when the first prelim page is set.
+  (for ([plan (in-list printing-plans)])
+    (define gathering (gathering-plan-place plan))
+    (define leaves (gathering-plan-leaves plan))
     (define refs
-      (for/hash ([r (in-list (page-refs fmt gathering))])
+      (for/hash ([r (in-list (page-refs fmt gathering
+                                        (gathering-plan-series plan)
+                                        (gathering-plan-index plan)
+                                        #:leaves leaves))])
         (values (page-ref-number r) r)))
-    (define formes (formes-for-gathering fmt gathering))
+    (define formes
+      (formes-for-gathering fmt gathering (gathering-plan-series plan)
+                            (gathering-plan-index plan) #:leaves leaves))
     (define page->forme
       (for*/hash ([fm (in-list formes)] [p (in-list (forme-page-numbers fm))])
         (values p fm)))
@@ -457,15 +753,16 @@
       (set! forme-counter (add1 forme-counter)))
     (set! all-formes (append all-formes formes))
 
-    (let page-loop ([ps (setting-order fmt gathering (house-by-formes? h))]
+    (let page-loop ([ps (setting-order fmt gathering (house-by-formes? h)
+                                       #:leaves leaves)]
                     [pos 0] [carry '()])
       (unless (null? ps)
         (define page-no (car ps))
-        (define seg-index (+ (* gathering (book-format-pages fmt)) (sub1 page-no)))
+        (define seg-index (sub1 page-no))
         (cond
-          [(>= seg-index (length segments)) (void)]
+          [(>= seg-index (length (gathering-plan-segments plan))) (void)]
           [else
-           (define seg (list-ref segments seg-index))
+           (define seg (list-ref (gathering-plan-segments plan) seg-index))
            (define r (hash-ref refs page-no))
            (define fm (hash-ref page->forme page-no))
            ;; The stint plan is indexed by forme when the house sets by formes,
@@ -480,8 +777,9 @@
            (define units-for-page (append carry (cast-off-segment-units seg)))
            (define-values (pg leftover)
              (set-page h man units-for-page r fm spec capacity
-                       (hash-ref signs-for (profile-name (comp-profile man))
-                                 (signed-leaves fmt))))
+                       (min leaves
+                            (hash-ref signs-for (profile-name (comp-profile man))
+                                      (signed-leaves fmt)))))
            (hash-set! pages (cons gathering page-no) pg)
            (set! stint-log (cons (cons (profile-name (comp-profile man))
                                        (page-ref-signature r))
@@ -537,11 +835,13 @@
            (page-loop (cdr ps) (add1 pos)
                       (if (house-by-formes? h) '() leftover))]))))
 
+  ;; Read in the order the binder will fold them, which puts back in front the
+  ;; matter that was set last.
   (define ordered
-    (for*/list ([gathering (in-range gatherings)]
-                [p (in-range 1 (add1 (book-format-pages fmt)))]
-                #:when (hash-has-key? pages (cons gathering p)))
-      (hash-ref pages (cons gathering p))))
+    (for*/list ([plan (in-list plans)]
+                [p (in-range 1 (add1 (* 2 (gathering-plan-leaves plan))))]
+                #:when (hash-has-key? pages (cons (gathering-plan-place plan) p)))
+      (hash-ref pages (cons (gathering-plan-place plan) p))))
 
   (define with-catchwords (add-catchwords ordered))
   (define with-titles (add-running-titles with-catchwords all-formes fmt))
@@ -562,7 +862,7 @@
         tc (house-title h) units authors-copy prepared
         (standing-type peak-sorts peak-pages (reverse ledger)
                        (house-by-formes? h))
-        paging))
+        paging plans div tp prelim-scheme migration))
 
 ;; ---------------------------------------------------------------------------
 
@@ -769,7 +1069,86 @@
   (define b (set-book h sample))
 
   (check-true (> (length (book-pages b)) 0))
-  (check-regexp-match #px"^4°: A⁴" (book-collation b))
+  ;; A title-page is preliminary matter, so a book that has one is no longer
+  ;; A-Z straight through: it opens with a half-sheet in whatever series the
+  ;; house signs its front matter with, and the text follows in the main.
+  (check-regexp-match #px"^4°: " (book-collation b))
+  (check-regexp-match #px"A⁴" (book-collation b))
+
+  ;; A house that sets no title-page and looks for no preliminaries is the
+  ;; book this program used to make, and still makes: one series, from A.
+  (define plain
+    (set-book (make-house #:fmt QUARTO #:compositors '("A" "B") #:seed 1623
+                          #:titlepage? #f #:find-prelims? #f)
+              sample))
+  (check-regexp-match #px"^4°: A⁴" (book-collation plain))
+  (check-equal? (length (book-runs plain)) 1)
+
+  ;; The preliminaries are printed last and bound first, which is the whole
+  ;; point of their having a series of their own. Both must hold at once.
+  (let* ([prelim (filter (lambda (p) (eq? (gathering-plan-role p) 'prelim))
+                         (book-plans b))]
+         [text (filter (lambda (p) (eq? (gathering-plan-role p) 'text))
+                       (book-plans b))])
+    (check-true (pair? prelim) "the title-page made a preliminary gathering")
+    (check-true (< (gathering-plan-place (car prelim))
+                   (gathering-plan-place (car text)))
+                "the preliminaries are bound in front")
+    ;; and the first page of the finished book is the title-page
+    (check-equal? (page-sig (car (book-pages b)))
+                  (format "~a1r" (series-mark (gathering-plan-series (car prelim))
+                                              (gathering-plan-index (car prelim))))))
+
+  ;; East's case: a Table that goes to the back because the front matter is
+  ;; a leaf shorter without it and the last sheet has the white paper to take
+  ;; it. Worth a test of its own, because it is a branch that fires on the
+  ;; arithmetic of two make-ups and would otherwise be invisible when it
+  ;; stopped firing -- which is how four mechanisms in this program have died.
+  (let* ([rep (lambda (s n) (apply string-append (for/list ([i (in-range n)]) s)))]
+         [copy (string-append
+                "# The Epistle Dedicatorie\n\n"
+                (rep "To the Right Honourable the Lords and Commons of England, my very good Lords, whose favour hath emboldened this small labour to seek the light. " 40)
+                "\n\n# A Table of the principall matters\n\n"
+                (rep "Of the licencing of bookes, page 1. Of the ancient practise of Athens, page 3. " 20)
+                "\n\n# THE FIRST BOOKE\n\n"
+                (rep "Now began the day to breake, and the shepheards to stirre, and the flockes to feede, and the birds to sing in every bush about them. " 300))]
+         [eb (set-book (make-house #:fmt QUARTO #:seed 3) copy)]
+         [m (book-moved-to-end eb)])
+    (check-true (and m #t) "there was matter that could have moved")
+    (check-true (second m) "the Table went to the back, as East's did")
+    (check-equal? (first m) '(contents))
+    ;; and it is really at the back: no preliminary gathering holds it
+    (check-false (for/or ([p (in-list (book-plans eb))])
+                   (and (eq? (gathering-plan-role p) 'prelim)
+                        (for*/or ([s (in-list (gathering-plan-segments p))]
+                                  [u (in-list (cast-off-segment-units s))])
+                          (regexp-match? #px"licencing of bookes"
+                                         (copy-unit-text u)))))
+                "the Table is not among the preliminaries")
+    (check-true (for/or ([p (in-list (book-plans eb))])
+                  (and (eq? (gathering-plan-role p) 'text)
+                       (for*/or ([s (in-list (gathering-plan-segments p))]
+                                 [u (in-list (cast-off-segment-units s))])
+                         (regexp-match? #px"licencing of bookes"
+                                        (copy-unit-text u)))))
+                "the Table is in the last gathering of the text"))
+
+  ;; The forme that carries the title-page went to press after every forme of
+  ;; the text, because it was set after them.
+  (let ([front (for/list ([fm (in-list (book-formes b))]
+                          #:when (equal? (forme-mark fm)
+                                         (series-mark
+                                          (gathering-plan-series (car (book-plans b)))
+                                          (gathering-plan-index (car (book-plans b))))))
+                 (forme-order fm))]
+        [rest (for/list ([fm (in-list (book-formes b))]
+                         #:unless (equal? (forme-mark fm)
+                                          (series-mark
+                                           (gathering-plan-series (car (book-plans b)))
+                                           (gathering-plan-index (car (book-plans b))))))
+                (forme-order fm))])
+    (check-true (> (apply min front) (apply max rest))
+                "the preliminaries were the last thing set"))
 
   ;; No line anywhere overhangs its measure. `make-line' would have raised,
   ;; so reaching here at all is the check; assert it explicitly anyway.

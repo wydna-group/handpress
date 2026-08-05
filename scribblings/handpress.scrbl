@@ -533,6 +533,188 @@ Both the Bowers signing statement and the summary in the report now count what
 the sheets actually show rather than asserting the format's rule, which is what
 a descriptive bibliographer does and what this program was not doing.
 
+@subsection{The preliminaries, and why they have a series of their own}
+@declare-exporting[handpress/prelims]
+
+The front matter was printed @emph{last} and bound @emph{first}, and everything
+else about it follows. Gaskell: ``the preliminaries were not included in the
+main signature series of new books because it was usual to print them last;
+reprints, however, sometimes began the main signature series at the beginning
+of the preliminaries'' (p. 8). McKerrow from the shop floor: ``in composing a
+new book from MS the normal course was to begin at the beginning of the text
+and proceed straight on to the end, setting up the title-page and preliminaries
+last'' (p. 128). A compositor who has already signed his text A to L cannot
+give the front matter letters without collision, so he gives it a series of its
+own — and Gaskell's exception proves it, because in a reprint the extent is
+known in advance and the separate series is not needed.
+
+The forms, in Gaskell's order of frequency (p. 52), are all in
+@racket[imposition]: @tt{*  **  ***}; the symbols @tt{*  †  ‡  §} ``without
+logical order''; the main series from A with the preliminaries @tt{a b c},
+``always quite common''; and the main series from @bold{B} with the
+preliminaries signed A, ``a characteristically English habit … to allow for a
+sheet of preliminaries signed A''. Leaves that carry nothing at all are cited
+as McKerrow's @tt{π} (p. 156), ``easily recalled by the p of `preliminary''',
+which is a citation mark only and never reaches the direction line.
+
+@margin-note{Gaskell gives the order and no numbers, and neither does McKerrow.
+@racket[PRELIM-SCHEMES] weights them, and the weights are a guess at a
+distribution whose ordering alone is attested. Nothing in this program should
+be read as evidence for them.}
+
+A short preliminary gathering is half a sheet, worked and turned: ``all the
+pages for a half sheet were imposed in one forme; this forme was first printed
+on one side of the whole sheet, then the heap of paper was turned … and printed
+from the same forme on the other side'' (Gaskell, p. 83). One forme, not two,
+and one pull per two copies — which is why @tt{A2} is the commonest preliminary
+arrangement in Blayney's checklist by a wide margin.
+
+The overflow is the interesting case, and McKerrow reads it the way this
+program generates it. Of two editions of the Masque of the Gentlemen of Gray's
+Inn, the first collating @tt{?, A4, a4, B–E4, F2}, he says that ``even from the
+make-up alone we might guess that Ed. 1 is the earlier, for the work itself
+begins on B1 and this is preceded by A and a, @bold{the latter signature
+strongly suggesting that the preliminary matter was more than the printer had
+expected and allowed for}'' (p. 182). The second series is not a style. It is a
+misjudgement made visible — the house allowed one sheet signed A and the front
+matter would not go in it — and because the program knows whether the overflow
+happened, the inference can be scored.
+
+@subsection{Telling what the preliminary matter is}
+@declare-exporting[handpress/prelims]
+
+The hard part is not the signing. Both authorities agree the question has no
+answer in the text: @bold{the boundary is a printer's decision, not a property
+of the copy}. McKerrow has the case. Tottel's 1575 @italic{Treatise of Moral
+Philosophy} puts its Table among the preliminaries; East reprinting it in 1584
+began the text at C1 in imitation, ``then found he had room for the Table in
+the last gathering of the book and placed it there, with the result that his
+preliminaries now only'' half filled a gathering (p. 78). The same matter, in
+the same words, is preliminary in one edition and terminal in the next, and the
+reason is how much room happened to be left.
+
+So @racket[divide-copy] guesses, says that it is guessing, gives its evidence,
+and can be overruled. Marked-up copy is believed. Plain copy is matched against
+a closed vocabulary of period headings — the list is McKerrow's ``the title,
+dedication, preface, and, if there is one, list of contents'' (p. 25) — and
+only where the heading stands before the text begins, because every one of
+those phrases occurs inside texts as well.
+
+The confidences are not flat, and the differences are the point. @italic{The
+epistle dedicatory} can hardly be anything else and scores 0.92. @italic{The
+names of the speakers} scores 0.60, because McKerrow prints two editions of one
+masque in which it is preliminary in the first and the head of the text in the
+second. @italic{The argument} scores 0.50, because it heads a preface in one
+book and every act of a play in another. A flat confidence would hide exactly
+the cases worth doubting.
+
+Two caps, and the second was found by running it rather than by thinking:
+
+@itemlist[
+@item{A walk that meets a heading outside the vocabulary stops there, which is
+      what keeps a play whose acts are each called ``The Argument'' from being
+      read as its own front matter.}
+@item{A block that grows past 2,600 words with no further heading to close it
+      is @emph{abandoned whole} and given back to the text. Plain copy gives no
+      signal where the last block ends, so before this a table of contents ran
+      on to the end of the book. Cutting it short instead would have put half a
+      table among the preliminaries and half at the head of the text; the block
+      boundary is the one thing the copy really tells us, and the extent is only
+      a bound taken from what front matter is like elsewhere.}]
+
+Whether the Table then goes to the back is decided by arithmetic on two
+make-ups rather than by a rate: is there room in the white leaves the text has
+already left, and does moving it save leaves at the front? Both yes and it
+moves, which is East; either no and it stays, which is Tottel. The report says
+which, and why, in both cases — because ``nothing moved'' and ``there was
+nothing that could move'' are different facts about a book.
+
+@subsection{The title-page}
+@declare-exporting[handpress/titlepage]
+
+Supplied by hand, a title-page would be a cheat at the most formulaic thing a
+hand-press book contains, and formulae can be measured. Blayney's Appendix II
+is a checklist of about ninety books from one London shop between 1604 and
+1609, each with a substantive transcript. Counted over those transcripts:
+
+@tabular[#:sep @hspace[2]
+  (list (list @bold{element} @bold{observed})
+        (list "the printer is named" "58 of 81")
+        (list "… abbreviated to initials" "19 of 50")
+        (list @tt{LONDON,} "45 of 60")
+        (list @tt{AT LONDON} "9 of 60")
+        (list @tt{Imprinted at London by} "6 of 60")
+        (list "a shop is given" "40 of 81")
+        (list "… as “and are to be sold at his shop in”" "20 of 40")
+        (list "… as “dwelling in”" "20 of 40")
+        (list "… naming a sign" "15 of 40")
+        (list "the date set with figures spaced apart" "about half"))]
+
+Two things the transcripts settle that guesswork gets wrong. The address is the
+@emph{bookseller's}, not the printer's — ``Printed by N. O. for Roger Iackson,
+dwelling in Fleetstreet neere to the Conduit'' is Jackson's shop — and it
+belongs to the printer only where there is no bookseller to own it. And
+``dwelling in'' and ``and are to be sold at his shop in'' are two ways of
+saying the same thing, which is why they come out twenty and twenty.
+
+The date is quadded: the last line of an imprint is short and the figures were
+spread to fill it, which is why about half of them read @tt{1 6 0 8.} rather
+than @tt{1608.} The spaces are metal, and this program charges for them.
+
+The page is handed back as @bold{copy}, not as a page, for two reasons. It must
+go through the same compositor as everything else, so that its spelling, its
+long s and its accidents are his rather than the program's; and it must be
+settable at a moment of the run's choosing, because Blayney found the
+@italic{Lear} title-page was ``the first part of the book to be set'' and then
+distributed. Set first, printed last: the awkward case for the type accounting.
+
+@margin-note{The type is charged to the text case, which is wrong and is
+reported as wrong. A real title-page drew on titling founts kept apart from the
+body fount — Blayney records which line came from which — and
+@racket[typecase] keeps one case. The error is about forty words a book, all of
+them large.}
+
+@subsection{Gathering, folding and the binder's errors}
+@declare-exporting[handpress/binding]
+
+The one stage at which the @emph{book} diverges from the @emph{printing}.
+Everything before it is the same for every copy of an impression; from here on
+the copies are individuals, and a bibliographer describing one has to tell the
+faults of the copy from the faults of the edition.
+
+Two hands in two places. The warehouseman gathers, in the printing house: the
+heaps ``were set out in signature order on a long table, with the first recto
+pages upwards and to the near side'', and the gatherer ``took off the top copy
+of the last sheet of the book and then walked along the line of sheets, taking
+off one copy of each in turn'' (Gaskell, pp. 143–4). The books ``were then
+collated to ensure that each was made up correctly'', and only then folded,
+pressed and baled. The binder folds and sews later and elsewhere.
+
+Between them they can drop a sheet, take two, put one in backwards, or sew them
+out of order — and the whole apparatus of signatures exists to stop two of
+those:
+
+@nested[#:style 'inset]{``It was necessary, when assembling the sheets of a
+book, to get them the right way up and in the right order; and to this end each
+sheet was signed on the first page with a letter of the alphabet so that they
+could readily be arranged in alphabetical order; similar signatures were also
+placed on the rectos of a few leaves after the first of each sheet in order to
+help the binder with his folding.'' (Gaskell, p. 79)}
+
+That sentence is the design of @racket[binding]. The @emph{kinds} of fault come
+from the sources, as does the fact that made-up books were collated before they
+went out. @bold{The rate does not.} Neither Gaskell nor McKerrow gives one, so
+@racket[BINDING-ERROR-RATE] is an explicit parameter carrying no authority
+whatever, and the report prints the disclaimer beside every fault it lists. It
+is a knob, not a finding.
+
+What is not invented is the shape. An unsigned gathering offers the binder no
+help with either the order or the way up, so it goes in wrong oftener — and
+survives the warehouse's own check oftener, because the check is the signatures
+too. A preliminary series signed @tt{π} is therefore the most misbindable thing
+in a book, which is a consequence of Gaskell's sentence rather than an
+invention on top of it.
+
 @subsection{The corrector}
 @declare-exporting[handpress/corrector]
 
