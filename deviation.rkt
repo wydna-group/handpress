@@ -49,32 +49,51 @@
 ;; #f for a word that stands exactly as the copy had it.
 (define (word-deviation w)
   (define (d a b) (and a b (not (string=? a b))))
+  ;; A divided word is not a corrupt one. Both halves carry the whole word as
+  ;; their copy reading, so every comparison against `copy' reports a change
+  ;; that never happened -- and the first version of this said `misread' over
+  ;; every hyphen in the book. Division is a fact about the line, not the
+  ;; reading, and it is named as such.
+  (define divide-note
+    (for/or ([c (in-list (word-causes w))])
+      (and (regexp-match? #rx"divid" c)
+           (format "division: ~a of “~a”"
+                   (if (regexp-match? #rx"second half" c) "second half" "first half")
+                   (word-copy w)))))
   (define notes
     (append
-     (if (d (word-copy w) (word-read w))
-         (list (format "misread: the copy read “~a”" (word-copy w))) '())
-     (if (d (word-read w) (word-habit w))
-         (list (format "the compositor's habit: he set “~a” for “~a”"
-                       (word-habit w) (word-read w)))
+     (if divide-note (list divide-note) '())
+     (if (and (not divide-note) (d (word-copy w) (word-read w)))
+         (list (format "misreading: copy “~a” → read “~a”"
+                       (word-copy w) (word-read w)))
          '())
+     (if (d (word-read w) (word-habit w))
+         (list (format "habit: “~a” → “~a”" (word-read w) (word-habit w))) '())
      (if (d (word-habit w) (word-final w))
-         (list (format "altered to fit the measure: “~a” for “~a”"
-                       (word-final w) (word-habit w)))
+         (list (format "justification: “~a” → “~a”" (word-habit w) (word-final w)))
          '())
      (if (d (word-composed w) (word-printed w))
-         (list "an accident of the case") '())
-     (for/list ([c (in-list (word-causes w))]) c)))
+         (list (format "foul case: “~a” set for “~a”"
+                       (word-printed w) (word-composed w)))
+         '())
+     ;; the device that did it, in the compositor's own terms
+     (for/list ([c (in-list (word-causes w))]
+                #:unless (regexp-match? #rx"divid" c))
+       c)))
   (cond
     [(pair? notes) (string-join notes "; ")]
-    [(d (strip-conventions (word-copy w)) (strip-conventions (word-printed w)))
-     (format "the copy read “~a”" (word-copy w))]
+    [(and (not divide-note)
+          (d (strip-conventions (word-copy w)) (strip-conventions (word-printed w))))
+     (format "copy “~a” → printed “~a”" (word-copy w) (word-printed w))]
     [(d (word-copy w) (word-printed w))
-     "the house's conventions: long s, u for v, i for j"]
+     "conventions of the house: long s, u for v, i for j"]
     [else #f]))
 
 ;; Which of the stages to colour it by, for the page itself.
 (define (deviation-class w)
   (cond
+    ;; division first, or a hyphenated word is coloured as a corruption
+    [(divided? w) "dev-divided"]
     [(and (word-copy w) (word-read w)
           (not (string=? (word-copy w) (word-read w)))) "dev-misread"]
     [(and (word-composed w) (word-printed w)

@@ -327,6 +327,7 @@
              taxonomy declared in the header. Faint on the page by design:
              it should read as a page first. -->
         <xsl:if test="@ana='#misreading'"> dev-misread</xsl:if>
+        <xsl:if test="@ana='#division'"> dev-divided</xsl:if>
         <xsl:if test="@ana='#foul-case'"> dev-accident</xsl:if>
         <xsl:if test="@ana='#justification'"> dev-fit</xsl:if>
         <xsl:if test="@ana='#habit'"> dev-habit</xsl:if>
@@ -391,7 +392,9 @@
         <xsl:value-of select="tei:choice/tei:reg"/>
       </xsl:when>
       <xsl:when test="@ana='#habit'">the compositor's own spelling</xsl:when>
-      <xsl:when test="@ana='#misreading'">misread from the copy</xsl:when>
+      <xsl:when test="@ana='#misreading'">misreading: the copy read otherwise</xsl:when>
+      <xsl:when test="@ana='#division'">division: half a word broken at the line end — the reading is whole</xsl:when>
+      <xsl:when test="@ana='#justification'">justification: altered so the line would fill the measure</xsl:when>
       <xsl:otherwise/>
     </xsl:choose>
   </xsl:template>

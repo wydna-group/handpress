@@ -97,6 +97,7 @@
           "          <category xml:id=\"justification\"><catDesc>Altered so that the line would fill the measure exactly.</catDesc></category>"
           "          <category xml:id=\"misreading\"><catDesc>Misread from the copy: minims, secretary-hand confusions, memory.</catDesc></category>"
           "          <category xml:id=\"foul-case\"><catDesc>A sort taken from an adjoining box of the case.</catDesc></category>"
+          "          <category xml:id=\"division\"><catDesc>Half of a word broken at the end of a line. Not a corruption: the reading is the whole word, and the hyphen is a fact about the line.</catDesc></category>"
           "          <category xml:id=\"house-style\"><catDesc>Imposed on the copy by the corrector before setting.</catDesc></category>"
           "        </taxonomy>"
           "      </classDecl>"
@@ -142,12 +143,21 @@
   (define composed (word-composed w))
   (define just? (for/or ([c (in-list (word-causes w))])
                   (string-prefix? c "justification")))
+  ;; Either half. The first is caused "word divided at the end of the line"
+  ;; and the second "second half of a divided word", and matching only the
+  ;; latter left every first half classified as a misreading.
   (define divided? (for/or ([c (in-list (word-causes w))])
-                     (string-prefix? c "second half")))
+                     (regexp-match? #rx"divid" c)))
   (define app (hash-ref variants key #f))
   (define ana
     (cond [app "#foul-case"]
           [(not (string=? printed composed)) "#foul-case"]
+          ;; Division before misreading, and before justification. Both halves
+          ;; of a divided word carry the whole word as their copy reading, so
+          ;; every comparison against it reports a change that never happened,
+          ;; and this used to classify every hyphen in the book as a
+          ;; misreading. The reading is not corrupt; the line is short.
+          [divided? "#division"]
           [just? "#justification"]
           [(not (string=? (word-read w) (word-copy w))) "#misreading"]
           [(not (string=? (word-habit w) (word-read w))) "#habit"]

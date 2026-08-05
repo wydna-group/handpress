@@ -255,3 +255,10 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 .folio .rv.verso { color:#7a5a1e; }
 .folio.empty { opacity:.4; font-style:italic; text-transform:none;
                letter-spacing:0; }
+
+/* A divided word is not a corrupt one: the hyphen is a fact about the line,
+   not about the reading. It gets a mark of its own so it is not read as
+   damage. */
+.dev-divided { box-shadow: inset 0 -0.10em 0 rgba(120,110,95,.35); }
+body.plain .dev-divided { box-shadow: none; }
+.key .u4 { background: rgba(120,110,95,.5); }
