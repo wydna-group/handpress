@@ -688,8 +688,12 @@
   ;; are wrong" -- could not occur. This pins all three.
   (let ()
     (define txt (file->string ado-sample))
+    ;; Badly cast off. Since a paragraph may now be broken at the foot of a
+    ;; page, the pages fill and the strain has to be worse before anything is
+    ;; actually lost -- which is right, and is why this asks for 0.45 where it
+    ;; used to ask for 0.6.
     (define b (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
-                                    #:seed 1 #:cast-off-accuracy 0.6)
+                                    #:seed 1 #:cast-off-accuracy 0.45)
                         txt 'prose))
     (define ps (book-pages b))
     (check-true (for/or ([p (in-list ps)]) (> (page-pressure p) 0))

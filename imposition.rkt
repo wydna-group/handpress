@@ -188,6 +188,40 @@
           (define n (max 1 (exact-ceiling (/ w measure))))
           (if (eq? kind 'heading) (+ n 2) n)])]))
 
+  ;; A paragraph may be broken at the foot of a page, and must be, or every
+  ;; page ends wherever its last paragraph happened to end and the rest is
+  ;; white. Books do not look like that. The man casting off marks his copy at
+  ;; a word in the middle of a paragraph exactly as readily as at its end.
+  ;;
+  ;; Only running prose breaks. A verse line is a line and cannot be halved; a
+  ;; heading or a stage direction is a unit of its own.
+  (define (splittable? u)
+    (and (eq? (copy-unit-kind u) 'prose)
+         (> (length (string-split (copy-unit-text u))) 12)))
+
+  ;; Take as much of a paragraph as the room left on the page will hold,
+  ;; measured the same way the rest of the casting off measures: by counting
+  ;; and computing, not by setting it to see.
+  (define (split-unit u room)
+    (define ws (string-split (copy-unit-text u)))
+    (let take ([rest ws] [head '()] [line 0.0] [lines 1])
+      (cond
+        [(null? rest) (values #f #f)]           ; it all fitted after all
+        [else
+         (define wd (width-of-word (car rest)))
+         (define line* (if (zero? line) wd (+ line NORMAL-SPACE wd)))
+         (define-values (l* n*)
+           (if (> line* measure) (values wd (add1 lines)) (values line* lines)))
+         (cond
+           [(> n* room)
+            (if (or (null? head) (< (length rest) 4))
+                (values #f #f)                  ; not worth breaking
+                (values (struct-copy copy-unit u
+                                     [text (string-join (reverse head) " ")])
+                        (struct-copy copy-unit u
+                                     [text (string-join rest " ")])))]
+           [else (take (cdr rest) (cons (car rest) head) l* n*)])])))
+
   (let loop ([us units] [current '()] [used 0] [segments '()])
     (cond
       [(null? us)
@@ -231,9 +265,25 @@
                             (/ 1.0 over)))))
        (cond
          [(and (> over 0) (pair? current) (not misjudges?))
-          (loop us '() 0
-                (cons (cast-off-segment (length segments) (reverse current) used "")
-                      segments))]
+          ;; Fill the page with as much of this paragraph as it will take, and
+          ;; carry the remainder to the next.
+          (define room (- lines-per-page used))
+          (define-values (head tail)
+            (if (and (splittable? u) (>= room 2))
+                (split-unit u room)
+                (values #f #f)))
+          (cond
+            [head
+             (loop (cons tail (cdr us)) '() 0
+                   (cons (cast-off-segment (length segments)
+                                           (reverse (cons head current))
+                                           lines-per-page "")
+                         segments))]
+            [else
+             (loop us '() 0
+                   (cons (cast-off-segment (length segments) (reverse current)
+                                           used "")
+                         segments))])]
          [else (loop (cdr us) (cons u current) (+ used est) segments)])])))
 
 ;; ---------------------------------------------------------------------------
