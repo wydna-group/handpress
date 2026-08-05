@@ -30,6 +30,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [Running it backwards](#running-it-backwards)
 - [What it does not do](#what-it-does-not-do)
 - [Sources](#sources)
+- [Roadmap](ROADMAP.md)
 
 ## What it produces
 
@@ -459,6 +460,13 @@ method in order to test it, and reporting where it fails.
 - **Baron & Rayson**, *VARD 2* (2008) — not used, but it solves the same
   variant-grouping problem, and its design settles a question met here
   independently
+
+## What next
+
+See [ROADMAP.md](ROADMAP.md). The short version: recovering forme order from
+type recurrence is the next real piece of work, because it is Hinman's central
+method and this program is the only place it can be graded against a known
+truth.
 
 ## Licence
 
