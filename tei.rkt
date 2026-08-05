@@ -32,7 +32,8 @@
 
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
-         "press.rkt" "corrector.rkt" "description.rkt" "pagination.rkt")
+         "press.rkt" "corrector.rkt" "description.rkt" "pagination.rkt"
+         (only-in "orthography.rkt" strip-conventions))
 
 (provide book->tei HP-NS TEI-NS)
 
@@ -139,8 +140,29 @@
   h)
 
 (define (word->tei w x variants key)
-  (define printed (word-printed w))
-  (define composed (word-composed w))
+  ;; The text carries the reading; the glyphs ride beside it.
+  ;;
+  ;; A long s is not a letter. It and the round s are one grapheme with
+  ;; positional variants, like u and v, and which one stood in the stick is a
+  ;; fact about the type rather than about the word. Encoding it in the text
+  ;; makes the TEI unsearchable -- nothing matching "confession" will find
+  ;; "confeſſion" -- and obliges every consumer to carry its own copy of
+  ;; strip-conventions before it can compare anything. It also inflates the
+  ;; statistics: the largest single class of "departure from copy" in this
+  ;; program's own reports was the house conventions, which are not departures
+  ;; of reading at all.
+  ;;
+  ;; So the element's content is the reading and hp:glyph records the form as
+  ;; actually set, where the two differ. The facsimile renders hp:glyph and
+  ;; looks identical; anything reading the text gets English.
+  ;;
+  ;; Only the long s and the ligatures are treated this way, because only they
+  ;; can be undone by rule. Turning `haue' back into `have' cannot be done
+  ;; without a dictionary -- see undo-uv-ij in lexicon.rkt -- so u/v and i/j
+  ;; are left in the text for now, and the header says so.
+  (define set-form (word-printed w))
+  (define printed (strip-conventions set-form))
+  (define composed (strip-conventions (word-composed w)))
   (define just? (for/or ([c (in-list (word-causes w))])
                   (string-prefix? c "justification")))
   ;; Either half. The first is caused "word divided at the end of the line"
@@ -193,9 +215,12 @@
        (format "<choice><orig>~a</orig><reg>~a</reg></choice>"
                (esc printed) (esc (word-read w)))]
       [else (esc printed)]))
-  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a>~a</w>"
+  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a>~a</w>"
           (em x) (em (word-width w)) ana
           (if (word-italic? w) " rend=\"italic\"" "")
+          (if (string=? set-form printed)
+              ""
+              (format " hp:glyph=\"~a\"" (esc set-form)))
           inner))
 
 (define (line->tei l n indent-x variants sig)
@@ -333,6 +358,23 @@
   (check-true (regexp-match? #px"<lb n=" x) "type lines are milestones")
   (check-true (regexp-match? #px"<respStmt" x) "compositors are responsible parties")
   (check-true (regexp-match? #px"<taxonomy" x) "causes are a declared taxonomy")
+
+  ;; The reading and the glyphs are separable, which is the point of the
+  ;; exercise: a long s is a fact about the type, not about the word, and a
+  ;; search for an English word should find it.
+  (check-false (regexp-match? #px"<w[^>]*>[^<]*ſ" x)
+               "no long s stands in the text of a word")
+  (check-true (regexp-match? #px"hp:glyph=\"[^\"]*ſ" x)
+              "it is recorded beside the reading instead")
+  ;; and the two must still describe the same word
+  ;; Only the plain words: one whose content is a <choice> or an <app> has
+  ;; the reading inside the nested element, not as bare text.
+  (let ([pairs (regexp-match* #px"<w[^>]*hp:glyph=\"([^\"]+)\"[^>]*>([^<>]+)</w>"
+                              x #:match-select values)])
+    (check-true (pair? pairs) "some word carries both a reading and its glyphs")
+    (for ([p (in-list pairs)])
+      (check-equal? (strip-conventions (cadr p)) (caddr p)
+                    "the glyphs reduce to the reading")))
   (check-true (regexp-match? #px"ana=\"#" x) "and every word points into it")
 
   ;; Escaping is already proved by read-xml above: an unescaped & from the

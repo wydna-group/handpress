@@ -337,7 +337,17 @@
         <xsl:text>;--w:</xsl:text><xsl:value-of select="@hp:w"/>
       </xsl:attribute>
       <xsl:attribute name="title"><xsl:call-template name="gloss"/></xsl:attribute>
-      <xsl:apply-templates select="node()"/>
+      <!-- The text carries the reading; hp:glyph carries the form as set.
+           A facsimile shows the type, so where they differ the glyphs win.
+           Anything reading the text instead gets searchable English. -->
+      <xsl:choose>
+        <xsl:when test="@hp:glyph and not(tei:choice) and not(tei:app)">
+          <xsl:value-of select="@hp:glyph"/>
+        </xsl:when>
+        <xsl:otherwise>
+          <xsl:apply-templates select="node()"/>
+        </xsl:otherwise>
+      </xsl:choose>
     </span>
   </xsl:template>
 
