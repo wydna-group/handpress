@@ -607,17 +607,30 @@
 ;; it is easy to lose sight of when reading a facsimile.
 
 ;; v initially, u medially: vpon, haue, loue, neuer.
+;;
+;; Two things this got wrong, and both showed on the page rather than in any
+;; test. A capital V medially was turned into a *lower-case* u, so a word set
+;; in capitals came out with a small letter in the middle of it. And the rule
+;; was applied to the VV that does duty for W in a fount without one -- which
+;; is not two v's at all but a single letter spelt with two sorts, so
+;; "VVHAT" was printed "VuHAT", eight times in one book.
 (define (apply-uv word)
   (define n (string-length word))
+  (define (at i) (and (>= i 0) (< i n) (string-ref word i)))
   (list->string
    (for/list ([ch (in-string word)] [i (in-naturals)])
-     (define prev-letter?
-       (and (> i 0) (char-alphabetic? (string-ref word (sub1 i)))))
+     (define prev (at (sub1 i)))
+     (define prev-letter? (and prev (char-alphabetic? prev)))
+     ;; part of the VV digraph, on either side of it
+     (define double-v?
+       (and (memv ch '(#\V #\v))
+            (or (memv prev '(#\V #\v)) (memv (at (add1 i)) '(#\V #\v)))))
      (cond
+       [double-v? ch]
        [(and (char=? ch #\u) (not prev-letter?)) #\v]
        [(and (char=? ch #\U) (not prev-letter?)) #\V]
        [(and (char=? ch #\v) prev-letter?) #\u]
-       [(and (char=? ch #\V) prev-letter?) #\u]
+       [(and (char=? ch #\V) prev-letter?) #\U]
        [else ch]))))
 
 ;; i does duty for j: Iohn, iustice, ioy.
@@ -732,6 +745,14 @@
   ;; Conventions of the case
   (check-equal? (apply-uv "upon") "vpon")
   (check-equal? (apply-uv "haue") "haue")
+  ;; The VV that stands for W is one letter spelt with two sorts, not two v's,
+  ;; and must be left alone; and a capital medially stays a capital.
+  (check-equal? (apply-uv "VVHAT") "VVHAT")
+  (check-equal? (apply-uv "VVhat") "VVhat")
+  (check-equal? (apply-uv "SALVE") "SALUE")
+  (check-equal? (apply-uv "LOVE") "LOUE")
+  (check-false (regexp-match? #px"[a-z]" (apply-uv "COMMONVVEALTH"))
+               "a word set in capitals stays in capitals")
   (check-equal? (apply-uv "love") "loue")
   (check-equal? (apply-uv "very") "very")
   (check-equal? (apply-ij "joy") "ioy")

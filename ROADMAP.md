@@ -145,6 +145,29 @@ program still cannot check itself.
 
 ### Still wanted
 
+- [ ] **What became of the leaves that stayed white.** The program models two
+      outlets for the white paper at the end of a book — preliminaries printed
+      there and cut out, and cancels printed there — and where neither applies
+      it simply shows a blank leaf and says nothing. That is half an answer.
+      McKerrow gives the other half in the same breath as the first: "it might
+      sometimes have been more convenient to have the two extra leaves as
+      **covers or end-papers**", and elsewhere that spare leaves were used "to
+      print matter that was to be bound elsewhere in it, such as titles or
+      cancels; or even that did not belong to the book at all" (p. 156).
+
+      So a white leaf should be *accounted for* rather than merely displayed:
+      pasted down as an endpaper, folded back as a wrapper on a stitched
+      pamphlet (McKerrow, p. 123), or genuinely left blank — which really did
+      happen, and Bowers is firm that it did: "no blank not interrupting
+      continuous text would be torn by the printer for excision." The
+      facsimile should say which, the way it now says which leaves were cut
+      out. Printing unrelated matter on them is the one option to leave alone:
+      McKerrow raises it and calls it "merely a suggestion".
+
+- [ ] **The tooltips do not all fire.** Reported from the review build and not
+      yet looked at. Some annotated words in the facsimile show no gloss on
+      hover.
+
 - [ ] **The face-down placeholder fires about ninety times too often.** Found by
       looking at a generated book: Floyd's *Common Wealth* comes out with 130
       of them over 136 pages, very nearly one a page, mostly on `&` and on
