@@ -29,6 +29,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [The preliminaries](#the-preliminaries)
 - [The last sheet](#the-last-sheet)
 - [Cancels](#cancels)
+- [The heaps](#the-heaps-and-the-copies-gathered-from-them)
 - [Gathering, folding and binding](#gathering-folding-and-binding)
 - [The lexicon](#the-lexicon)
 - [Calibration](#calibration)
@@ -129,6 +130,7 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--cancels` | leaves cancelled for reasons outside the simulation |
 | `--cancel-rate` | chance an error surviving the proof is thought worth cutting a leaf out for |
 | `--imprint-change` | re-issue with the bookseller's name altered: a cancel title |
+| `--heap-disorder` | how much of the heaps' order the drying destroys, 0–1 — **no source gives a value** |
 | `--edition` | sheets printed; the Cambridge accounts show 400–820 |
 | `--copies` | how many made-up copies to collate for press variants |
 
@@ -429,6 +431,45 @@ in the white paper at the end of a gathering — Gaskell has Rousseau's publishe
 printing cancels" — or costing a half-sheet of its own when there is none. And
 five of McKerrow's six detection tests (p. 224) are generated as properties of
 the particular leaf. The sixth is the paper.
+
+### The heaps, and the copies gathered from them
+
+The stage at which the copies of one impression stop being interchangeable, and
+the place where two authorities meet.
+
+**Gaskell supplies the mechanism** (pp. 143–4). The heaps are set out in
+signature order and gathered from the top of each. For a sheet perfected inner
+forme first they are gathered "in the reverse of the printing order, so that
+the first book to be gathered contained the last printed sheets"; for one
+perfected outer forme first the heap "had to be turned over… This heap was then
+gathered in the printing order". So a made-up copy is **not** a random handful
+of corrected and uncorrected sheets. The copies lie in one linear order, each
+variant divides that order where the corrected proof came back, and which side
+is corrected says which forme of that sheet went to press first.
+
+**Greg supplies the test.** His calculus assumes simple transcription, and warns
+that where "the grouping is throughout random or if inconsistent forms are of
+frequent occurrence… some sort of conflation has somewhere to be assumed"
+(*The Calculus of Variants*, p. 43). A made-up copy of a printed edition is
+conflation by construction — it descends from no other copy but is assembled
+from as many heaps as there are sheets. Drawn independently the groupings
+cross; gathered as Gaskell describes they are prefixes and suffixes of one
+order, hence nested or disjoint, which is exactly Greg's condition for
+consistency: "given any two constant groups, either these or their complements
+are either mutually exclusive or one wholly includes the other" (p. 12).
+
+Measured over 25 runs of ten copies:
+
+| `--heap-disorder` | Greg-consistent |
+|---|---|
+| 0.0 — Gaskell's "case of remarkable regularity" | 60 / 60 |
+| 0.15 — the default | 37 / 60 |
+| 0.5 | 29 / 60 |
+| 1.0 — an independent draw per forme | 16 / 60 |
+
+The last row is what this program did until the heaps were modelled. The
+parameter between them carries no authority: Gaskell says only that the order
+was likely but "not certain" to survive the drying rack.
 
 ### Gathering, folding and binding
 

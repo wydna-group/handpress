@@ -773,6 +773,62 @@ not claimed.
 that no blank not interrupting continuous text would be torn by the printer for
 excision.'' A cancel is a deliberate act on a printed leaf. Blanks stay.}
 
+@subsection{The heaps, and why a copy is not a random draw}
+@declare-exporting[handpress/press]
+
+Two authorities meet here, and between them they turn the making-up of copies
+from a shuffle into an inference.
+
+Gaskell gives the mechanism (pp. 143–4). The heaps stand in signature order and
+are gathered from the top of each. For a sheet perfected inner forme first they
+come off ``in the reverse of the printing order, so that the first book to be
+gathered contained the last printed sheets''; for one perfected outer forme
+first the heap ``had to be turned over to show the first page of the signature,
+which brought the first-printed sheet to the top. This heap was then gathered
+in the printing order''. So the copies lie in one linear order, each variant
+divides that order at the point the corrected proof came back, and which side
+of the division is corrected says which forme of that sheet went to press
+first.
+
+Greg gives the test. His calculus assumes simple transcription, and warns that
+where ``the grouping is throughout random or if inconsistent forms are of
+frequent occurrence, the relationship of the manuscripts cannot be accounted
+for on the hypothesis of simple transcription; some sort of conflation has
+somewhere to be assumed'' (@italic{The Calculus of Variants}, p. 43).
+
+@bold{A made-up copy of a printed edition is conflation by construction.} It
+descends from no other copy; it is assembled from as many heaps as there are
+sheets, which is Greg's many-one relation exactly. Drawn independently the
+groupings cross. Gathered as Gaskell describes they are prefixes and suffixes
+of one order, hence nested or disjoint — which is precisely Greg's condition
+for consistency: ``given any two constant groups, either these or their
+complements are either mutually exclusive or one wholly includes the other''
+(p. 12).
+
+@racket[variant-groupings] returns the grouping each press variant makes, and
+@racket[greg-consistent?] applies the condition. Over 25 runs of ten copies:
+
+@tabular[#:sep @hspace[3]
+  (list (list @bold{@tt{--heap-disorder}} @bold{consistent})
+        (list "0.0  (Gaskell's \"case of remarkable regularity\")" "60 of 60")
+        (list "0.15 (the default)" "37 of 60")
+        (list "0.5" "29 of 60")
+        (list "1.0  (an independent draw per forme)" "16 of 60"))]
+
+The last row is what this program did until the heaps were modelled — and the
+fact that it fails Greg's test is the point, not an embarrassment: the test is
+a detector for the very thing the code was getting wrong.
+
+@margin-note{The parameter itself carries no authority. Gaskell hypothesises
+``a case of remarkable regularity'' and hedges it in the same breath: after
+drying, ``the chances were that … the sheets would be in the same order as
+before, although this was not certain to happen.'' How much order the rack
+destroys is a knob, and the report says so.}
+
+What is not built, and is the next real exam for the analysis half: making the
+inference rather than showing the answer. The direction of each grouping says
+which forme of its sheet went to press first, and this program knows the truth.
+
 @subsection{Gathering, folding and the binder's errors}
 @declare-exporting[handpress/binding]
 

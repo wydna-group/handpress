@@ -34,6 +34,7 @@ picturesque than the real one.** Assume the next one is too.
 | the printer named in the imprint | 58 of 81 (Blayney App. II) | — | 72% |
 | the imprint date spaced (`1 6 0 8.`) | about half | — | 50% |
 | binder's faults per gathering | **no source gives a rate** | — | a knob, 0.01 |
+| heap order lost at the drying rack | **no source gives a value** | — | a knob, 0.15 |
 
 Every one of these was wrong in the same direction until it was measured.
 
@@ -54,6 +55,29 @@ Every one of these was wrong in the same direction until it was measured.
   `titlepage.rkt` and `prelims.rkt` was counted out of it. Starts around PDF
   379. The collations alone answer questions no prose passage does: `A2 B-L4`,
   `A4 *4 (−*2:3) B-X4`, `¶4 π A-B6`, `πA8(−A7,8) A-Bb8 Cc1,2[=πA7,8]`.
+
+## The heaps, and Greg
+
+The one place two authorities lock together, and worth knowing before touching
+`press.rkt`. **Gaskell gives the mechanism** (pp. 143-4): heaps gathered from
+the top in signature order, in reverse of the printing order for a sheet
+perfected inner-forme-first and in printing order for outer-first. **Greg gives
+the test**: a made-up copy is conflation by construction, so the groupings
+should be random — unless the gathering was systematic, in which case they are
+prefixes and suffixes of one order and satisfy his consistency condition
+(*Calculus of Variants*, p. 12).
+
+Measured: 60/60 consistent at `--heap-disorder 0`, 16/60 at 1. The second is
+what the code did before. `variant-groupings` and `greg-consistent?` in
+`press.rkt`.
+
+**Do not "fix" a consistency failure by tuning the disorder down.** The failure
+is the detector working.
+
+Two cautions from Greg for the analysis work still to come: the **ambiguity of
+three texts** (with three witnesses no formal process establishes relationship),
+and the **fallacy of constant variation** — that every transcription introduces
+about the same number of variants, "quite contrary to experience".
 
 ## Reading the copy
 

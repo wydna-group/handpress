@@ -75,6 +75,7 @@
                        #:cancel-rate [cancel-rate 0.0]
                        #:cancels [cancels 0]
                        #:imprint-change? [imprint-change? #f]
+                       #:heap-disorder [heap-disorder 0.15]
                        #:jaggard? [jaggard? #f]
                        #:prelim-style [prelim-style #f]
                        #:pages [pages 0]
@@ -156,7 +157,8 @@
                        #:binding-error (or binding-error BINDING-ERROR-RATE)
                        #:cancel-rate cancel-rate
                        #:cancels cancels
-                       #:imprint-change? imprint-change?))
+                       #:imprint-change? imprint-change?
+                       #:heap-disorder heap-disorder))
   ;; The setting is finished before this point and is not affected by it. The
   ;; parameter governs only how the page is shown -- the same forme read in
   ;; the reader's spelling instead of the compositor's.
@@ -259,6 +261,7 @@
   (define cancel-rate 0.0)
   (define cancels 0)
   (define imprint-change? #f)
+  (define heap-disorder 0.15)
   (define jaggard? #f)
   (define prelim-style #f)
   (define pages 0)
@@ -321,6 +324,9 @@
       (set! cancel-rate (string->number x))]
      [("--imprint-change") "re-issue with the bookseller's name altered: a cancel title"
       (set! imprint-change? #t)]
+     [("--heap-disorder") x
+      "how much of the heaps' order the drying and piling destroy, 0-1. At 0 the copies are gathered exactly as Gaskell describes and the press variants group consistently; at 1 every forme is an independent draw. No source gives a value (default 0.15)"
+      (set! heap-disorder (string->number x))]
      [("--jaggard-alphabet") "sign from Jaggard's 20 letters, omitting X, Y and Z"
       (set! jaggard? #t)]
      [("--prelim-signatures") st
@@ -363,7 +369,7 @@
                        #:binding-error binding-error #:jaggard? jaggard?
                        #:prelim-style prelim-style
                        #:cancel-rate cancel-rate #:cancels cancels
-                       #:imprint-change? imprint-change?
+                       #:imprint-change? imprint-change? #:heap-disorder heap-disorder
                        #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
                        #:modern-spelling? modern-spelling? #:scribal? scribal? #:year year
