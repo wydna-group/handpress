@@ -48,7 +48,8 @@
 ;;; are collated, records only the corrections made too late.
 
 (require racket/list racket/string racket/math
-         "compositor.rkt" "book.rkt" "rng.rkt")
+         "compositor.rkt" "book.rkt" "rng.rkt" "lexicon.rkt"
+         (only-in "orthography.rkt" split-point))
 
 (provide (struct-out pvariant) (struct-out forme-state)
          (struct-out printed-copy) (struct-out press-run)
@@ -80,15 +81,30 @@
   (append* (for/list ([(k s) (in-hash (press-run-states r))])
              (forme-state-variants s))))
 
+;; The corrector improving something that was not wrong.
+;;
+;; He must improve it into a spelling somebody used. This device was left
+;; ungated when the compositor's were fixed, and it showed: it was turning
+;; `begin' into `begine', `after' into `aftere' and `opinion' into `opinione',
+;; and printing them in the list of press variants as though a real corrector
+;; had made them. A reader who alters a word alters it towards a form he has
+;; seen, not towards one no one ever set.
 (define (sophisticate word g)
   (define low (string-downcase (string-trim word ".,;:!?" #:repeat? #t)))
-  (cond
-    [(hash-has-key? sophistications low)
-     (string-replace word low (hash-ref sophistications low))]
-    [(and (> (string-length low) 4) (string-suffix? low "e"))
-     (string-replace word low (substring low 0 (sub1 (string-length low))))]
-    [(> (string-length low) 3) (string-replace word low (string-append low "e"))]
-    [else #f]))
+  (define (ok form)
+    (and form
+         (not (string=? form word))
+         (let-values ([(core _t) (split-point (string-downcase form))])
+           (or (not (regexp-match? #px"^[a-zſ']+$" core))
+               (plausible? core)))
+         form))
+  (or (and (hash-has-key? sophistications low)
+           (ok (string-replace word low (hash-ref sophistications low))))
+      (and (> (string-length low) 4) (string-suffix? low "e")
+           (ok (string-replace word low (substring low 0 (sub1 (string-length low))))))
+      (and (> (string-length low) 3)
+           (ok (string-replace word low (string-append low "e"))))
+      #f))
 
 (define (run-press b
                    #:copies [copies 4]

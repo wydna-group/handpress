@@ -10,7 +10,8 @@
 
 (require racket/list racket/string racket/math racket/file
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt" "press.rkt"
-         "description.rkt" "typecase.rkt"
+         "description.rkt" "typecase.rkt" "pagination.rkt"
+         (only-in "deviation.rkt" word-deviation deviation-class deviation-report)
          (only-in "orthography.rkt" modernise))
 
 (provide render-line-text render-page-text render-book-text
@@ -218,11 +219,36 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    1%, and the median gap between words comes out at 5.4px against a true
    thick space of 5.33px. That is the point -- the white you see between two
    words is the space the compositor actually put there. */
-.plate { --grid: 16px; --fit: 1.00; font-size: var(--grid); }
-.runhead { text-align: center; letter-spacing: .22em; font-size: .82em;
-           text-transform: uppercase; margin-bottom: .5em; }
+.plate { --grid: 16px; --fit: 1.00; --lead: 1.44; font-size: var(--grid); }
+
+/* Every leaf is the same size, because every leaf of a book is. The width is
+   the type page plus the margins the period actually left; the height is the
+   full measure of lines whether or not this page filled them, so a spun-out
+   page shows as white at the foot rather than as a shorter piece of paper.
+
+   The proportions are the book's, not the screen's: a hand-press page carries
+   a narrow inner margin and a generous outer and lower one, the text sitting
+   high and towards the gutter. */
+.leaf {
+  width: calc(var(--grid) * ((var(--m) * var(--cols)) + (2.2 * (var(--cols) - 1)) + 11));
+  height: calc(var(--grid) * var(--lead) * var(--lines) + var(--grid) * 9);
+  box-sizing: border-box;
+  padding: 3.4em 4.6em 4.2em 3.4em;
+  display: flex; flex-direction: column;
+}
+.headline { display: flex; align-items: baseline; justify-content: space-between;
+            gap: 1em; margin-bottom: .5em; }
+.runhead { flex: 1; text-align: center; letter-spacing: .22em; font-size: .82em;
+           text-transform: uppercase; }
+.fol { font-size: .82em; min-width: 2.4em; }
+.fol.right { text-align: right; }
+.pageno { letter-spacing: .06em; }
+/* A number the compositor got wrong is still the number that printed. It is
+   shown as it stands and says on hover what it should have been. */
+.pageno.wrong { border-bottom: 1px dotted rgba(140,47,22,.55); cursor: help; }
 .rule { border-bottom: 1px solid rgba(40,28,14,.5); margin-bottom: 1.1em; }
-.cols { display: flex; gap: 2.2em; align-items: flex-start; }
+.cols { display: flex; gap: 2.2em; align-items: flex-start; flex: 1;
+        min-height: calc(var(--grid) * var(--lead) * var(--lines)); }
 .col { position: relative; width: calc(var(--grid) * var(--m)); }
 .tline { position: relative; height: calc(var(--grid) * 1.44);
          white-space: nowrap; }
@@ -245,6 +271,45 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
 .dmg.clogged      { text-shadow: 0 0 .5px currentColor, 0 0 .9px currentColor; }
 .dmg.broken-tail  { transform: scaleY(.94) translateY(0.5px); opacity: .8; }
 .dmg.low          { opacity: .42; transform: translateY(0.6px); }
+/* Hovering a damaged sort names the injury; the whole point of tracking them
+   individually is that a reader can follow one through the book. */
+.dmg { cursor: help; }
+
+/* A letter the case got wrong -- a turned n for a u, an e from the next box.
+   It printed, so it is shown; it was wrong, so it is marked. */
+.acc { border-bottom: 1px solid rgba(140,47,22,.5); cursor: help; }
+
+/* Words that depart from the copy, coloured by the stage that moved them.
+   Faint by design: the page should read as a page first, and give up its
+   apparatus to attention rather than force it on the eye. */
+.w[title] { cursor: help; }
+.dev-misread  { box-shadow: inset 0 -0.10em 0 rgba(140,47,22,.30); }
+.dev-accident { box-shadow: inset 0 -0.10em 0 rgba(176,110,20,.30); }
+.dev-fit      { box-shadow: inset 0 -0.10em 0 rgba(29,85,96,.26); }
+.dev-habit    { box-shadow: inset 0 -0.10em 0 rgba(70,100,50,.26); }
+body.plain .dev-misread, body.plain .dev-accident,
+body.plain .dev-fit, body.plain .dev-habit { box-shadow: none; }
+body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
+
+.key { display: flex; flex-wrap: wrap; gap: .35rem 1.4rem; font-size: .78rem;
+       margin: 0 0 2rem; opacity: .85; align-items: center; }
+.key b { font-weight: 500; }
+.key i { display: inline-block; width: 1.6em; height: .5em; margin-right: .4em;
+         vertical-align: middle; border-radius: 1px; }
+.key .k1 { background: rgba(140,47,22,.45); }
+.key .k2 { background: rgba(176,110,20,.45); }
+.key .k3 { background: rgba(29,85,96,.4); }
+.key .k4 { background: rgba(70,100,50,.4); }
+.key button { font: inherit; padding: .2rem .7rem; border-radius: 999px;
+              border: 1px solid currentColor; background: transparent;
+              color: inherit; cursor: pointer; opacity: .8; }
+
+/* The statistical report at the foot. */
+.stats { margin: 3rem 0 0; }
+.stats pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+             font-size: .76rem; line-height: 1.5; white-space: pre-wrap;
+             background: rgba(128,110,80,.09); padding: 1.2rem 1.4rem;
+             border-radius: 3px; overflow-x: auto; }
 .direction { display: flex; justify-content: space-between;
              margin-top: 1.4em; font-size: .9em; letter-spacing: .04em; }
 .tag { position: absolute; top: -1.55rem; left: 0; font-size: .68rem;
@@ -298,6 +363,29 @@ CSS
                        (html-escape (string ch)))
                (html-escape (string ch))))))
 
+;; Ring the letter the case got wrong.
+;;
+;; A turned letter and a foul-case letter are both single characters that
+;; differ between what was composed and what printed, so they can be found by
+;; comparing the two. Marking them matters: an `n' standing for a `u' is
+;; invisible in a plain transcript and obvious on the page, and the whole
+;; point of a type-facsimile is to show what the page showed.
+(define (mark-accident body composed printed)
+  (cond
+    [(or (not composed) (not printed)
+         (string=? composed printed)
+         (not (= (string-length composed) (string-length printed)))
+         (regexp-match? #rx"<" body))
+     body]
+    [else
+     (apply string-append
+            (for/list ([a (in-string composed)] [bch (in-string printed)])
+              (if (char=? a bch)
+                  (html-escape (string bch))
+                  (format "<span class=\"acc\" title=\"~a set for ~a\">~a</span>"
+                          (html-escape (string bch)) (html-escape (string a))
+                          (html-escape (string bch))))))]))
+
 (define (render-line-html l readings sig lineno)
   (cond
     [(null? (set-line-words l)) "<div class=\"tline\"></div>"]
@@ -312,22 +400,36 @@ CSS
             (define text
               (or (and readings (hash-ref readings (list sig lineno i) #f))
                   (word-printed w)))
-            (define cls (if (or (word-italic? w) (set-line-italic? l)) "w it" "w"))
+            (define dev (word-deviation w))
+            (define cls
+              (string-join
+               (filter (lambda (s) (not (string=? s "")))
+                       (list "w"
+                             (if (or (word-italic? w) (set-line-italic? l)) "it" "")
+                             (deviation-class w)))
+               " "))
             (define body
-              (if (and (null? (word-pieces w)) #t)
-                  (html-escape text)
-                  (mark-damage text (word-pieces w))))
+              (mark-accident
+               (if (null? (word-pieces w))
+                   (html-escape text)
+                   (mark-damage text (word-pieces w)))
+               (word-composed w) text))
             (loop (cdr ws) (add1 i)
                   (+ x (word-width w) (if (< i (length spaces)) (list-ref spaces i) 0))
-                  (cons (format "<span class=\"~a\" style=\"--x:~a;--w:~a;opacity:~a\">~a</span>"
-                                cls (real->decimal-string (ems x) 3)
+                  (cons (format "<span class=\"~a\"~a style=\"--x:~a;--w:~a;opacity:~a\">~a</span>"
+                                cls
+                                (if dev
+                                    (format " title=\"~a\"" (html-escape dev))
+                                    "")
+                                (real->decimal-string (ems x) 3)
                                 (real->decimal-string (ems (word-width w)) 3)
                                 (real->decimal-string (ink text sig) 2)
                                 body)
                         acc))])))
      (format "<div class=\"tline\">~a</div>" (apply string-append spans))]))
 
-(define (render-page-html p columns [readings #f] [measure-ems 21.0])
+(define (render-page-html p columns [readings #f] [measure-ems 21.0]
+                          [folio #f] [lines-per-page #f])
   (define lines (page-all-lines p))
   (define measure (if (pair? lines) (ems (set-line-measure (car lines))) measure-ems))
   (define cols
@@ -351,29 +453,66 @@ CSS
     (cond [(> (page-pressure p) 0.35) (values "crowd" " · crowded")]
           [(< (page-pressure p) -0.35) (values "gape" " · spun out")]
           [else (values "" "")]))
+  ;; Every leaf is the same size, because every leaf of a book is. A page with
+  ;; less on it is not a smaller page: it is the same page with white at the
+  ;; foot, which is exactly what a spun-out page looks like and what the
+  ;; casting-off report is talking about.
+  (define n-lines
+    (for/fold ([m 0]) ([c (in-list (page-columns p))]) (max m (length c))))
   (format #<<HTML
-<div class="leaf plate">
+<div class="leaf plate" style="--m:~a;--cols:~a;--lines:~a">
   <div class="tag ~a">sig. ~a &nbsp;·&nbsp; ~a &nbsp;·&nbsp; Compositor ~a~a</div>
-  <div class="runhead">~a</div>
+  <div class="headline">
+    <span class="fol left">~a</span>
+    <span class="runhead">~a</span>
+    <span class="fol right">~a</span>
+  </div>
   <div class="rule"></div>
   <div class="cols">~a</div>
   <div class="direction"><span>~a</span><span>~a</span></div>
 </div>
 HTML
+          (real->decimal-string measure 2) columns
+          (or lines-per-page n-lines)
           tag-cls (html-escape (page-sig p)) (html-escape (page-forme-name p))
-          (html-escape (page-compositor p)) note head
+          (html-escape (page-compositor p)) note
+          ;; The page number sits in the headline beside the running title,
+          ;; verso to the left and recto to the right, because that is where
+          ;; the type for it stood. Where the paging went wrong the number
+          ;; shown is the wrong one, and it says so on hover.
+          (folio-html folio (not (page-ref-recto? (page-pref p))))
+          head
+          (folio-html folio (page-ref-recto? (page-pref p)))
           (apply string-append cols)
           (html-escape (page-signature p)) (html-escape (page-catchword p))))
+
+(define (folio-html f show?)
+  (cond
+    [(or (not f) (not show?)) ""]
+    [(string=? (folio-number-printed f) "") ""]
+    [else
+     (define note (folio-number-note f))
+     (format "<span class=\"pageno~a\"~a>~a</span>"
+             (if (string=? note "") "" " wrong")
+             (if (string=? note "")
+                 ""
+                 (format " title=\"~a — should be ~a\""
+                         (html-escape note) (folio-number-want f)))
+             (html-escape (folio-number-printed f)))]))
 
 (define (render-book-html b [readings #f]
                           #:title [title "A book of the handpress era"]
                           #:lede [lede ""] #:extra [extra ""]
                           #:run [run #f])
+  (define folios
+    (for/hash ([f (in-list (book-paging b))]) (values (folio-number-sig f) f)))
   (define pages
     (apply string-append
            (for/list ([p (in-list (book-pages b))])
              (render-page-html p (book-format-columns (book-fmt b)) readings
-                               (book-format-measure-ems (book-fmt b))))))
+                               (book-format-measure-ems (book-fmt b))
+                               (hash-ref folios (page-sig p) #f)
+                               (book-format-lines (book-fmt b))))))
   (format #<<HTML
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -383,13 +522,29 @@ HTML
 <h1>~a</h1>
 <p class="lede">~a</p>
 ~a
+<div class="key">
+  <b>Departures from copy:</b>
+  <span><i class="k1"></i>misread</span>
+  <span><i class="k2"></i>accident of the case</span>
+  <span><i class="k3"></i>altered to fit the measure</span>
+  <span><i class="k4"></i>the compositor's habit</span>
+  <span>Hover any word for its history.</span>
+  <button onclick="document.body.classList.toggle('plain')">show the page plain</button>
+</div>
 ~a
 ~a
+<div class="stats">
+<h2>What the run came to</h2>
+<pre>~a</pre>
+<pre>~a</pre>
+</div>
 </div></body></html>
 HTML
           (html-escape title) css (html-escape title) (html-escape lede)
           (description-html b run)
-          pages extra))
+          pages extra
+          (html-escape (deviation-report b run))
+          (html-escape (pagination-report (book-paging b)))))
 
 (module+ test
   (require rackunit "orthography.rkt" "typecase.rkt" "rng.rkt")
