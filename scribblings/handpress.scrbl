@@ -674,6 +674,105 @@ body fount — Blayney records which line came from which — and
 @racket[typecase] keeps one case. The error is about forty words a book, all of
 them large.}
 
+@subsection{The last sheet, and what becomes of the white paper}
+@declare-exporting[handpress/book]
+
+One sentence governs the end of every book:
+
+@nested[#:style 'inset]{``as it costs practically as much to print part of a
+sheet as a complete one, it was always to the printer's interest to make up a
+complete sheet whenever he could.'' (McKerrow, p. 159)}
+
+So a text that stops two leaves short of the end of its last sheet, in a house
+with two leaves of preliminaries still to print, does not print a separate
+half-sheet and leave two leaves white. It prints the preliminaries @emph{in}
+the white leaves and cuts them out:
+
+@nested[#:style 'inset]{``he will as a matter of course impose these
+preliminaries in the middle of his last sheet, which may therefore run, as
+actually printed (supposing it to be in fours), @bold{Z1, [*], *2, Z2, the two
+centre leaves being cut out to be used as preliminaries}. Such a book will be
+described as @tt{*², A–Y⁴, Z²}, quite correctly.'' (p. 158–9)}
+
+And where the front matter is a single title-leaf: ``the printer would be quite
+likely to print it Z1, Z2, Z3, [—], cutting off his last leaf to form the
+title.''
+
+A gathering is therefore @emph{printed} whole and @emph{bound} short.
+@racket[page-refs] takes per-leaf signature overrides so that one sheet can
+carry two series at once, and @racket[plan-bound-leaves] is what the collation
+formula counts. McKerrow's reason for pressing the point is that the
+alternative makes editors record leaves that never existed — ``@tt{*1 and Z4
+wanting, probably blanks}, thus inventing two blank leaves which in fact never
+existed'' — which is exactly what this program used to produce.
+
+Cut from the centre the preliminaries come off as a conjugate fold; cut from
+the tail they come off disjunct. Which of the two is recorded, because it is
+the fact Bowers used to prove the case: of Sandys's Ovid he observes that the
+printed preliminary leaves ``are always disjunct and have any watermark on the
+outer edges of the two leaves, @bold{an impossibility if they had been printed
+as a fold} in the cut-off.'' The paper that would betray it is not modelled;
+see the roadmap.
+
+@margin-note{It is a tendency, not a law, and the authorities guard it from
+both sides. McKerrow: ``we must not assume that a printer would in every case
+economize his labour and paper in this fashion: it might sometimes have been
+more convenient to have the two extra leaves as covers or end-papers.'' Bowers:
+``Even when normal printing practice might lead one to expect economical
+machining without blanks, it is dangerous, lacking proof, to assume their
+absence.'' Hence @racket[CUT-OUT-SHARE], and white paper otherwise.}
+
+@subsection{Cancels, and why the cause is not simulated}
+@declare-exporting[handpress/cancels]
+
+A cancel is a leaf cut out and another pasted to the stub. The obvious
+objection to simulating one is that they happen for reasons no printing house
+can generate — the Privy Council took exception to @italic{Eastward Ho}.
+McKerrow gets there first and makes the decision:
+
+@nested[#:style 'inset]{``@bold{Into the purpose of these cancels we need not
+enter.} There may have been in the original print something so grossly
+incorrect that it was too much for even the easy-going printer of the day — or
+for the author; or, as often in early times, there may have been something that
+the authorities found objectionable. @bold{The point at present is the aid that
+bibliography gives us in detecting them.}'' (p. 223)}
+
+So the cause is a parameter and the trace is a simulation. Three causes, of
+which only the first is modelled in the strong sense:
+
+@itemlist[
+@item{@bold{An error the program made itself} and its own corrector missed. The
+      run knows what the error was, which page it is on, and that the proof went
+      by without it, so nothing is supplied from outside. @tt{--cancel-rate}.}
+@item{@bold{A change of imprint} — the same setting with the bookseller's name
+      altered, which is why a cancel title is commoner than any other kind.
+      @tt{--imprint-change}.}
+@item{@bold{Anything else} — @tt{--cancels N}, a count and not a model. The
+      report says so in those words.}]
+
+The trace is complete, because that is the part that can be got wrong. The leaf
+is cut out ``leaving a stub of paper to which the new leaf could be pasted''
+(p. 223). The replacement is printed in the white paper at the end of a
+gathering — Gaskell has Rousseau's publisher writing ``to encourage the author
+to use up the blank leaves of final sheets for printing cancels'', and McKerrow
+that ``spare leaves at the end of a book were used to print matter that was to
+be bound elsewhere in it, @bold{such as titles or cancels}'' (p. 156) — or it
+costs a half-sheet of its own, which the report distinguishes because it is the
+expensive case. A cancellans is a leaf, so the paper it can use must be blank
+on both sides.
+
+And @racket[mckerrow-signs] generates five of McKerrow's six detection tests
+(p. 224) as properties of the particular leaf, so that the analysis half can
+one day be scored on finding them: the setting of headline, signature or text
+differing; a different number of lines to the page; a signature where its
+fellows carry none; a part-signature away from the first leaf of its gathering;
+two press figures in what should be one forme. The sixth is the paper, and is
+not claimed.
+
+@margin-note{Bowers's caution holds throughout: ``It may be taken as an axiom
+that no blank not interrupting continuous text would be torn by the printer for
+excision.'' A cancel is a deliberate act on a printed leaf. Blanks stay.}
+
 @subsection{Gathering, folding and the binder's errors}
 @declare-exporting[handpress/binding]
 

@@ -76,6 +76,7 @@
                        #:cancels [cancels 0]
                        #:imprint-change? [imprint-change? #f]
                        #:jaggard? [jaggard? #f]
+                       #:prelim-style [prelim-style #f]
                        #:pages [pages 0]
                        #:numbers? [numbers? #f]
                        #:long-s? [long-s? #t]
@@ -147,7 +148,8 @@
                         #:publisher (from-meta 'publisher publisher)
                         #:titlepage? titlepage?
                         #:find-prelims? find-prelims?
-                        #:sig-alphabet (if jaggard? JAGGARD-LETTERS SIG-LETTERS)))
+                        #:sig-alphabet (if jaggard? JAGGARD-LETTERS SIG-LETTERS)
+                        #:prelim-style prelim-style))
   (define b (set-book h copy kind))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
                        #:edition edition
@@ -258,6 +260,7 @@
   (define cancels 0)
   (define imprint-change? #f)
   (define jaggard? #f)
+  (define prelim-style #f)
   (define pages 0)
   (define numbers? #f)
   (define long-s? #t)
@@ -320,6 +323,9 @@
       (set! imprint-change? #t)]
      [("--jaggard-alphabet") "sign from Jaggard's 20 letters, omitting X, Y and Z"
       (set! jaggard? #t)]
+     [("--prelim-signatures") st
+      "how the preliminaries are signed: stars (* ** ***) | symbols (* † ‡ §) | pilcrow (¶ ¶¶) | lower (a b c) | english (text from B, prelims A then a) | continuous (no separate series) | unsigned (McKerrow's π) | auto"
+      (set! prelim-style (and (not (string=? st "auto")) (string->symbol st)))]
      [("--pages") n "show only the first N pages on screen"
                   (set! pages (string->number n))]
      [("--no-copy-preparation") "the corrector does not mark up the copy"
@@ -355,6 +361,7 @@
                        #:titlepage? titlepage? #:find-prelims? find-prelims?
                        #:contents? contents?
                        #:binding-error binding-error #:jaggard? jaggard?
+                       #:prelim-style prelim-style
                        #:cancel-rate cancel-rate #:cancels cancels
                        #:imprint-change? imprint-change?
                        #:pages pages #:numbers? numbers?

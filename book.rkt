@@ -25,7 +25,8 @@
          (struct-out standing-type) (struct-out gathering-plan)
          make-house set-book
          page-sig page-all-lines page-text book-gatherings book-collation
-         book-find-page book-runs plan-bound-leaves PRELIM-SCHEMES)
+         book-find-page book-runs plan-bound-leaves
+         PRELIM-SCHEMES PRELIM-SCHEME-NAMES)
 
 ;; The field is `pref', not `ref': `page-ref' is already the struct that names
 ;; a leaf and side in imposition.rkt, and two bindings of that name in one
@@ -70,7 +71,7 @@
                    cast-off-accuracy n-skeletons formes-standing
                    prepare-copy? title profiles condition stint-sheets
                    paging-error find-prelims? titlepage? book-title author
-                   printer publisher sig-alphabet)
+                   printer publisher sig-alphabet prelim-style)
   #:transparent)
 
 (define (make-house #:fmt [fmt QUARTO]
@@ -151,7 +152,13 @@
                     #:publisher [publisher #f]
                     ;; Gaskell n. 33a: Jaggard signed from a 20-letter
                     ;; alphabet, everyone else from 23.
-                    #:sig-alphabet [alphabet SIG-LETTERS])
+                    #:sig-alphabet [alphabet SIG-LETTERS]
+                    ;; How the preliminaries are signed: one of the names in
+                    ;; PRELIM-SCHEMES, or #f to draw one. A house normally
+                    ;; signed its front matter the same way every time; the
+                    ;; mixture is what you see across a trade, not within a
+                    ;; shop.
+                    #:prelim-style [prelim-style #f])
   (house fmt names seed by-formes? cv case-scale acc nsk
          (max 1 standing) prep? title profiles condition
          (cond
@@ -160,7 +167,7 @@
            [(<= (length names) 5) 2]
            [else 1])                     ; takes, shared about
          paging-error find-prelims? titlepage? book-title author
-         printer publisher alphabet))
+         printer publisher alphabet prelim-style))
 
 (define (house-spec h)
   (page-spec (exact-round (* (book-format-measure-ems (house-fmt h)) UNITS-PER-EM))
@@ -392,21 +399,35 @@
 ;;               "sometimes began the main signature series at the beginning
 ;;               of the preliminaries" because the extent was already known
 ;;   unsigned    nothing set at all; McKerrow's π in the collation
+;; ¶ is not in Gaskell's list but is thick on the ground in Blayney's checklist
+;; of one shop's output, where preliminary gatherings are signed ¶2, ¶4 and ¶8;
+;; it is here as a style of its own rather than as one symbol among four.
 (define PRELIM-SCHEMES
-  '((stars 0.30) (english 0.25) (lower 0.18) (symbols 0.10)
-    (continuous 0.10) (unsigned 0.07)))
+  '((stars 0.28) (english 0.23) (lower 0.17) (symbols 0.09)
+    (pilcrow 0.09) (continuous 0.08) (unsigned 0.06)))
 
-(define (choose-prelim-scheme g n-gatherings leaves)
+(define PRELIM-SCHEME-NAMES (map car PRELIM-SCHEMES))
+
+(define (choose-prelim-scheme g n-gatherings leaves [forced #f])
+  ;; A house that always signs its preliminaries the same way is the ordinary
+  ;; case; the mixture is what you get looking across a trade rather than
+  ;; within a shop. So the choice can be fixed, and `auto' means draw it.
+  (when (and forced (not (memq forced PRELIM-SCHEME-NAMES)))
+    (error 'choose-prelim-scheme "unknown preliminary signature style: ~a" forced))
   (define r (rnd g))
   (define pick
-    (let loop ([ss PRELIM-SCHEMES] [acc 0.0])
-      (cond
-        [(null? ss) 'stars]
-        [(< r (+ acc (cadr (car ss)))) (car (car ss))]
-        [else (loop (cdr ss) (+ acc (cadr (car ss))))])))
+    (or forced
+        (let loop ([ss PRELIM-SCHEMES] [acc 0.0])
+          (cond
+            [(null? ss) 'stars]
+            [(< r (+ acc (cadr (car ss)))) (car (car ss))]
+            [else (loop (cdr ss) (+ acc (cadr (car ss))))]))))
   ;; An unsigned series is only credible for a leaf or two. Nobody left eight
   ;; leaves unsigned and expected a binder to fold them right.
-  (if (and (eq? pick 'unsigned)
+  ;; Asked for outright, an unsigned series is given even where it is unwise:
+  ;; the user is entitled to make a book that is hard to bind, and the binding
+  ;; report will show what it costs.
+  (if (and (eq? pick 'unsigned) (not forced)
            (or (> n-gatherings 1) (> (apply + leaves) 2)))
       'stars
       pick))
@@ -427,12 +448,14 @@
 ;; whether the overflow happened, which means the inference McKerrow draws from
 ;; the collation can be scored against the truth.
 (define (make-plans fmt g front-leaves front-segs body-gatherings text-segs
-                    alphabet)
+                    alphabet [forced-scheme #f])
   (define main (make-main-series alphabet))
   (define pages-per (book-format-pages fmt))
   (define n-front (length front-leaves))
   (define scheme
-    (if (zero? n-front) 'none (choose-prelim-scheme g n-front front-leaves)))
+    (if (zero? n-front)
+        'none
+        (choose-prelim-scheme g n-front front-leaves forced-scheme)))
 
   ;; (series . index) for each preliminary gathering, and where the text starts
   ;; in the main series.
@@ -441,6 +464,7 @@
       [(none)       (values '() 0)]
       [(stars)      (values (for/list ([i n-front]) (cons STAR-SERIES i)) 0)]
       [(symbols)    (values (for/list ([i n-front]) (cons SYMBOL-SERIES i)) 0)]
+      [(pilcrow)    (values (for/list ([i n-front]) (cons PILCROW-SERIES i)) 0)]
       [(lower)      (values (for/list ([i n-front]) (cons LOWER-SERIES i)) 0)]
       [(unsigned)   (values (for/list ([i n-front]) (cons PI-SERIES i)) 0)]
       [(continuous) (values (for/list ([i n-front]) (cons main i)) n-front)]
@@ -776,7 +800,7 @@
 
   (define-values (front-plans0 text-plans0 prelim-scheme)
     (make-plans fmt g front-leaves front-padded body-gatherings text-segs
-                (house-sig-alphabet h)))
+                (house-sig-alphabet h) (house-prelim-style h)))
   ;; McKerrow's economy: where the text stops short of the end of its last
   ;; sheet and the preliminaries will fit in the white leaves, they are printed
   ;; there and cut out, rather than costing a sheet of their own.

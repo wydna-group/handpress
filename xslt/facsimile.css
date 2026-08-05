@@ -303,3 +303,10 @@ body.plain .dev-divided { box-shadow: none; }
   border-bottom: 1px dotted currentColor; cursor: help; letter-spacing: .06em;
 }
 .leaf.prelim { box-shadow: inset 3px 0 0 rgba(150,110,60,.45); }
+
+/* A leaf cut out and replaced, or one printed in a gathering it is not bound
+   in. Both are facts about the physical book that nothing on the leaf itself
+   would show, so the page has to be told. */
+.tag .leafnote {
+  border-bottom: 1px dotted currentColor; cursor: help; letter-spacing: .06em;
+}

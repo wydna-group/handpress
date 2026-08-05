@@ -261,7 +261,7 @@
              (if (string=? note "") "" (format " title=\"~a\"" (esc note)))
              (esc (text-of f)))]))
 
-(define (page->html page lines-per-page damage-names)
+(define (page->html page lines-per-page damage-names [notes (hash)])
   (define sig (attr page 'n ""))
   (define recto? (regexp-match? #rx"r$" sig))
   (define cols (kids page 'div))
@@ -288,6 +288,11 @@
   (define prelim? (string=? (attr page '|hp:role| "text") "prelim"))
   (define series (attr page '|hp:series| "main"))
   (define comp (string-replace (attr page 'resp "") "#comp" ""))
+  ;; A leaf that was cut out and replaced, or one printed in a gathering it is
+  ;; not bound in. Both are in the file; a facsimile that could not show them
+  ;; would be showing a book that was not printed.
+  (define leaf-note (hash-ref notes (string-append leaf "r")
+                              (lambda () (hash-ref notes leaf #f))))
   (format (string-append
            "<div class=\"leaf plate~a\" data-leaf=\"~a\" data-sheet=\"~a\" data-forme=\"~a\"\n"
            "     style=\"--m:~a;--cols:~a;--lines:~a\">\n"
@@ -321,10 +326,15 @@
           ;; against 1020px, which is visible and wrong.
           (if (> lines-per-page 0) lines-per-page n-lines)
           tag-cls (esc sig) (esc forme) (esc comp) note
-          (if prelim?
-              (format " &nbsp;·&nbsp; <span class=\"prelim\" title=\"Preliminary matter: set after the text and printed last, so it takes a signature series of its own (here: ~a). Gaskell, p. 8; McKerrow, p. 128.\">preliminary</span>"
-                      (esc series))
-              "")
+          (string-append
+           (if prelim?
+               (format " &nbsp;·&nbsp; <span class=\"prelim\" title=\"Preliminary matter: set after the text and printed last, so it takes a signature series of its own (here: ~a). Gaskell, p. 8; McKerrow, p. 128.\">preliminary</span>"
+                       (esc series))
+               "")
+           (if leaf-note
+               (format " &nbsp;·&nbsp; <span class=\"leafnote\" title=\"~a\">~a</span>"
+                       (esc (cdr leaf-note)) (esc (car leaf-note)))
+               ""))
           (esc leaf) (esc sheet)
           (folio-html page recto? #f)
           head
@@ -463,10 +473,35 @@
   ;; Bound as openings: a verso and the recto facing it. The first recto has no
   ;; verso before it and stands alone, which is why a book opens on a single
   ;; page and thereafter in pairs.
+  ;; Cancels and excisions, keyed by the leaf they concern.
+  (define leaf-notes
+    (for/fold ([h (hash)])
+              ([c (in-list (append (find-all hdr '|hp:cancel|)
+                                   (find-all hdr '|hp:excision|)))])
+      (cond
+        [(equal? (attr c 'at #f)
+                 (attr c 'at #f))
+         (define at (attr c 'at #f))
+         (define from (attr c 'from #f))
+         (cond
+           [at (hash-set h at
+                         (cons "cancel"
+                               (format "This leaf was cut out and replaced. ~a. The replacement was printed in ~a, and the leaf was pasted to the stub left behind. McKerrow, p. 223."
+                                       (text-of c) (attr c 'printed-in "a half-sheet of its own"))))]
+           [from
+            (hash-set h (format "~a~a" (attr c 'bound-as "?") (attr c 'leaf "1"))
+                      (cons "cut from the last sheet"
+                            (format "Printed as leaf ~a of gathering ~a and cut out to be bound here, ~a. McKerrow, p. 158."
+                                    (attr c 'leaf "?") (attr c 'from "?")
+                                    (if (equal? (attr c 'conjugate "false") "true")
+                                        "coming off as a conjugate fold"
+                                        "coming off disjunct"))))]
+           [else h])]
+        [else h])))
   (define rendered
     (for/list ([p (in-list pages)])
       (cons (regexp-match? #rx"r$" (attr p 'n ""))
-            (page->html p lines-per-page damage-names))))
+            (page->html p lines-per-page damage-names leaf-notes))))
   (define body
     (let loop ([ps rendered] [out '()])
       (cond

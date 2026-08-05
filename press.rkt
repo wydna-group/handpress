@@ -362,12 +362,15 @@
   ;; What was cut out and replaced. The errors offered as candidates are the
   ;; ones this run made itself and its own corrector let through, which is the
   ;; only cause that needs nothing supplied from outside.
+  (define (leaf-of p)
+    (define sig (page-sig p))
+    (substring sig 0 (sub1 (string-length sig))))
   (define surviving
     (for*/list ([p (in-list (book-pages b))]
                 [l (in-list (page-all-lines p))]
                 [w (in-list (set-line-words l))]
                 #:unless (string=? (word-composed w) (word-printed w)))
-      (cons (page-sig p) (format "the case gave ~s for ~s"
+      (cons (leaf-of p) (format "the case gave ~s for ~s"
                                  (word-printed w) (word-composed w)))))
   ;; A cancellans is a leaf, so the white paper it can be printed on has to be
   ;; a leaf blank on both sides -- not merely a blank page, whose other side is
@@ -390,7 +393,7 @@
        (substring (page-sig p) 0 (sub1 (string-length (page-sig p)))))))
   (define cancels
     (plan-cancels (for/list ([p (in-list (book-pages b))])
-                    (cons (page-sig p)
+                    (cons (leaf-of p)
                           (for/or ([l (in-list (page-all-lines p))])
                             (pair? (set-line-words l)))))
                   #:errors surviving
@@ -400,7 +403,7 @@
                   #:imprint-change? imprint-change?
                   #:title-leaf (and (book-titlepage b)
                                     (pair? (book-pages b))
-                                    (page-sig (car (book-pages b))))
+                                    (leaf-of (car (book-pages b))))
                   #:rng (make-rng (+ seed 7331))))
 
   (press-run states made (reverse log) silent-readings edition binding-error

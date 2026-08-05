@@ -32,7 +32,8 @@
 
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
-         "press.rkt" "binding.rkt" "corrector.rkt" "description.rkt" "pagination.rkt"
+         "press.rkt" "binding.rkt" "cancels.rkt" "corrector.rkt" "description.rkt"
+         "pagination.rkt"
          (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary)
          (only-in "deviation.rkt" deviation-counts word-deviation)
          (only-in "orthography.rkt" strip-conventions))
@@ -106,6 +107,14 @@
           "        </bibl>")
     ;; The Bowers description, in TEI's own vocabulary for physical make-up.
     (list (description-tei-msdesc b run))
+    ;; What was cut out of the book, and what was cut out to make it.
+    ;;
+    ;; Both belong in the file rather than in the report, because the facsimile
+    ;; is built from the file and nothing else: a leaf the binder never saw and
+    ;; a leaf that was printed in another gathering are facts about the book,
+    ;; and a page that cannot show them is showing a book that was not printed.
+    (cancels-tei b run)
+    (excisions-tei b)
     (if (null? wits) '() (cons "        <listWit>" (append wits (list "        </listWit>"))))
     (list "      </sourceDesc>"
           "    </fileDesc>"
@@ -409,6 +418,69 @@
                (cons (word->tei (car ws) x variants (list sig n i)) acc))])))
   (string-append "        " lb "\n"
                  (if (null? ws) "" (string-append "        " (string-join ws "") "\n"))))
+
+;; The leaves cut out and replaced.
+;;
+;; The cause is recorded as the cause, including where it is `external' and the
+;; program is not modelling it at all. McKerrow declines to model it too --
+;; "into the purpose of these cancels we need not enter" (p. 223) -- and a file
+;; that quietly dressed an unmodelled cause as a modelled one would be worse
+;; than one that says which is which.
+(define (cancels-tei b run)
+  (define cs (if run (cancel-plan-cancels (press-run-cancels run)) '()))
+  (cond
+    [(null? cs) '()]
+    [else
+     (append
+      (list "        <hp:cancels>")
+      (for/list ([c (in-list cs)])
+        (format (string-append
+                 "          <hp:cancel at=\"~a\" cause=\"~a\" printed-in=\"~a\""
+                 " conjugate=\"~a\" signs=\"~a\">~a</hp:cancel>")
+                (esc (cancel-at c)) (esc (format "~a" (cancel-cause c)))
+                (esc (or (cancel-sheet c) "a half-sheet of its own"))
+                (if (cancel-conjugate? c) "true" "false")
+                (esc (string-join (for/list ([s (in-list (cancel-signs c))])
+                                    (format "~a" s)) " "))
+                (esc (cancel-detail c))))
+      (list "        </hp:cancels>"))]))
+
+;; The leaves printed in one gathering and bound in another.
+;;
+;; McKerrow, p. 158: the preliminaries imposed "in the middle of his last
+;; sheet, which may therefore run, as actually printed ... Z1, [*], *2, Z2, the
+;; two centre leaves being cut out to be used as preliminaries." Whether the
+;; cut pair came off as a fold or as singletons is the fact Bowers recovered
+;; from the watermarks, so it is recorded even though the paper that would
+;; betray it is not modelled yet.
+(define (excisions-tei b)
+  (define owners
+    (for/list ([p (in-list (book-plans b))]
+               #:when (pair? (gathering-plan-excised p)))
+      p))
+  (cond
+    [(null? owners) '()]
+    [else
+     (append
+      (list "        <hp:excisions>")
+      (append*
+       (for/list ([o (in-list owners)])
+         (define view
+           (for/or ([v (in-list (book-plans b))])
+             (and (equal? (gathering-plan-shares v) (gathering-plan-place o)) v)))
+         (for/list ([leaf (in-list (gathering-plan-excised o))])
+           (format (string-append
+                    "          <hp:excision from=\"~a\" leaf=\"~a\" bound-as=\"~a\""
+                    " conjugate=\"~a\"/>")
+                   (esc (series-mark (gathering-plan-series o)
+                                     (gathering-plan-index o)))
+                   leaf
+                   (esc (if view
+                            (series-mark (gathering-plan-series view)
+                                         (gathering-plan-index view))
+                            "?"))
+                   (if (and view (gathering-plan-conjugate? view)) "true" "false")))))
+      (list "        </hp:excisions>"))]))
 
 (define (page->tei p fmt variants [folio #f] [role "text"])
   (define sig (page-sig p))

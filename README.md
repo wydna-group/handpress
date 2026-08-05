@@ -124,6 +124,7 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--guess-prelims` | **experimental**: guess preliminary matter from a vocabulary of period headings where the document declares none |
 | `--no-contents` | do not build a table of contents from the document's own headings |
 | `--jaggard-alphabet` | sign from Jaggard's twenty letters, omitting X, Y and Z |
+| `--prelim-signatures` | how the preliminaries are signed — see below |
 | `--binding-error` | faults per gathering per copy at the folding — **no source gives a rate** |
 | `--cancels` | leaves cancelled for reasons outside the simulation |
 | `--cancel-rate` | chance an error surviving the proof is thought worth cutting a leaf out for |
@@ -316,6 +317,22 @@ text from B with the preliminaries signed A. Leaves that carry nothing are
 cited as McKerrow's `π`. A short preliminary gathering is half a sheet worked
 and turned — one forme, not two — which is `A2`, the commonest preliminary
 arrangement in Blayney's checklist by a wide margin.
+
+The signing is a house habit rather than a lottery, so it can be fixed with
+`--prelim-signatures`. Gaskell's order of frequency (p. 52) is the order below;
+the weights behind `auto` are a guess at a distribution whose *ordering* alone
+is attested.
+
+| value | collates |
+|---|---|
+| `stars` | `*² A–B⁴` — "even commoner" than letters |
+| `symbols` | `*² A–B⁴`, then `† ‡ §` "without logical order" |
+| `pilcrow` | `¶² A–B⁴` — not in Gaskell's list, but thick on the ground in Blayney's checklist |
+| `lower` | `a² A–B⁴` — "always quite common" |
+| `english` | `A² B–C⁴` — "a characteristically English habit … to allow for a sheet of preliminaries signed A"; the overflow goes to `a b c` |
+| `continuous` | `A² B–C⁴` — no separate series at all; Gaskell finds it in reprints, where the extent was already known |
+| `unsigned` | `π² A–B⁴` — nothing in the direction line; McKerrow's citation mark |
+| `auto` | drawn from the weights (the default) |
 
 **Which matter is preliminary cannot be got from the text**, and both
 authorities say so. McKerrow has the case: Tottel's 1575 *Treatise of Moral
