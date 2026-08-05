@@ -33,6 +33,8 @@
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
          "press.rkt" "corrector.rkt" "description.rkt" "pagination.rkt"
+         (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-phrase)
+         (only-in "deviation.rkt" deviation-counts)
          (only-in "orthography.rkt" strip-conventions))
 
 (provide book->tei HP-NS TEI-NS)
@@ -102,8 +104,17 @@
           "          <category xml:id=\"house-style\"><catDesc>Imposed on the copy by the corrector before setting.</catDesc></category>"
           "        </taxonomy>"
           "      </classDecl>"
-          "      <p>Type lines are milestones (<gi>lb</gi>), not containers, because verse lines, speeches and type lines overlap. Word positions are in the hp: namespace: they are process data, not text.</p>"
-          "    </encodingDesc>")
+          "      <p>Type lines are milestones (<gi>lb</gi>), not containers, because verse lines, speeches and type lines overlap. Word positions are in the hp: namespace: they are process data, not text.</p>")
+    ;; The counts, so that a reader of the file alone can check the rates
+    ;; against the categories declared just above. These were computed for the
+    ;; report and never written into the TEI, which made the TEI a transcript
+    ;; rather than a record: it declared what the categories meant and never
+    ;; said how often each occurred. A rendering built from it had to be told
+    ;; the figures by some other route, and that other route was a second
+    ;; renderer with its own copy of the book -- the whole reason there were
+    ;; two of them.
+    (list (statistics-tei b))
+    (list "    </encodingDesc>")
     (if (null? (book-preparation b))
         '()
         (list "    <profileDesc>"
@@ -111,6 +122,52 @@
                       (length (book-preparation b)))
               "    </profileDesc>"))
     (list "  </teiHeader>"))
+   "\n"))
+
+;; The deviation counts, as declared data rather than as a printed table.
+;;
+;; Names are given as they come from `deviation-counts', with the denominator
+;; each is a rate against, because a bare count of divisions means nothing
+;; without knowing it is per line and not per word. The categories that
+;; correspond to entries in the taxonomy above point at them, so a consumer can
+;; join the two without knowing anything about this program.
+(define STAT-DENOMINATORS
+  (hash 'habit 'words 'fitting 'words 'misreading 'words 'accident 'words
+        'conventions 'words 'prepared 'words 'any 'words 'variants 'words
+        'expedient 'words
+        'divided 'lines 'quadded 'lines 'omitted 'lines
+        'turned-over 'verse-lines
+        'crowded 'pages 'spun-out 'pages))
+
+(define STAT-CATEGORY
+  (hash 'habit "habit" 'fitting "justification" 'misreading "misreading"
+        'accident "foul-case" 'conventions "copy" 'prepared "house-style"
+        'divided "division"))
+
+(define (statistics-tei b)
+  (define c (deviation-counts b))
+  (define (n k) (hash-ref c k 0))
+  (string-join
+   (append
+    (list "      <hp:statistics>"
+          (format "        <hp:extent hp:words=\"~a\" hp:lines=\"~a\" hp:verseLines=\"~a\" hp:pages=\"~a\"/>"
+                  (n 'words) (n 'lines) (n 'verse-lines) (n 'pages)))
+    (for/list ([k (in-list '(conventions prepared habit fitting misreading
+                             accident expedient divided quadded omitted
+                             turned-over crowded spun-out variants any))]
+               #:when (hash-has-key? c k))
+      (define den (hash-ref STAT-DENOMINATORS k 'words))
+      (define d (n den))
+      (format "        <hp:count hp:name=\"~a\" hp:n=\"~a\" hp:per=\"~a\" hp:of=\"~a\"~a~a/>"
+              k (n k) den d
+              (cond [(zero? d) " hp:rate=\"\" hp:applicable=\"false\""]
+                    [else (format " hp:rate=\"~a\""
+                                  (real->decimal-string
+                                   (* 100.0 (/ (n k) (exact->inexact d))) 2))])
+              (cond [(hash-ref STAT-CATEGORY k #f)
+                     => (lambda (cat) (format " ana=\"#~a\"" cat))]
+                    [else ""])))
+    (list "      </hp:statistics>"))
    "\n"))
 
 (define (copy-id pc)
@@ -233,12 +290,32 @@
        (format "<choice><orig>~a</orig><reg>~a</reg></choice>"
                (esc printed) (esc (word-read w)))]
       [else (esc reading)]))
-  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a>~a</w>"
+  ;; Which individually identifiable pieces of type set this word, and where in
+  ;; it they stood: "3:t177:bent to the right;7:t42:worn below the impression".
+  ;;
+  ;; This was in the HTML rendering and not in the TEI, which meant the TEI was
+  ;; not in fact the whole record -- a facsimile built from it could not show
+  ;; the damaged sorts, and a reader given the file could not follow a piece
+  ;; from one forme to another. Since following a piece from one forme to
+  ;; another is the entire method the program exists to test, that was the
+  ;; wrong thing to leave out.
+  ;;
+  ;; An attribute rather than markup inside <w>, because the alternative is to
+  ;; break the word into one element per character and the word is the unit
+  ;; every other part of this file agrees on.
+  (define sorts
+    (for/list ([p (in-list (word-pieces w))])
+      (format "~a:~a:~a" (car p) (sort-piece-id (cdr p))
+              (damage-phrase (sort-piece-damage (cdr p))))))
+  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a~a>~a</w>"
           (em x) (em (word-width w)) ana
           (if (word-italic? w) " rend=\"italic\"" "")
           (if (string=? set-form reading)
               ""
               (format " hp:glyph=\"~a\"" (esc set-form)))
+          (if (null? sorts)
+              ""
+              (format " hp:sorts=\"~a\"" (esc (string-join sorts ";"))))
           inner))
 
 (define (line->tei l n indent-x variants sig)
@@ -376,6 +453,25 @@
   (check-true (regexp-match? #px"<lb n=" x) "type lines are milestones")
   (check-true (regexp-match? #px"<respStmt" x) "compositors are responsible parties")
   (check-true (regexp-match? #px"<taxonomy" x) "causes are a declared taxonomy")
+
+  ;; The TEI has to be the whole record, or a rendering built from it needs a
+  ;; second source and there are two renderers again. Two things were missing.
+  (check-true (regexp-match? #px"<hp:statistics>" x)
+              "the counts are in the file, not only in the printed report")
+  (check-true (regexp-match? #px"hp:count hp:name=\"habit\"[^/]*ana=\"#habit\"" x)
+              "and each count points at the taxonomy category it belongs to")
+  ;; A rate of zero over a denominator of zero is not a rate. The report learned
+  ;; to say so; the file has to say so too, or a consumer reads the bare 0.00
+  ;; and cannot tell `did not happen' from `could not happen here'.
+  ;; Asserted as the invariant rather than against one category, because
+  ;; whether turn-over applies depends on whether the sample is verse -- which
+  ;; is the very confusion this is meant to prevent.
+  (check-equal? (for/list ([m (in-list (regexp-match* #px"<hp:count[^/]*/>" x))]
+                           #:when (regexp-match? #px"hp:of=\"0\"" m)
+                           #:unless (regexp-match? #px"hp:applicable=\"false\"" m))
+                  m)
+                '()
+                "a measurement over an empty denominator says it does not apply")
 
   ;; The reading and the glyphs are separable, which is the point of the
   ;; exercise: a long s is a fact about the type, not about the word, and a
