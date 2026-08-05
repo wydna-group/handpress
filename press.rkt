@@ -55,7 +55,8 @@
 (provide (struct-out pvariant) (struct-out forme-state)
          (struct-out printed-copy) (struct-out press-run)
          run-press copy-reading-map collate run-variants
-         forme-state-corrected? book-quires)
+         forme-state-corrected? book-quires
+         variant-groupings greg-consistent?)
 
 ;; Plausible sophistications: what a corrector puts in when he decides a
 ;; perfectly good reading must be wrong.
@@ -92,7 +93,7 @@
              (if (string=? (page-signature p) "") 0 1)))))
 
 (struct press-run (states copies events silent-readings edition binding-error
-                          cancels)
+                          cancels perfecting heap-disorder)
   #:transparent)
 
 (define (run-variants r)
@@ -155,6 +156,12 @@
                    ;; a model. See cancels.rkt.
                    #:cancels [external-cancels 0]
                    #:imprint-change? [imprint-change? #f]
+                   ;; How much of the heap's order the drying and piling
+                   ;; destroy. 0 is Gaskell's "case of remarkable regularity";
+                   ;; 1 is the independent draw this program used to make. No
+                   ;; source gives a value -- Gaskell only says the order was
+                   ;; likely but "not certain" to survive.
+                   #:heap-disorder [heap-disorder 0.15]
                    #:edition [edition 750])
   (define g (make-rng (+ seed 99)))
 
@@ -347,15 +354,83 @@
   ;; The sheets are gathered, collated, folded and sewn -- and every copy is
   ;; folded separately, so this is where the copies stop being interchangeable.
   (define quires (book-quires b))
+  ;; ------------------------------------------------------------------
+  ;; The heaps, and the copies gathered from them
+  ;; ------------------------------------------------------------------
+  ;; This used to draw each forme's state independently for each copy, which
+  ;; made a copy a random handful of corrected and uncorrected sheets. Gaskell
+  ;; describes something quite different, and much more useful (pp. 143-4):
+  ;;
+  ;;   "the sheets were gathered from the top of each heap in the reverse of
+  ;;   the printing order, so that the first book to be gathered contained the
+  ;;   last printed sheets, and so on through the heaps until the early
+  ;;   impressions were used for the last copies to be gathered."
+  ;;
+  ;; -- for a sheet perfected inner forme first. And for one perfected outer
+  ;; forme first the heap "had to be turned over to show the first page of the
+  ;; signature, which brought the first-printed sheet to the top. This heap was
+  ;; then gathered in the printing order, so that the copies that were gathered
+  ;; first contained early impressions of this particular gathering."
+  ;;
+  ;; So a copy is not a random draw of states. It is a *systematic* one: the
+  ;; copies lie in the order they were gathered, each sheet's proof-correction
+  ;; divides that order at the point the corrected proof came back, and which
+  ;; side of the division is corrected depends on which forme of that sheet was
+  ;; perfected first. Two sheets perfected the same way agree; two perfected
+  ;; opposite ways are exactly complementary.
+  ;;
+  ;; That matters far beyond tidiness, and Greg says why. His calculus assumes
+  ;; simple transcription -- one parent to a witness -- and warns that if "the
+  ;; grouping is throughout random or if inconsistent forms are of frequent
+  ;; occurrence, the relationship of the manuscripts cannot be accounted for on
+  ;; the hypothesis of simple transcription; some sort of conflation has
+  ;; somewhere to be assumed" (p. 43). A made-up copy of a printed edition IS
+  ;; conflation by construction: it descends from no other copy, but is
+  ;; assembled from as many heaps as there are sheets. Drawn independently, the
+  ;; groupings would be random and the calculus would return nothing but
+  ;; "conflation". Gathered as Gaskell describes, the groupings are constant --
+  ;; and constant *up to complementation*, which is precisely the condition
+  ;; Greg lays down for consistency: "given any two constant groups, either
+  ;; these or their complements are either mutually exclusive or one wholly
+  ;; includes the other" (p. 12).
+  ;;
+  ;; Which means the pattern of press variants across a handful of collated
+  ;; copies should reveal, for every sheet, which of its formes went to press
+  ;; first. That is a real bibliographical inference with a right answer, and
+  ;; this program knows the answer.
+  ;;
+  ;; What is NOT claimed is the regularity. Gaskell hypothesises "a case of
+  ;; remarkable regularity" and hedges it in the same breath: after drying,
+  ;; "the chances were that ... the sheets would be in the same order as before,
+  ;; although this was not certain to happen". `heap-disorder' is how much of
+  ;; the order the drying and piling destroy -- 0 for Gaskell's ideal case, 1
+  ;; for the independent draw this code used to do. It is a knob, and no source
+  ;; gives its value.
+  (define n-copies (max 1 copies))
+
+  ;; Which forme of each sheet was perfected first. Gaskell's example supposes
+  ;; every sheet was inner-first; a real shop was not so tidy.
+  (define inner-first
+    (for/hash ([name (in-hash-keys states)])
+      (values name (< (rnd (make-rng (+ seed 4409 (equal-hash-code name)))) 0.5))))
+
   (define made
     (for/list ([i (in-range copies)])
       (define nm (format "Copy ~a" (integer->char (+ (char->integer #\A) i))))
       (printed-copy
        nm
        (for/hash ([(name s) (in-hash states)])
+         (define uncorrected (forme-state-fraction-uncorrected s))
+         ;; where this copy's sheet stood in the order it was printed
+         (define pos
+           (if (hash-ref inner-first name #t) (- n-copies 1 i) i))
+         (define ordered? (> (rnd g) heap-disorder))
          (values name
                  (and (forme-state-corrected? s)
-                      (> (rnd g) (forme-state-fraction-uncorrected s)))))
+                      (if ordered?
+                          (>= (/ (add1 pos) n-copies) uncorrected)
+                          ;; the heap lost its order at the drying rack
+                          (> (rnd g) uncorrected)))))
        (bind quires #:name nm #:rate binding-error
              #:rng (make-rng (+ seed 9001 (* 31 i)))))))
 
@@ -407,7 +482,7 @@
                   #:rng (make-rng (+ seed 7331))))
 
   (press-run states made (reverse log) silent-readings edition binding-error
-             cancels))
+             cancels inner-first heap-disorder))
 
 ;; The readings actually shown by one copy: the silent corrections, which
 ;; every copy has, plus whichever state of each variant forme it was made up
@@ -437,7 +512,46 @@
    string<? #:key car))
 
 (module+ test
-  (require rackunit "imposition.rkt")
+  (require rackunit "imposition.rkt" racket/file)
+
+  ;; Gaskell's mechanism, tested by Greg's rule.
+  ;;
+  ;; Gathered from the tops of the heaps in signature order (pp. 143-4), every
+  ;; press variant divides the copies at a point in one linear order, so any
+  ;; two groupings are nested or disjoint and Greg's consistency condition
+  ;; (p. 12) holds. Drawn independently -- which is what this module did before
+  ;; the heaps were modelled -- the groupings cross and it fails.
+  ;;
+  ;; The point is not that the ideal case passes. It is that the failure is
+  ;; diagnostic: Greg says that where "the grouping is throughout random or if
+  ;; inconsistent forms are of frequent occurrence ... some sort of conflation
+  ;; has somewhere to be assumed" (p. 43), and a copy made up from heaps is
+  ;; conflation by construction. So the consistency of the groupings measures
+  ;; how far the warehouse preserved the order of printing -- which is a real
+  ;; bibliographical inference, and one this program knows the truth of.
+  (let ()
+    (define book
+      (set-book (make-house #:fmt QUARTO #:seed 21)
+                (file->string
+                 (build-path (current-directory) "areopagitica.txt"))))
+    (define (consistent-share disorder)
+      (define-values (ok n)
+        (for/fold ([ok 0] [n 0]) ([seed (in-range 25)])
+          (define r (run-press book #:copies 10 #:seed seed #:proof-rate 1.0
+                              #:heap-disorder disorder))
+          (define g (variant-groupings r))
+          (if (< (hash-count g) 3)
+              (values ok n)
+              (values (+ ok (if (greg-consistent? g) 1 0)) (add1 n)))))
+      (if (zero? n) 1.0 (/ ok (exact->inexact n))))
+    (define ordered (consistent-share 0.0))
+    (define shuffled (consistent-share 1.0))
+    (check-equal? ordered 1.0
+                  "heaps gathered in order satisfy Greg's consistency rule")
+    (check-true (< shuffled 0.75)
+                (format "heaps gathered at random do not: ~a" shuffled))
+    (check-true (> ordered shuffled)
+                "the order of gathering is what makes the groupings consistent"))
 
   (define sample
     (string-append
@@ -519,3 +633,44 @@
               "but corrections were nevertheless made")
   (check-equal? (collate r2 (first (press-run-copies r2)) (second (press-run-copies r2)))
                 '() "and every copy agrees"))
+
+;; ---------------------------------------------------------------------------
+;; The groupings, in Greg's sense
+;; ---------------------------------------------------------------------------
+;; A press variant divides the collated copies into two groups -- those with
+;; the corrected state of that forme and those with the uncorrected. That is
+;; exactly Greg's "fundamental grouping", the kind that "divide the manuscripts
+;; into two groups only" and which alone he regards as fundamental (p. 11).
+;;
+;; Returns forme-name -> the set of copy names showing the corrected state.
+(define (variant-groupings r)
+  (for/hash ([name (in-hash-keys (press-run-states r))]
+             #:when (forme-state-corrected? (hash-ref (press-run-states r) name)))
+    (values name
+            (for/list ([pc (in-list (press-run-copies r))]
+                       #:when (hash-ref (printed-copy-states pc) name #f))
+              (printed-copy-name pc)))))
+
+;; Greg's test for consistency, applied to those groupings.
+;;
+;;   "for fundamental groupings they appear to be satisfied if, and only if,
+;;   given any two constant groups, either these or their complements are
+;;   either mutually exclusive or one wholly includes the other. ... The rule
+;;   comes to this, that while one or more manuscripts may pass from one side
+;;   of a grouping to the other without rendering it inconsistent, those on
+;;   opposite sides must not exchange places." (p. 12)
+;;
+;; Gathered as Gaskell describes, every grouping is a prefix or a suffix of one
+;; linear order, so any two are nested or disjoint and the test passes. Drawn
+;; independently, they cross and it fails. The test is therefore a detector for
+;; the very thing this module was getting wrong.
+(define (greg-consistent? groups)
+  (define gs (for/list ([(k v) (in-hash groups)] #:unless (null? v)) (list->set v)))
+  (for*/and ([a (in-list gs)] [b (in-list gs)])
+    (or (set-empty? (set-intersect a b))          ; mutually exclusive
+        (subset? a b) (subset? b a)               ; one includes the other
+        ;; or the same holds of their complements
+        (let ([all (for/fold ([u (set)]) ([g (in-list gs)]) (set-union u g))])
+          (let ([a* (set-subtract all a)] [b* (set-subtract all b)])
+            (or (set-empty? (set-intersect a* b*))
+                (subset? a* b*) (subset? b* a*)))))))

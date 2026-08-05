@@ -833,8 +833,52 @@ TEXT
               [(no-room) "There was not enough white paper left in the last sheet to take it."]
               [else "There was room, but the preliminaries take the same number of leaves either way, so nothing would have been saved."]))
            ""))
+   (if r (heaps-section b r) "")
    (if r (cancel-section b r) "")
    (if r (binding-section b r) "")))
+
+(define (heaps-section b r)
+  (define groups (variant-groupings r))
+  (define consistent? (greg-consistent? groups))
+  (define n (length (press-run-copies r)))
+  (string-append
+   "
+THE HEAPS, AND THE COPIES GATHERED FROM THEM
+"
+   (make-string 74 #\─) "
+
+"
+   (wrap (format "~a copies gathered from ~a heap~a, in signature order, from the top of each. A copy is therefore not a random handful of corrected and uncorrected sheets: Gaskell (pp. 143-4) shows that \"the order of printing may have been echoed, either directly or inversely, by the order of gathering\", inversely where the sheet was perfected inner forme first and directly where it was perfected outer forme first. The heaps lose ~a of their order at the drying rack, which is a parameter and not a finding -- Gaskell says only that the order was likely but \"not certain\" to survive."
+                 n (hash-count (press-run-states r))
+                 (if (= 1 (hash-count (press-run-states r))) "" "s")
+                 (real->decimal-string (press-run-heap-disorder r) 2))
+         74)
+   "
+
+"
+   (if (zero? (hash-count groups))
+       "No forme was corrected at press, so the copies do not differ and there is nothing to group.
+"
+       (string-append
+        "  forme                        perfected first   corrected in
+"
+        (apply string-append
+               (for/list ([(name copies-with) (in-hash groups)])
+                 (format "  ~a ~a ~a
+" (pad name 28)
+                         (pad (if (hash-ref (press-run-perfecting r) name #t)
+                                  "inner" "outer") 17)
+                         (if (null? copies-with) "none"
+                             (string-join (sort (map (lambda (c)
+                                                       (string-replace c "Copy " ""))
+                                                     copies-with) string<?) " ")))))
+        "
+"
+        (wrap (format "Greg's condition for consistent grouping -- that \"given any two constant groups, either these or their complements are either mutually exclusive or one wholly includes the other\" (Calculus of Variants, p. 12) -- ~a here. That is the test worth watching. A made-up copy descends from no other copy but is assembled from as many heaps as there are sheets, which is conflation by construction, and Greg warns that where \"the grouping is throughout random ... some sort of conflation has somewhere to be assumed\" (p. 43). Gathered as Gaskell describes, the groupings are constant up to complementation and the condition holds; drawn independently, it fails. So the consistency of these groups measures how far the warehouse preserved the order of printing -- and, sheet by sheet, which forme went to press first."
+                      (if consistent? "HOLDS" "FAILS"))
+              74)
+        "
+"))))
 
 (define (cancel-section b r)
   (define cp (press-run-cancels r))

@@ -105,8 +105,6 @@ program still cannot check itself.
       paragraph, its `\frontmatter` swallowed the whole book, and the run came
       out empty. Every reader now normalises at the door, and every reader has
       a CRLF test — including the five that never had the bug.
-      out empty. Every reader now normalises at the door, and every reader has
-      a CRLF test — including the five that never had the bug.
 
 ---
 
@@ -121,17 +119,15 @@ program still cannot check itself.
       made.
 
 - **Gaskell gives the mechanism by which press-variant states correlate
-      between copies, and this program still draws them independently.**
-      pp. 143–4: the sheets are gathered from the tops of the heaps in
-      signature order, so "the order of printing may have been echoed, either
-      directly or inversely, by the order of gathering, and some of the
-      complete books would tend to contain sheets printed early in their runs,
-      and others sheets printed late". Which way round depends on whether the
-      sheet was perfected inner-forme-first or outer-forme-first. So a copy is
-      **not** a random draw of corrected and uncorrected states — it is a
-      systematic one, and a collation of several copies should show the
-      correlation. `press.rkt` rolls each forme independently. This is the
-      single most testable thing found in this round and it is not built.
+      between copies, and Greg gives the test for it.** Found here, built in
+      the round after. pp. 143–4: the sheets are gathered from the tops of the
+      heaps in signature order, so "the order of printing may have been echoed,
+      either directly or inversely, by the order of gathering" — inversely
+      where the sheet was perfected inner forme first, directly where outer.
+      A copy is therefore **not** a random draw of corrected and uncorrected
+      states but a systematic one, and Greg's consistency condition detects the
+      difference: 60/60 runs consistent when the heaps keep their order, 16/60
+      when they do not.
 
 - **Half-sheet imposition is modelled, and only for the case that arises.**
       A two-leaf gathering is one forme worked and turned (Gaskell, p. 83),
@@ -171,14 +167,48 @@ program still cannot check itself.
       Blayney's own table of watermarks by sheet and copy (Appendix II, no. 56)
       as the thing to reproduce.
 
-- [ ] **Correlated press-variant states between copies.** The finding above,
-      built. `press.rkt` should gather each copy from the tops of the heaps in
-      signature order rather than rolling every forme independently, and record
-      for each sheet whether it was perfected inner-forme-first. The payoff is
-      that the analysis half could then be asked a question with a right
-      answer: given a handful of collated copies, can it recover the order of
-      printing from the pattern of corrected states? Gaskell says the
-      information is there.
+- [x] **Correlated press-variant states between copies.** Built, and it turned
+      out to be the meeting point of Gaskell and Greg.
+
+      Gaskell (pp. 143-4): the heaps are gathered in signature order from the
+      tops of the piles, "in the reverse of the printing order" for a sheet
+      perfected inner forme first and "in the printing order" for one perfected
+      outer forme first. So the copies lie in one linear order and each
+      variant divides that order at the point the corrected proof came back.
+
+      Greg supplies the test. His calculus assumes simple transcription, and
+      warns that where "the grouping is throughout random or if inconsistent
+      forms are of frequent occurrence ... some sort of conflation has
+      somewhere to be assumed" (p. 43). **A made-up copy is conflation by
+      construction** — it descends from no other copy but is assembled from as
+      many heaps as there are sheets. Drawn independently the groupings cross;
+      gathered as Gaskell describes they are prefixes and suffixes of one
+      order, hence nested or disjoint, which is exactly Greg's consistency
+      condition (p. 12): "either these or their complements are either mutually
+      exclusive or one wholly includes the other."
+
+      Measured over 25 runs of ten copies: **60/60 consistent at disorder 0,
+      16/60 at disorder 1** — the second being what this program used to do.
+      `--heap-disorder` is the knob, and Gaskell gives no value for it; he says
+      only that the order was likely but "not certain" to survive the drying.
+
+- [ ] **Recovering the perfecting order from the groupings.** The prize this
+      opens. Given a handful of collated copies, the direction of each
+      grouping — which end of the gathered order holds the corrected sheets —
+      says which forme of that sheet went to press first, and the program knows
+      the answer. This is the analysis half's next real exam, and it is not
+      built: the report shows the truth beside the groupings rather than
+      making the inference and being scored on it.
+
+- [ ] **Greg's calculus as an analysis module.** Type-1 and type-2 variants,
+      the compounded variational formula, the resolution of complex variants,
+      and the order-of-merit count. Two cautions from him to carry: the
+      **ambiguity of three texts** (with three witnesses no formal process can
+      establish relationship), and the **fallacy of constant variation** — that
+      every transcription introduces about the same number of variants, which
+      is "quite contrary to experience and leads to erroneous results" (p. 9n,
+      Note C). Also his warning that the finer the collation the more
+      non-evidential variants and chance coincidences it turns up (p. 18).
 
 - [ ] **Turner's rule tested against known truth.** Named here so it does not
       get lost again: the program knows which forme was printed first and can
