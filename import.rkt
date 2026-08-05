@@ -106,9 +106,15 @@
 (define (normalise-newlines s)
   (regexp-replace* #px"\r\n?" s "\n"))
 
+;; U+2223 is how EEBO-TCP marks a word divided at a line-end in the book it
+;; transcribes, and U+2027 a syllable break. Both are facts about the original
+;; setting, not about the words, and they must not survive into the copy --
+;; this program is about to divide the words for itself. Left in, they reached
+;; the compositor: "HONORA∣tiss." was set as one word with a bar in the middle
+;; of it, and every such word was one sort wider than it should have been.
 (define (strip-markup s)
   (define t (regexp-replace* #px"<[^>]*>" s " "))
-  (define u (unescape t))
+  (define u (string-replace (string-replace (unescape t) "∣" "") "‧" ""))
   (string-trim (regexp-replace* #px"\\s+" u " ")))
 
 (define ENTITIES
@@ -307,7 +313,19 @@
           'licence "The Licence" 'persons "The Persons"))
 
   (for ([m (in-list (regexp-match-positions*
-                     #px"<(?i:div[0-9]?)\\b[^>]*>|<(?i:head)\\b[^>]*>.*?</(?i:head)>|<(?i:l)\\b[^>]*>.*?</(?i:l)>|<(?i:p)\\b[^>]*>.*?</(?i:p)>"
+                     ;; <item> matters as much as <p>. A TEI or TCP table of
+                     ;; contents is a <list> of <item>s, so a reader that
+                     ;; matches only paragraphs finds the division, declares it
+                     ;; preliminary, and then hands back nothing at all -- which
+                     ;; is how a book whose copy declared a table of contents
+                     ;; came out with no table in it.
+                     ;; `(?s:)' throughout, because a `.' in a Racket regexp
+                     ;; does not match a newline and every one of these elements
+                     ;; routinely spans lines in a real file. Without it the
+                     ;; reader silently dropped any paragraph long enough to be
+                     ;; wrapped -- which is most of them in a transcription
+                     ;; that keeps the original's line breaks.
+                     #px"(?s:<(?i:div[0-9]?)\\b[^>]*>|<(?i:head)\\b[^>]*>.*?</(?i:head)>|<(?i:l|item)\\b[^>]*>.*?</(?i:l|item)>|<(?i:p)\\b[^>]*>.*?</(?i:p)>)"
                      body))])
     (define frag (substring body (car m) (cdr m)))
     (cond
@@ -334,6 +352,10 @@
          (set-box! pending #f))
        (define txt (strip-markup frag))
        (unless (string=? txt "")
+         ;; A verse line runs on to the next; a list item does not. Given a
+         ;; single newline, consecutive items are joined into one paragraph by
+         ;; `parse-copy', and a forty-entry table of contents arrives as one
+         ;; block of prose.
          (write-string (if (regexp-match? #px"^<(?i:l)\\b" frag)
                            (string-append txt "\n")
                            (para-line txt))
@@ -383,7 +405,11 @@
   (define fenced (box #f))
 
   (for ([m (in-list (regexp-match-positions*
-                     #px"<(?i:section|div|article)\\b[^>]*>|<(?i:h[1-6])\\b[^>]*>.*?</(?i:h[1-6])>|<(?i:p|li|blockquote)\\b[^>]*>.*?</(?i:p|li|blockquote)>"
+                     ;; `(?s:)' for the same reason as in the TEI reader: a `.'
+                     ;; does not match a newline, and a paragraph in real HTML
+                     ;; is wrapped as often as not. Without it every <p> long
+                     ;; enough to break a line was silently dropped.
+                     #px"(?s:<(?i:section|div|article)\\b[^>]*>|<(?i:h[1-6])\\b[^>]*>.*?</(?i:h[1-6])>|<(?i:p|li|blockquote)\\b[^>]*>.*?</(?i:p|li|blockquote)>)"
                      body))])
     (define frag (substring body (car m) (cdr m)))
     (cond

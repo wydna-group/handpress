@@ -145,6 +145,26 @@ program still cannot check itself.
 
 ### Still wanted
 
+- [ ] **The face-down placeholder fires about ninety times too often.** Found by
+      looking at a generated book: Floyd's *Common Wealth* comes out with 130
+      of them over 136 pages, very nearly one a page, mostly on `&` and on
+      figures. Blayney proves **one** in a whole quarto (i. 161, at I4v36), and
+      that one is remarkable enough to be the evidence for the practice.
+
+      Two things to look at, and it is not obvious which is at fault.
+      `BLANK-FOR-PROOF` is 0.25, so a quarter of exhausted-sort cases take this
+      course rather than a wrong-fount sort; that is a guess and probably far
+      too high. But the prior question is why `&` and the figures are running
+      out at all — the bill may simply be short of them, or they may not be
+      getting distributed back. Measure the exhaustion before touching the
+      0.25, or the rate will be tuned to hide a supply bug.
+
+      Also: the placeholder is classified `ana="#foul-case"` in the TEI, and it
+      is not foul case. It is a deliberate blank — the compositor knew exactly
+      what he was doing — and it belongs in a category of its own, since it is
+      the one expedient that makes press-correction *necessary* rather than
+      optional.
+
 - [ ] **Watermarks and chain-lines.** A can of worms of its own, and the
       evidence that half the rest of this depends on. Every test in McKerrow's
       cancel checklist that this program cannot yet run is a paper test:
