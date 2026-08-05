@@ -199,14 +199,16 @@
   (define body
     (mark-accident (mark-damage printed sorts damage-names) printed
                    (attr w '|hp:composed|)))
-  ;; The tooltip. Where the two forms differ the reader is told both, which is
-  ;; the whole use of a facsimile that keeps its copy-text.
+  ;; The tooltip is the stage-by-stage account the file carries in hp:note --
+  ;; "misreading: copy X -> read Y; habit: Y -> Z; justification: ..." -- not
+  ;; the one-word class. The class names what kind of thing happened; the note
+  ;; says which letters moved and which device moved them, and that is what a
+  ;; reader hovering a word actually wants to know.
   (define title
-    (cond
-      [(and (not (string=? printed reading)) (not (string=? ana "")))
-       (format "~a — reading: ~a" (substring ana 1) reading)]
-      [(not (string=? ana "#copy")) (if (string=? ana "") "" (substring ana 1))]
-      [else ""]))
+    (or (attr w '|hp:note|)
+        (cond
+          [(or (string=? ana "") (string=? ana "#copy")) ""]
+          [else (substring ana 1)])))
   (format "<span class=\"~a\"~a style=\"--x:~a;--w:~a;opacity:~a\">~a</span>"
           cls
           (if (string=? title "") "" (format " title=\"~a\"" (esc title)))
@@ -301,7 +303,15 @@
           ;; keeps it from looking like one.
           (if (zero? n-lines) " blankleaf" "")
           (esc leaf) (esc sheet) (esc forme)
-          measure (max 1 (length cols)) (max lines-per-page n-lines)
+          measure (max 1 (length cols))
+          ;; The *declared* lines to the page, not this page's own count. Every
+          ;; leaf of a book is the same size; a page with less on it is not a
+          ;; smaller page but the same page with white at the foot, which is
+          ;; exactly what a spun-out page looks like and what the casting-off
+          ;; report is talking about. Taking the max let a page carrying one
+          ;; extra <lb> milestone grow taller than its fellows -- 1043px
+          ;; against 1020px, which is visible and wrong.
+          (if (> lines-per-page 0) lines-per-page n-lines)
           tag-cls (esc sig) (esc forme) (esc comp) note
           (esc leaf) (esc sheet)
           (folio-html page recto? #f)
@@ -420,11 +430,20 @@
           (for/hash ([c (in-list (kids tax 'category))])
             (values (attr c '|xml:id| "") (text-of (find c 'catDesc))))
           (hash))))
+  ;; How many lines the page holds, taken from <note type="measure"> in the
+  ;; bibl, which says it in those words. It was being read off <layout>, whose
+  ;; wording is the bibliographer's -- "38 ll." -- so the regexp never matched,
+  ;; the count fell back to whatever each page happened to carry, and the
+  ;; leaves came out six different heights. A book has one page size.
   (define lines-per-page
-    (let ([n (find hdr 'layout)])
-      (or (and n (let ([m (regexp-match #px"([0-9]+) lines" (text-of n))])
-                   (and m (string->number (cadr m)))))
-          0)))
+    (or (for/or ([n (in-list (find-all hdr 'note))])
+          (and (equal? (attr n 'type) "measure")
+               (let ([m (regexp-match #px"([0-9]+) lines" (text-of n))])
+                 (and m (string->number (cadr m))))))
+        (let ([n (find hdr 'layout)])
+          (and n (let ([m (regexp-match #px"([0-9]+) l" (text-of n))])
+                   (and m (string->number (cadr m))))))
+        0))
   (define pages
     (for/list ([d (in-list (find-all (find root 'body) 'div))]
                #:when (equal? (attr d 'type) "page"))

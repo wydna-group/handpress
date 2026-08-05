@@ -187,6 +187,12 @@
 
 (struct page-spec (measure lines verse-indent prose-indent) #:transparent)
 
+;; Blayney, i. 176: compositor C's -ie preference is 57% overall, 64% in
+;; unjustified lines; B's is nothing that survives counting. This is the one
+;; measured rate for a habit that applies to a class of words rather than to
+;; particular ones, and it governs the -ie/-y, -ll/-l and -'d/-ed patterns.
+(define PATTERN-STRENGTH 0.57)
+
 (struct comp (profile case conventions rng events) #:transparent)
 
 (define (make-comp prof tc cv g)
@@ -235,7 +241,24 @@
       [else
        (define-values (form rule)
          (pattern-form read-word (profile-pattern-style prof)))
-       (if (and form (< (rnd g) (strength-toward read-word form)))
+       ;; A class habit is weaker than a word habit, and the program was
+       ;; treating them alike. Hinman's four-in-five is a figure about `doe',
+       ;; `goe' and `heere' -- particular words, of which he says they "alone
+       ;; usually provide all the evidence that is needed". The only measured
+       ;; figure for a *class* habit is Blayney's, and it is much lower:
+       ;; Okes's C set -ie 57% of the time overall and 64% in unjustified
+       ;; lines, and his fellow B had no preference at all that survived
+       ;; being counted.
+       ;;
+       ;; Applied at the test-word strength, the patterns produced 78% of
+       ;; every habit in the book -- 255 of 328 in _Areopagitica_, against 73
+       ;; from the named words. That is the tail wagging the dog: the strong
+       ;; evidence is the small set Hinman actually rests on, and the -ie,
+       ;; -ll and -'d classes are the weak evidence that happens to be common.
+       (if (and form (< (rnd g) (* PATTERN-STRENGTH
+                                   (supply-factor (comp-case c)
+                                                  (apply-conventions cv read-word)
+                                                  (apply-conventions cv form)))))
            form
            read-word)]))
   (define composed (apply-conventions cv habit))

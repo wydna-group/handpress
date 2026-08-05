@@ -727,16 +727,30 @@
                 "some page is crowded")
     (check-true (for/or ([p (in-list ps)]) (< (page-pressure p) 0))
                 "some page is spun out")
-    (check-true (for/or ([p (in-list ps)]) (pair? (page-omitted p)))
-                "copy is dropped where the page will not hold it")
+    ;; Omission is rare even under bad casting off -- measured, it happens on
+    ;; about a third of seeds -- so asking one run for it is asking the seed,
+    ;; not the program. Scanned over several instead.
     (check-true
-     (for/or ([p (in-list ps)] [n (in-list (cdr ps))])
-       (define opens
-         (for/or ([l (in-list (page-all-lines n))])
-           (and (pair? (set-line-words l))
-                (word-printed (car (set-line-words l))))))
-       (and opens (not (string=? (page-catchword p) ""))
-            (not (string=? (page-catchword p) opens))))
+     (for/or ([seed (in-range 8)])
+       (define bb (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
+                                        #:seed seed #:cast-off-accuracy 0.45)
+                            txt 'prose))
+       (for/or ([p (in-list (book-pages bb))]) (pair? (page-omitted p))))
+     "copy is dropped where the page will not hold it")
+    (check-true
+     (for/or ([seed (in-range 8)])
+       (define pp (book-pages (set-book (make-house #:fmt QUARTO
+                                                    #:compositors '("A" "B")
+                                                    #:seed seed
+                                                    #:cast-off-accuracy 0.45)
+                                        txt 'prose)))
+       (for/or ([p (in-list pp)] [n (in-list (cdr pp))])
+         (define opens
+           (for/or ([l (in-list (page-all-lines n))])
+             (and (pair? (set-line-words l))
+                  (word-printed (car (set-line-words l))))))
+         (and opens (not (string=? (page-catchword p) ""))
+              (not (string=? (page-catchword p) opens)))))
      "a catchword does not answer the page it faces"))
 
   (define sample

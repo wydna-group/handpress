@@ -26,9 +26,9 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
   box-shadow: 0 1px 2px rgba(0,0,0,.28), 0 14px 34px rgba(0,0,0,.22);
   border-radius: 1px;
   background-image:
-    repeating-linear-gradient(90deg, rgba(120,105,80,.045) 0 1px,
+    repeating-linear-gradient(90deg, rgba(120,105,80,.03) 0 1px,
                               transparent 1px 9px),
-    repeating-linear-gradient(0deg, rgba(120,105,80,.05) 0 1px,
+    repeating-linear-gradient(0deg, rgba(120,105,80,.035) 0 1px,
                               transparent 1px 34px);
 }
 @media (prefers-color-scheme: dark) { .leaf { background: #e6dcc6; } }
@@ -149,9 +149,20 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
 /* Openings, as the book is bound: a verso and the recto facing it. The first
    recto stands alone, because it has no verso before it. */
 .opening { display: flex; gap: 0; justify-content: center;
-           margin: 0 auto 2.4rem; width: fit-content; }
+           margin: 3.4rem auto 3.6rem; width: fit-content; }
 .opening .leaf { margin: 0; }
-.opening .leaf + .leaf { border-left: 1px solid rgba(90,74,50,.22); }
+/* The gutter. Two leaves of an opening are one sheet of paper folded, so they
+   meet without a gap -- but the paper curves into the binding, and a flat join
+   makes an opening look like two pictures side by side rather than a book. */
+.opening .leaf + .leaf { border-left: 1px solid rgba(90,74,50,.16); }
+.opening .leaf:first-child { background-image:
+  linear-gradient(to right, transparent 88%, rgba(90,74,50,.10) 100%),
+  repeating-linear-gradient(90deg, rgba(120,105,80,.03) 0 1px, transparent 1px 9px),
+  repeating-linear-gradient(0deg, rgba(120,105,80,.035) 0 1px, transparent 1px 34px); }
+.opening .leaf + .leaf { background-image:
+  linear-gradient(to left, transparent 88%, rgba(90,74,50,.10) 100%),
+  repeating-linear-gradient(90deg, rgba(120,105,80,.03) 0 1px, transparent 1px 9px),
+  repeating-linear-gradient(0deg, rgba(120,105,80,.035) 0 1px, transparent 1px 34px); }
 .opening .leaf:first-child:last-child { margin-left: 0; }
 
 /* The two units a page belongs to, and they are different things. The leaf is
@@ -159,7 +170,7 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
    pages are scattered through the gathering rather than consecutive. Hovering
    either button in the corner lights up every page of that unit wherever it
    falls in the book. */
-.unit { position: absolute; top: -1.55rem; right: 0; display: flex; gap: .3rem;
+.unit { position: absolute; top: -1.5rem; right: 0; display: flex; gap: .3rem;
         font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .unit span { padding: .1rem .55rem; border-radius: 999px; cursor: pointer;
@@ -207,8 +218,13 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
              border-radius: 3px; overflow-x: auto; }
 .direction { display: flex; justify-content: space-between;
              margin-top: 1.4em; font-size: .9em; letter-spacing: .04em; }
-.tag { position: absolute; top: -1.55rem; left: 0; font-size: .68rem;
-       letter-spacing: .11em; text-transform: uppercase; opacity: .72;
+/* The caption sits in two rows above the leaf, not one. In one row the tag ran
+   under the unit buttons on a narrow page, and in an opening the left leaf's
+   buttons collided with the right leaf's tag -- "FORME SIG. A4R" printed as a
+   single word. Two rows costs nothing: the space above the leaf was empty. */
+.tag { position: absolute; top: -2.9rem; left: 0; right: 0; font-size: .68rem;
+       letter-spacing: .11em; text-transform: uppercase; opacity: .66;
+       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .crowd { color: #8c2f16; }
 .gape  { color: #1d5560; }

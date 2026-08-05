@@ -34,7 +34,7 @@
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
          "press.rkt" "corrector.rkt" "description.rkt" "pagination.rkt"
          (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary)
-         (only-in "deviation.rkt" deviation-counts)
+         (only-in "deviation.rkt" deviation-counts word-deviation)
          (only-in "orthography.rkt" strip-conventions))
 
 (provide book->tei HP-NS TEI-NS)
@@ -315,7 +315,7 @@
     (for/list ([p (in-list (word-pieces w))])
       (format "~a:~a:~a" (car p) (sort-piece-id (cdr p))
               (sort-piece-damage (cdr p)))))
-  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a~a~a>~a</w>"
+  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a~a~a~a>~a</w>"
           (em x) (em (word-width w)) ana
           (if (word-italic? w) " rend=\"italic\"" "")
           (if (string=? set-form reading)
@@ -327,6 +327,17 @@
           (if accident?
               (format " hp:composed=\"~a\"" (esc (word-composed w)))
               "")
+          ;; The account of what happened to this word, stage by stage:
+          ;; "misreading: copy X -> read Y; habit: Y -> Z; justification: ..."
+          ;; ana gives the *class*, which is one word and cannot say which
+          ;; letters moved or which device did it. The facsimile used to show
+          ;; this on hover and lost it when the renderer began working from the
+          ;; TEI, because the TEI had never carried it -- the same gap as the
+          ;; damaged sorts and the statistics, found the same way.
+          (let ([note (word-deviation w)])
+            (if (and note (not (string=? note "")))
+                (format " hp:note=\"~a\"" (esc note))
+                ""))
           ;; The form as composed, given only when the case then got it wrong.
           ;;
           ;; Without this a renderer cannot show *which* letter the case
