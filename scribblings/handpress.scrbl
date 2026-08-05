@@ -284,6 +284,37 @@ authors probably relied upon him to do so.''
 That is direct archival warrant for the ampersand device and for the whole
 expand/contract ladder, from a shop that kept its records.
 
+@subsection{Space-metal, and why justification is quantised}
+
+A gap between two words is a piece of type: a body cast a shade lower than the
+face so that it takes no ink. Em quad, en quad, thick, middle, thin, hair.
+They are picked from boxes, they run out, and they are distributed with
+everything else.
+
+Two figures make the case for taking them seriously. A quarto page here holds
+1,311 letters and 253 word-gaps, so @bold{16% of everything set is white}; and
+the thick space, the normal word space of the house, is as common in a fount as
+the letter @tt{e} and needs a box about as deep.
+
+The consequence is that justification is @emph{quantised}. A compositor cannot
+make a gap of any width he likes; he can only set combinations of the bodies he
+has. This program spent a long time dividing the white by handing out single
+units of 1/120 em until the arithmetic came out — a body no founder ever cast —
+with the result that 86% of its gaps were widths no combination of real spaces
+could make. What a compositor does is @citet[moxon]'s account, and it is
+stepped: he sets with one space between words, and if the line will not fill he
+``puts a Space more between every Word'', and if still not, another. So a line
+fills the measure to within less than a hair rather than exactly, and that
+residue is real — it was taken up by the pressure of the lock-up.
+
+@citet[blayney] makes space-metal the hinge of his whole reconstruction. Okes
+had never printed a play before @emph{Lear}, and ``what @emph{Lear} used in the
+quantities most unprecedented in the pica books of 1605-7 was space-metal''. A
+play is short lines, quadded-out ends and marginal prefixes: it eats quads
+where prose eats letters. The program reproduces the asymmetry without being
+told to — provisioned from prose demand, @emph{Areopagitica} never empties the
+em-quad box and @emph{Much Ado} empties it outright.
+
 @subsection{The lay of the case}
 @declare-exporting[handpress/typecase]
 
@@ -622,12 +653,28 @@ model that is certainly valid, rather than one guessed at.}
 racket main.rkt --xslt -o out samples/hamlet.txt
 }|
 
-writes @tt{out/hamlet.tei.xml} and then transforms it to
-@tt{out/hamlet.tei.html} with @tt{xslt/tei-to-html.xsl}. The result is
-compared against the HTML written directly from the standing type, and they
-must agree leaf for leaf, line for line, word for word, and position for
-position — there is a test to that effect in @tt{main.rkt}. If they ever
-diverge, the TEI has lost something.
+writes @tt{out/hamlet.tei.xml} and a plain reading text beside it.
+
+The important arrangement is the other way round. @tt{--html} does not render
+the book a second time: it reads the @tt{.tei.xml} back off disk and builds the
+type-facsimile from that and nothing else. So the TEI is the record and
+everything else is derived from it, and @bold{anything the TEI does not carry
+cannot appear on the page}.
+
+That is a property rather than a discipline, and it earns its keep. There were
+once two renderers — one from the book in memory, one from the TEI — and they
+drifted, because each knew things the other did not; a parity test between them
+caught none of it. Reading from the file instead has already exposed four
+things the encoding was quietly missing: the identity of the damaged sorts, the
+statistics, the stage-by-stage account of what happened to each word, and the
+space-metal. Each had reached the page by some route that did not pass through
+the file, so the file never had to carry it.
+
+The XSLT survives as a deliberately smaller thing: a reading text, giving the
+words and the page breaks and the @emph{reading} rather than the glyph —
+@tt{<reg>} not @tt{<orig>} — which is the half of every @tt{<choice>} the
+facsimile does not show. It makes no claim to match the facsimile, and there is
+a test that it does not try.
 
 @defproc[(book->tei [b book?] [run (or/c press-run? #f) #f]
                     [names (listof string?) '("A" "B")])
@@ -866,12 +913,17 @@ guessed, usually by an order of magnitude. The record is worth keeping in
 full, because it is the only part of this document that is not inference:
 
 @tabular[#:sep @hspace[3]
-  (list (list @bold{device} @bold{in the real books} @bold{first guess} @bold{now})
-        (list "scribal contractions" "0 in F1" "83" "0, behind a flag")
-        (list "foul case + turned letters" "0.25 / 1000 words" "11.57" "1.12")
+  (list (list @bold{parameter} @bold{in the real books} @bold{first guess} @bold{now})
+        (list "the fount" "21,953 sorts (Okes)" "60,000" "31,200 incl. space")
+        (list "tilde abbreviations" "1.01 / 1000 words" "83" "1.66")
+        (list "superscript y-t, w-ch" "5.5 per million words" "6,600" "~0")
+        (list "foul case + turned letters" "0.25 / 1000 words" "11.57" "0.87")
         (list "word division" "5.1 / 100 lines" "0.0" "5.3")
         (list "medial apostrophes" "9.58 / 1000 words" "1.17" "5.37")
-        (list "ampersand" "14 in five scenes" "35" "26"))]
+        (list "ampersand" "3.18 / 1000 words" "35" "3.02")
+        (list "class spelling habits" "57% (Blayney)" "82-91%" "57%")
+        (list "wrong-fount sorts" "a handful a book" "248" "13")
+        (list "gaps a compositor could set" "every one" "14%" "95%"))]
 
 The measurements come from the 1600 quarto of @emph{Much Ado About Nothing}
 and the 1623 Folio text set from it: 11,990 words of real copy-text and a real

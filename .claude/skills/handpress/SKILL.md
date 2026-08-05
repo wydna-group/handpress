@@ -19,16 +19,44 @@ file is the working discipline, which they do not carry.
 of magnitude, and always in the same direction: towards a printing house more
 picturesque than the real one.** Assume the next one is too.
 
-| device | in real books | first guess | now |
+| parameter | in real books | first guess | now |
 |---|---|---|---|
-| scribal contractions (`ẽ`, `yᵉ`) | 0 in F1 | 83 | 0, behind a flag |
-| foul case + turned letters | 0.25 / 1000 words | 11.57 | 1.12 |
-| word division | 5.1 / 100 lines | 0.0 | 4.9 |
+| the fount | 21,953 sorts, ~120 lb (Okes) | 60,000 | 31,200 incl. space |
+| tilde abbreviations | 1.01 / 1000 words (1600s) | 83 | 1.66 |
+| superscript `yᵗ`, `wᶜʰ` | 5.5 per **million** words | 6,600 | ~0 |
+| foul case + turned letters | 0.25 / 1000 words | 11.57 | 0.87 |
+| word division | 5.1 / 100 lines | 0.0 | 5.3 |
 | medial apostrophes (`rul'd`) | 9.58 / 1000 words | 1.17 | 5.37 |
-| ampersand | 14 in five scenes | 35 | 26 (still ~2× over, left wrong) |
+| ampersand | 3.18 / 1000 (1600s) | 35 | 3.02 |
+| class spelling habits (`-ie`) | 57% (Blayney) | 82–91% | 57% |
+| wrong-fount sorts | a handful a book | 248 | 13 |
+| gaps a compositor could set | every one | 14% | 95% |
 
-The ampersand is deliberately not fitted. Where a figure is off, leave it off
-and say so; closing the gap by tuning would make the number worthless.
+Every one of these was wrong in the same direction until it was measured.
+
+## Where the evidence lives
+
+- `sources/` — the six bibliographies as PDFs, gitignored. **Blayney is the
+  richest**: his subject is one quarto reconstructed from its type, so nearly
+  everything in him is a number. PDF page = book page + 30.
+- `corpus/texts/` — 5,287 EEBO-TCP texts. **Not only a wordlist.** It is text,
+  and every tilde, ampersand and brevigraph in it is countable;
+  `tools/count-scribal.py` does exactly that. A question about *marks* can be
+  answered here even though `lexicon.rkt` only reads *spellings*.
+- Tables OCR badly. Pull those pages with `d[i].get_text()` and read them by
+  eye rather than trusting a grep.
+
+## The shape of the program
+
+The `.tei.xml` is the record; `tei-html.rkt` builds the facsimile by reading
+that file back off disk. There is no second renderer and there must not be.
+**Anything absent from the TEI is absent from the page** — that property is
+what keeps the encoding honest, and it has already caught four things the file
+was quietly missing.
+
+Run the tests with `raco test test-all.rkt` (~10s), not `raco test .` (~3.5
+min, because thirteen modules each load the 9.8 MB lexicon in their own
+process).
 
 ## Before adding any mechanism
 
@@ -51,16 +79,25 @@ happen here*.** Say which.
 
 ## Traps that have caught us
 
-- **`check-true` is strict.** `member` and `memv` return sublists, not `#t`.
-  Use `check-not-false`. This has cost time four separate times.
-- **A comma in Scribble source is `unquote`.** Inside a `tabular` row, wrap it:
-  `@elem{@tt{--from}, @tt{--to}}`.
-- **Do not assert RNG outcomes in tests.** Assert the property — that a 6 or 9
-  was turned, not which one.
-- **PowerShell mangles inline Python and here-strings.** Write the script to a
-  file, or use `git commit -F`.
-- **`raco make` after touching a required module**, or you will test stale
-  bytecode and believe it.
+- **A bug can pass for a finding.** Space-metal was picked and never returned,
+  so every line spaced itself with hairs — which looked exactly like a shop
+  short of space-metal, a thing that really happened. A *historically
+  plausible* symptom is when to check the arithmetic hardest.
+- **A comparison must isolate one thing.** Comparing the set form against the
+  reading rings every long s and u-for-v as foul case: 3,629 in a book with 16.
+  Has happened twice.
+- **A test asserting a rare event on one seed is a test of the seed.** Four of
+  these have broken this way. Size the sample or assert on the rate.
+- **Adding evidence must not subtract evidence.** Giving one compositor his
+  measured preference destroyed another's, because the check compared against
+  every workman in the table rather than the crew at the frames.
+- **A parameter anchored on one example is anchored on that example's end of
+  the range.** The fount came from the largest house in London working in
+  folio, and made every quarto shop three times too rich.
+- **Renames that cross a classification boundary change meaning.** Redefining
+  `composed` as the reading made the accident test report 1,048 for 7.
+- **A bare zero cannot distinguish *did not happen* from *cannot happen
+  here*.** Say which — in the report *and* in the TEI.
 
 ## The lexicon
 

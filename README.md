@@ -40,9 +40,9 @@ Every run writes into the output directory:
 |---|---|
 | `NAME.facsimile.txt` | the type-facsimile: pages, signatures, catchwords, running titles |
 | `NAME.report.txt` | the bibliographical description and the analysis |
-| `NAME.html` | an HTML facsimile built directly from the type (`--html`) |
-| `NAME.tei.xml` | a TEI P5 encoding of the same setting (`--tei`) |
-| `NAME.tei.html` | the TEI transformed to HTML by XSLT (`--xslt`) |
+| `NAME.tei.xml` | a TEI P5 encoding of the setting — **the record** (`--tei`) |
+| `NAME.html` | the type-facsimile, built by reading that TEI back (`--html`) |
+| `NAME.tei.html` | a plain reading text, via XSLT (`--xslt`) |
 
 The report opens with a Bowers-style description — collation formula, format,
 the press variants sorted by forme and state — and goes on to the analysis:
@@ -72,6 +72,14 @@ encoding honest, and it immediately turned up two things the TEI had never
 recorded. `--xslt` additionally runs `xslt/tei-to-html.xsl`, which gives a
 plain reading text for anyone who wants to consume the file without Racket. It
 is not a second facsimile and does not try to be.
+
+**On the TEI.** The `.tei.xml` is the record and everything else is derived
+from it, including the facsimile, which is built by reading that file back off
+disk rather than by rendering the book a second time. That is deliberate: it is
+what keeps the encoding honest, since anything the TEI does not carry cannot
+appear on the page. It has already caught four things the file was quietly
+missing — the identity of the damaged sorts, the statistics, the account of
+what happened to each word, and the space-metal.
 
 **On the tests.** `raco test test-all.rkt` runs all 527 checks in about ten
 seconds. `raco test .` runs the same checks in about three and a half minutes,
@@ -150,6 +158,25 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--pages`, `--quiet` | how much to print to the terminal |
 
 ## What is modelled
+
+### The type as physical objects
+
+Every sort is a piece of metal drawn from a box that can empty. That includes
+the things it is easy to forget are type at all:
+
+- **Space-metal.** A gap is a body a shade lower than the face so that it takes
+  no ink — em quad, en, thick, middle, thin, hair. **16% of everything set is
+  white**, and the thick space is as common in a fount as the letter `e`.
+  Justification is therefore *quantised*: a compositor can only set
+  combinations of the bodies he has, so a line fills the measure to within less
+  than a hair rather than exactly.
+- **Ligatures**, including `ſt`, `ſh`, `ſi` and `ſſ`, which in an English fount
+  outnumbered `ﬀ`, `ﬁ` and `ﬂ` together. They print as their two letters; what
+  differs is which box emptied.
+- **The ladder of shifts** when a box runs dry, in the order Blayney watched a
+  compositor work down it: set `VV` for `W`; rob a sort from the margin of a
+  page already standing; distribute a forme early; set a sort **face down** and
+  fill the space at proof; send to the founder for more.
 
 ### Casting off
 
@@ -349,13 +376,18 @@ copies recovers the variants, forme by forme.
 Every parameter that has been checked against a real book was wrong when first
 guessed, usually by an order of magnitude. The record:
 
-| device | in the real books | first guess | now |
+| parameter | in the real books | first guess | now |
 |---|---|---|---|
-| scribal contractions (`ẽ`, `yᵉ`) | 0 in F1 | 83 | 0, behind a flag |
-| foul case + turned letters | 0.25 / 1000 words | 11.57 | 1.12 |
+| the fount | 21,953 sorts, ~120 lb (Okes, *Lear* Q1) | 60,000 | 31,200 incl. space |
+| tilde abbreviations | 1.01 / 1000 words (English, 1600s) | 83 | 1.66 |
+| superscript `yᵗ`, `wᶜʰ` | 5.5 per **million** words | 6,600 | ~0 |
+| foul case + turned letters | 0.25 / 1000 words | 11.57 | 0.87 |
 | word division | 5.1 / 100 lines | 0.0 | 5.3 |
 | medial apostrophes (`rul'd`) | 9.58 / 1000 words | 1.17 | 5.37 |
-| ampersand | 14 in five scenes | 35 | 26 |
+| ampersand | 3.18 / 1000 (English, 1600s) | 35 | 3.02 |
+| class spelling habits (`-ie`, `-ll`) | 57% (Blayney) | 82–91% | 57% |
+| wrong-fount sorts | a handful a book | 248 | 13 |
+| gaps a compositor could set | every one | 14% | 95% |
 
 The measurements come from diffing the 1600 quarto of *Much Ado About Nothing*
 against the 1623 Folio text set from it — 11,990 words, a real copy-text and a
@@ -480,10 +512,14 @@ method in order to test it, and reporting where it fails.
 
 ## What next
 
-See [ROADMAP.md](ROADMAP.md). The short version: recovering forme order from
-type recurrence is the next real piece of work, because it is Hinman's central
-method and this program is the only place it can be graded against a known
-truth.
+See [ROADMAP.md](ROADMAP.md). Two things are next. **Preliminaries, binding
+and cancels** are one piece of work in disguise: preliminaries were printed
+last, on the spare leaves of the final sheet, which is why they carry their own
+signature series and why most blank leaves in this program should not be blank.
+And **recovering forme order from type recurrence** is the real prize, because
+it is Hinman's central method and this is the only place it can be graded
+against a known truth — Blayney even supplies the threshold at which he says it
+must fail.
 
 ## Licence
 
