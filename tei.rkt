@@ -160,9 +160,19 @@
   ;; can be undone by rule. Turning `haue' back into `have' cannot be done
   ;; without a dictionary -- see undo-uv-ij in lexicon.rkt -- so u/v and i/j
   ;; are left in the text for now, and the header says so.
+  ;; The reading is not recovered from the set form; it is the form the
+  ;; compositor had before the conventions were applied to it, and the word
+  ;; record still holds it. That matters, because u and v cannot be undone by
+  ;; rule -- `haue' is `have' and `vertue' is `virtue', and nothing about the
+  ;; letters says which. Reversing them would need the lexicon and would still
+  ;; guess; reading them off `final' is exact.
   (define set-form (word-printed w))
+  (define reading (word-final w))
+  ;; An accident of the case has no pre-conventions counterpart, since the
+  ;; wrong sort was picked after the spelling was settled. Its long s can be
+  ;; stripped mechanically; its u and v have to stand.
   (define printed (strip-conventions set-form))
-  (define composed (strip-conventions (word-composed w)))
+  (define composed (word-final w))
   (define just? (for/or ([c (in-list (word-causes w))])
                   (string-prefix? c "justification")))
   ;; Either half. The first is caused "word divided at the end of the line"
@@ -214,11 +224,11 @@
       [(and just? (not (string=? (word-final w) (word-read w))))
        (format "<choice><orig>~a</orig><reg>~a</reg></choice>"
                (esc printed) (esc (word-read w)))]
-      [else (esc printed)]))
+      [else (esc reading)]))
   (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a>~a</w>"
           (em x) (em (word-width w)) ana
           (if (word-italic? w) " rend=\"italic\"" "")
-          (if (string=? set-form printed)
+          (if (string=? set-form reading)
               ""
               (format " hp:glyph=\"~a\"" (esc set-form)))
           inner))
