@@ -57,12 +57,20 @@ Requires [Racket](https://racket-lang.org/) 8.0 or later. Nothing else.
 git clone https://github.com/USER/handpress.git
 cd handpress
 raco pkg install --link .
-raco test *.rkt
+raco test test-all.rkt
 ```
 
 `raco pkg install --link` registers the collection so the modules can be
 required as `handpress/compositor` and so the Scribble docs build into the
 local documentation index. You can skip it and just run `main.rkt` in place.
+
+**On the tests.** `raco test test-all.rkt` runs all 527 checks in about ten
+seconds. `raco test .` runs the same checks in about three and a half minutes,
+because it gives each module a fresh process and thirteen of them load the
+9.8 MB lexicon on the way up — some four seconds apiece, spent reading the same
+file. Use `test-all.rkt` while working; use `raco test .` in CI, where the
+isolation is worth the wait and a module that only loads because something else
+loaded its dependency first ought to be caught.
 
 Build the manual with:
 
