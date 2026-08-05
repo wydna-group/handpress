@@ -33,7 +33,7 @@
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
          "press.rkt" "corrector.rkt" "description.rkt" "pagination.rkt"
-         (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-phrase)
+         (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary)
          (only-in "deviation.rkt" deviation-counts)
          (only-in "orthography.rkt" strip-conventions))
 
@@ -102,6 +102,14 @@
           "          <category xml:id=\"foul-case\"><catDesc>A sort taken from an adjoining box of the case.</catDesc></category>"
           "          <category xml:id=\"division\"><catDesc>Half of a word broken at the end of a line. Not a corruption: the reading is the whole word, and the hyphen is a fact about the line.</catDesc></category>"
           "          <category xml:id=\"house-style\"><catDesc>Imposed on the copy by the corrector before setting.</catDesc></category>"
+          "        </taxonomy>"
+          "        <taxonomy xml:id=\"hp.damage\">"
+          (string-join
+           (for/list ([row (in-list damage-vocabulary)])
+             (format "          <category xml:id=\"~a\"><catDesc>~a</catDesc></category>"
+                     (car row) (esc (cadr row))))
+           "
+")
           "        </taxonomy>"
           "      </classDecl>"
           "      <p>Type lines are milestones (<gi>lb</gi>), not containers, because verse lines, speeches and type lines overlap. Word positions are in the hp: namespace: they are process data, not text.</p>")
@@ -306,8 +314,8 @@
   (define sorts
     (for/list ([p (in-list (word-pieces w))])
       (format "~a:~a:~a" (car p) (sort-piece-id (cdr p))
-              (damage-phrase (sort-piece-damage (cdr p))))))
-  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a~a>~a</w>"
+              (sort-piece-damage (cdr p)))))
+  (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a~a~a>~a</w>"
           (em x) (em (word-width w)) ana
           (if (word-italic? w) " rend=\"italic\"" "")
           (if (string=? set-form reading)
@@ -316,6 +324,19 @@
           (if (null? sorts)
               ""
               (format " hp:sorts=\"~a\"" (esc (string-join sorts ";"))))
+          (if accident?
+              (format " hp:composed=\"~a\"" (esc (word-composed w)))
+              "")
+          ;; The form as composed, given only when the case then got it wrong.
+          ;;
+          ;; Without this a renderer cannot show *which* letter the case
+          ;; fouled, because the file holds the form as set and the reading,
+          ;; and those differ by every long s and every u-for-v. Comparing them
+          ;; rings 3,629 letters in a book with sixteen accidents in it -- the
+          ;; same mistake, in a new place, as the one that once reported 1,048
+          ;; accidents against a measured rate of five. So the composed form is
+          ;; written out where it differs, and the comparison has two things to
+          ;; compare that differ only by the case.
           inner))
 
 (define (line->tei l n indent-x variants sig)

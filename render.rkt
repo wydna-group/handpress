@@ -15,7 +15,6 @@
          (only-in "orthography.rkt" modernise))
 
 (provide render-line-text render-page-text render-book-text
-         render-page-html render-book-html html-escape
          show-modernised?)
 
 ;; ---------------------------------------------------------------------------
@@ -159,295 +158,23 @@
         [else ""]))
 
 ;; ---------------------------------------------------------------------------
-;; HTML
+;; HTML lived here
 ;; ---------------------------------------------------------------------------
-
-(define (html-escape s)
-  (for/fold ([s s]) ([pair (in-list '(("&" "&amp;") ("<" "&lt;") (">" "&gt;")
-                                      ("\"" "&quot;")))])
-    (string-replace s (car pair) (cadr pair))))
-
-;; The stylesheet lives in xslt/facsimile.css and is read at run time, not
-;; kept here.
+;; It does not any more. `render-book-html' built a facsimile straight from the
+;; book in memory, while an XSLT stylesheet built one from the TEI, and the two
+;; drifted because each knew things the other did not -- a stylesheet that
+;; existed twice and went stale in one copy, a script only one of them loaded,
+;; classes only one of them emitted. A parity test caught none of it.
 ;;
-;; It used to exist twice: once in this string and once inside the XSLT, and
-;; the two drifted until the TEI rendering had none of the page numbers,
-;; deviation marks or unit grouping the direct one had grown. Two copies of a
-;; stylesheet is one copy too many, and the second is always the stale one.
-(define-runtime-path facsimile-css "xslt/facsimile.css")
-(define-runtime-path facsimile-js "xslt/facsimile.js")
-(define css (file->string facsimile-css))
-(define js (file->string facsimile-js))
-
-;; Uneven inking: a handpress page is never evenly black. Deterministic in the
-;; word, so that redeploying the same book does not reshuffle the ink.
-(define (ink text sig)
-  (define h (for/fold ([a 7]) ([ch (in-string (string-append sig text))])
-              (modulo (+ (* a 31) (char->integer ch)) 255)))
-  (+ 0.80 (* (/ h 255.0) 0.20)))
-
-;; Wrap the characters that were set from an individually identifiable piece
-;; of type, so that the damage is on the page and not merely in the record.
-;; Each kind of defect gets its own treatment: a bent sort leans, a worn one
-;; prints faint, a clogged one prints thick.
-(define (mark-damage text pieces)
-  (define n (string-length text))
-  (define at (for/hash ([p (in-list pieces)] #:when (< (car p) n))
-               (values (car p) (cdr p))))
-  (apply string-append
-         (for/list ([ch (in-string text)] [i (in-naturals)])
-           (define p (hash-ref at i #f))
-           (if p
-               (format "<span class=\"dmg ~a\" title=\"~a\">~a</span>"
-                       (sort-piece-damage p)
-                       (html-escape (sort-piece-note p))
-                       (html-escape (string ch)))
-               (html-escape (string ch))))))
-
-;; Ring the letter the case got wrong.
+;; The facsimile is now built in tei-html.rkt out of the .tei.xml file and
+;; nothing else, so anything absent from the TEI is absent from the page. That
+;; turned up two things the TEI had never carried -- the identity of the
+;; damaged sorts, and the statistics -- which had gone unnoticed only because
+;; the renderer that needed them held its own copy of the book.
 ;;
-;; A turned letter and a foul-case letter are both single characters that
-;; differ between what was composed and what printed, so they can be found by
-;; comparing the two. Marking them matters: an `n' standing for a `u' is
-;; invisible in a plain transcript and obvious on the page, and the whole
-;; point of a type-facsimile is to show what the page showed.
-(define (mark-accident body composed printed)
-  (cond
-    [(or (not composed) (not printed)
-         (string=? composed printed)
-         (not (= (string-length composed) (string-length printed)))
-         (regexp-match? #rx"<" body))
-     body]
-    [else
-     (apply string-append
-            (for/list ([a (in-string composed)] [bch (in-string printed)])
-              (if (char=? a bch)
-                  (html-escape (string bch))
-                  (format "<span class=\"acc\" title=\"~a set for ~a\">~a</span>"
-                          (html-escape (string bch)) (html-escape (string a))
-                          (html-escape (string bch))))))]))
-
-(define (render-line-html l readings sig lineno)
-  (cond
-    [(null? (set-line-words l)) "<div class=\"tline\"></div>"]
-    [else
-     (define spaces (set-line-spaces l))
-     (define spans
-       (let loop ([ws (set-line-words l)] [i 0] [x (set-line-indent l)] [acc '()])
-         (cond
-           [(null? ws) (reverse acc)]
-           [else
-            (define w (car ws))
-            (define text
-              (or (and readings (hash-ref readings (list sig lineno i) #f))
-                  (word-printed w)))
-            (define dev (word-deviation w))
-            (define cls
-              (string-join
-               (filter (lambda (s) (not (string=? s "")))
-                       (list "w"
-                             (if (or (word-italic? w) (set-line-italic? l)) "it" "")
-                             (deviation-class w)))
-               " "))
-            (define body
-              (mark-accident
-               (if (null? (word-pieces w))
-                   (html-escape text)
-                   (mark-damage text (word-pieces w)))
-               (word-composed w) text))
-            (loop (cdr ws) (add1 i)
-                  (+ x (word-width w) (if (< i (length spaces)) (list-ref spaces i) 0))
-                  (cons (format "<span class=\"~a\"~a style=\"--x:~a;--w:~a;opacity:~a\">~a</span>"
-                                cls
-                                (if dev
-                                    (format " title=\"~a\"" (html-escape dev))
-                                    "")
-                                (real->decimal-string (ems x) 3)
-                                (real->decimal-string (ems (word-width w)) 3)
-                                (real->decimal-string (ink text sig) 2)
-                                body)
-                        acc))])))
-     (format "<div class=\"tline\">~a</div>" (apply string-append spans))]))
-
-(define (render-page-html p columns [readings #f] [measure-ems 21.0]
-                          [folio #f] [lines-per-page #f] [fmt-of-page QUARTO])
-  (define lines (page-all-lines p))
-  (define measure (if (pair? lines) (ems (set-line-measure (car lines))) measure-ems))
-  (define cols
-    (let loop ([cs (page-columns p)] [n 0] [out '()])
-      (cond
-        [(null? cs) (reverse out)]
-        [else
-         (define-values (rows n*)
-           (for/fold ([acc '()] [k n] #:result (values (reverse acc) k))
-                     ([l (in-list (car cs))])
-             (values (cons (render-line-html l readings (page-sig p) (add1 k)) acc)
-                     (add1 k))))
-         (loop (cdr cs) n*
-               (cons (format "<div class=\"col\" style=\"--m:~a\">~a</div>"
-                             (real->decimal-string measure 2)
-                             (apply string-append rows))
-                     out))])))
-  (define head (if (page-running-title p)
-                   (html-escape (running-title-text (page-running-title p))) ""))
-  (define-values (tag-cls note)
-    (cond [(> (page-pressure p) 0.35) (values "crowd" " · crowded")]
-          [(< (page-pressure p) -0.35) (values "gape" " · spun out")]
-          [else (values "" "")]))
-  ;; Every leaf is the same size, because every leaf of a book is. A page with
-  ;; less on it is not a smaller page: it is the same page with white at the
-  ;; foot, which is exactly what a spun-out page looks like and what the
-  ;; casting-off report is talking about.
-  (define n-lines
-    (for/fold ([m 0]) ([c (in-list (page-columns p))]) (max m (length c))))
-  ;; A gathering is a whole sheet and must be completed, so a book whose text
-  ;; runs out partway through its last one ends in blank leaves. That is not a
-  ;; failure but a fact about folding paper, and a descriptive bibliography
-  ;; records it. Saying so on the page keeps it from looking like one.
-  (define blank? (zero? n-lines))
-  ;; Which leaf and which sheet this page belongs to. The two are different
-  ;; units and both matter: the leaf is what the reader turns, the sheet is
-  ;; what the pressman printed. A quarto sheet makes four leaves, and its
-  ;; eight pages are scattered through the gathering rather than consecutive.
-  (define r (page-pref p))
-  (define leaf-id (format "~a~a" (signature-letter (page-ref-gathering r))
-                          (page-ref-leaf r)))
-  ;; Which sheet of the gathering this leaf came off, which is not a matter of
-  ;; counting leaves in twos. A quarto gathering is one sheet folded twice, so
-  ;; all four of its leaves are the same piece of paper. A folio in sixes is
-  ;; three sheets quired one inside another, so its outermost sheet is leaves
-  ;; 1 and 6, the next 2 and 5, the innermost 3 and 4 -- pairs that are as far
-  ;; apart in the book as they can be.
-  (define n-leaves (book-format-leaves fmt-of-page))
-  (define n-sheets (book-format-sheets fmt-of-page))
-  (define leaf-n (page-ref-leaf r))
-  (define sheet-id
-    (format "~a~a" (signature-letter (page-ref-gathering r))
-            (if (<= n-sheets 1)
-                1
-                (min leaf-n (- (add1 n-leaves) leaf-n)))))
-  (format #<<HTML
-<div class="leaf plate~a" data-leaf="~a" data-sheet="~a" data-forme="~a"
-     style="--m:~a;--cols:~a;--lines:~a">
-  <div class="tag ~a">sig. ~a &nbsp;·&nbsp; ~a &nbsp;·&nbsp; Compositor ~a~a</div>
-  <div class="unit"><span data-unit="leaf">leaf ~a</span><span data-unit="sheet">sheet ~a</span><span data-unit="forme">forme</span></div>
-  <div class="headline">
-    <span class="fol left">~a</span>
-    <span class="runhead">~a</span>
-    <span class="fol right">~a</span>
-  </div>
-  <div class="rule"></div>
-  <div class="cols">~a</div>
-  <div class="direction"><span>~a</span><span>~a</span></div>
-</div>
-HTML
-          (if blank? " blankleaf" "")
-          leaf-id sheet-id (html-escape (page-forme-name p))
-          (real->decimal-string measure 2) columns
-          (or lines-per-page n-lines)
-          tag-cls (html-escape (page-sig p)) (html-escape (page-forme-name p))
-          (html-escape (page-compositor p)) note
-          leaf-id sheet-id
-          ;; The page number sits in the headline beside the running title,
-          ;; verso to the left and recto to the right, because that is where
-          ;; the type for it stood. Where the paging went wrong the number
-          ;; shown is the wrong one, and it says so on hover.
-          (folio-html folio (not (page-ref-recto? (page-pref p))))
-          head
-          (folio-html folio (page-ref-recto? (page-pref p)))
-          (apply string-append cols)
-          (html-escape (page-signature p)) (html-escape (page-catchword p))))
-
-(define (folio-html f show?)
-  (cond
-    [(or (not f) (not show?)) ""]
-    [(string=? (folio-number-printed f) "") ""]
-    [else
-     (define note (folio-number-note f))
-     (format "<span class=\"pageno~a\"~a>~a</span>"
-             (if (string=? note "") "" " wrong")
-             (if (string=? note "")
-                 ""
-                 (format " title=\"~a — should be ~a\""
-                         (html-escape note) (folio-number-want f)))
-             (html-escape (folio-number-printed f)))]))
-
-(define (render-book-html b [readings #f]
-                          #:title [title "A book of the handpress era"]
-                          #:lede [lede ""] #:extra [extra ""]
-                          #:run [run #f])
-  (define folios
-    (for/hash ([f (in-list (book-paging b))]) (values (folio-number-sig f) f)))
-  ;; Bound as openings: a verso and the recto facing it. The first recto has
-  ;; no verso before it and stands alone, which is why a book opens on a
-  ;; single page and thereafter in pairs.
-  (define rendered
-    (for/list ([p (in-list (book-pages b))])
-      (cons (page-ref-recto? (page-pref p))
-            (render-page-html p (book-format-columns (book-fmt b)) readings
-                              (book-format-measure-ems (book-fmt b))
-                              (hash-ref folios (page-sig p) #f)
-                              (book-format-lines (book-fmt b))
-                              (book-fmt b)))))
-  (define pages
-    (let loop ([ps rendered] [out '()])
-      (cond
-        [(null? ps) (apply string-append (reverse out))]
-        [(and (car (car ps)) (pair? (cdr ps)) (not (car (cadr ps))))
-         ;; a recto with its verso following is the wrong way round; the
-         ;; opening is verso then recto, so a recto begins one only when
-         ;; nothing precedes it
-         (loop (cdr ps)
-               (cons (format "<div class=\"opening\">~a</div>" (cdr (car ps))) out))]
-        [(and (not (car (car ps))) (pair? (cdr ps)) (car (cadr ps)))
-         (loop (cddr ps)
-               (cons (format "<div class=\"opening\">~a~a</div>"
-                             (cdr (car ps)) (cdr (cadr ps)))
-                     out))]
-        [else
-         (loop (cdr ps)
-               (cons (format "<div class=\"opening\">~a</div>" (cdr (car ps))) out))])))
-  (format #<<HTML
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>~a</title><style>~a</style></head>
-<body><div class="wrap">
-<h1>~a</h1>
-<p class="lede">~a</p>
-~a
-<div class="key">
-  <b>Departures from copy:</b>
-  <span><i class="k1"></i>misread</span>
-  <span><i class="k2"></i>accident of the case</span>
-  <span><i class="k3"></i>altered to fit the measure</span>
-  <span><i class="k4"></i>the compositor's habit</span>
-  <span>Hover any word for its history.</span>
-  <button onclick="document.body.classList.toggle('plain')">show the page plain</button>
-</div>
-<div class="key">
-  <b>The units a page belongs to:</b>
-  <span><i class="u1"></i>leaf — the two sides of one piece of paper, facing away from each other</span>
-  <span><i class="u2"></i>sheet — everything printed on one sheet, scattered through the gathering</span>
-  <span><i class="u3"></i>forme — the pages locked up and inked together</span>
-  <span>Hover the buttons above any page to light up the rest of its unit.</span>
-</div>
-<script>~a</script>
-~a
-~a
-<div class="stats">
-<h2>What the run came to</h2>
-<pre>~a</pre>
-<pre>~a</pre>
-</div>
-</div></body></html>
-HTML
-          (html-escape title) css (html-escape title) (html-escape lede)
-          (description-html b run)
-          js
-          pages extra
-          (html-escape (deviation-report b run))
-          (html-escape (pagination-report (book-paging b)))))
+;; What remains here is the plain-text facsimile and the reading text, which
+;; are transcripts rather than renderings and have no second implementation to
+;; disagree with.
 
 (module+ test
   (require rackunit "orthography.rkt" "typecase.rkt" "rng.rkt")
@@ -462,8 +189,4 @@ HTML
     (check-true (<= (string-length (render-line-text l chars)) (+ chars 4))
                 (format "rendered line too long: ~s" (render-line-text l chars))))
 
-  (define html (render-book-html b))
-  (check-true (regexp-match? #px"<!doctype html>" html))
-  (check-false (regexp-match? #px"src=\"https?:" html) "self-contained")
-  (check-true (regexp-match? #px"prefers-color-scheme" html))
-  (check-equal? (html-escape "a<b&c") "a&lt;b&amp;c"))
+  )

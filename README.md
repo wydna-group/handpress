@@ -64,6 +64,15 @@ raco test test-all.rkt
 required as `handpress/compositor` and so the Scribble docs build into the
 local documentation index. You can skip it and just run `main.rkt` in place.
 
+**On the output.** The `.tei.xml` is the record, and everything else is
+derived from it. `--html` writes the type-facsimile by reading that file back
+off disk — not by rendering the book a second time — so anything the TEI does
+not carry cannot appear on the page. That is deliberate: it is what keeps the
+encoding honest, and it immediately turned up two things the TEI had never
+recorded. `--xslt` additionally runs `xslt/tei-to-html.xsl`, which gives a
+plain reading text for anyone who wants to consume the file without Racket. It
+is not a second facsimile and does not try to be.
+
 **On the tests.** `raco test test-all.rkt` runs all 527 checks in about ten
 seconds. `raco test .` runs the same checks in about three and a half minutes,
 because it gives each module a fresh process and thirteen of them load the

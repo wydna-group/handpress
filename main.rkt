@@ -6,7 +6,7 @@
 
 (require racket/cmdline racket/file racket/string racket/port racket/list
          racket/system racket/runtime-path
-         "book.rkt" "press.rkt" "render.rkt" "analysis.rkt" "imposition.rkt"
+         "book.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
          "orthography.rkt" "compositor.rkt" "tei.rkt")
 
 (provide run-handpress apply-xslt)
@@ -155,16 +155,25 @@
       (unless (apply-xslt xml xsl out #:witness witness #:layout layout)
         (eprintf "could not run an XSLT processor; ~a not written\n"
                  (path->string out))))
+    ;; The facsimile is built from the TEI file, not from the book in memory.
+    ;; That is the whole of the change: there is one rendering, its source is
+    ;; the file on disk, and anything the TEI does not carry cannot appear.
     (when html?
+      ;; Always written, never reused. Skipping the write when the file
+      ;; happened to exist meant a stale TEI from an earlier run silently
+      ;; became the source of the new HTML, and the facsimile then showed a
+      ;; book that had not been printed.
+      (define xml (build-path out-dir (string-append stem ".tei.xml")))
+      (write! ".tei.xml" (book->tei b r names))
+      (for ([asset (in-list '("facsimile.css" "facsimile.js"))])
+        (copy-file (build-path xslt-dir asset) (build-path out-dir asset) #t))
       (write! ".html"
-              (render-book-html
-               b #:title (string-append (string-titlecase title) " — a type-facsimile")
+              (tei-file->html
+               xml
                #:lede (format "~a · set by ~a · ~a · ~a formes. Every word is placed at the position the simulated compositor computed for it."
                               (book-collation b) (string-join names ", ")
                               (if (string=? order "formes") "set by formes" "set seriatim")
-                              (length (book-formes b)))
-               #:run r
-               #:extra (report-html b r names))))
+                              (length (book-formes b))))))
     (printf "\nWritten to ~a\n" (path->string (path->complete-path out-dir))))
   b)
 
@@ -242,9 +251,9 @@
                  (set! year (string->number y))]
      [("--modern-spelling") "show the same setting in modern spelling"
       (set! modern-spelling? #t)]
-     [("--html") "also write an HTML facsimile, direct from the type" (set! html? #t)]
+     [("--html") "also write an HTML facsimile, rendered from the TEI" (set! html? #t)]
      [("--tei") "also write a TEI P5 encoding" (set! tei? #t)]
-     [("--xslt") "write the TEI and transform it to HTML with XSLT" (set! xslt? #t)]
+     [("--xslt") "also write a plain reading text via the XSLT" (set! xslt? #t)]
      [("--witness") w "which made-up copy the XSLT should show (copya, copyb...)"
                     (set! witness w)]
      [("--layout") l "opening (verso|recto, as bound) or leaf (recto|verso)"
@@ -269,49 +278,62 @@
 (module+ test
   (require rackunit racket/file racket/port)
 
-  ;; The whole point of putting the geometry into the TEI is that the
-  ;; facsimile can be rebuilt from it. So the HTML made by XSLT out of the TEI
-  ;; must agree with the HTML made directly from the standing type: same
-  ;; leaves, same type lines, same words, same positions. If it does not, the
-  ;; TEI has lost something.
+  ;; There is one facsimile now, built by tei-html.rkt out of the .tei.xml and
+  ;; nothing else, so there is no longer a parity to check: the two renderings
+  ;; that used to be compared were the problem, not the thing being tested.
+  ;;
+  ;; What the stylesheet is for now is different in kind. It renders the TEI as
+  ;; a plain reading text, for anyone who wants to see the file without Racket,
+  ;; and it deliberately does not attempt the analytical furniture -- no
+  ;; statistics, no key, no deviation colouring, no leaf and sheet grouping,
+  ;; no damaged type. Holding it to the Racket renderer's output was what made
+  ;; it drift; holding it to the *text* is a claim it can keep.
+  ;;
+  ;; So: the same words, in the same order. Nothing about the markup.
   (define dir (make-temporary-file "handpress~a" 'directory))
   (define sample (build-path dir "s.txt"))
   (display-to-file
    (apply string-append
           (for/list ([i (in-range 10)])
             (string-append
-             "King. And can you by no drift of conference\n"
-             "Get from him why he puts on this confusion,\n"
-             "Grating so harshly all his days of quiet\n"
-             "With turbulent and dangerous lunacy?\n\n")))
+             "King. And can you by no drift of conference
+"
+             "Get from him why he puts on this confusion,
+"
+             "Grating so harshly all his days of quiet
+"
+             "With turbulent and dangerous lunacy?
+
+")))
    sample)
 
   (run-handpress (path->string sample) #:out (path->string dir)
                  #:html? #t #:xslt? #t #:quiet? #t)
 
-  (define direct (build-path dir "s.html"))
-  (define via-tei (build-path dir "s.tei.html"))
-
   (check-true (file-exists? (build-path dir "s.tei.xml")) "TEI was written")
+  (check-true (file-exists? (build-path dir "s.html")) "the facsimile was built")
 
+  (define via-tei (build-path dir "s.tei.html"))
   (cond
     [(file-exists? via-tei)
-     (define (counts f)
-       (define h (file->string f))
-       ;; "leaf plate" only: the XSLT also emits "leaf absent" placeholders
-       ;; for the blank left of the first opening and right of the last.
-       (list (length (regexp-match* #px"class=\"leaf plate\"" h))
-             (length (regexp-match* #px"class=\"tline\"" h))
-             (length (regexp-match* #px"class=\"w[ \"]" h))
-             (regexp-match* #px"--x:([0-9.]+)" h)))
-     (define a (counts direct))
-     (define b (counts via-tei))
-     (check-equal? (first b) (first a) "same number of leaves")
-     (check-equal? (second b) (second a) "same number of type lines")
-     (check-equal? (third b) (third a) "same number of words")
-     (check-equal? (fourth b) (fourth a)
-                   "every word at the same computed position")]
+     (define h (file->string via-tei))
+     ;; It renders every page the TEI declares ...
+     (check-equal? (length (regexp-match* #px"class=\"pb\"" h))
+                   (length (regexp-match* #px"<div type=\"page\""
+                                          (file->string (build-path dir "s.tei.xml"))))
+                   "the reading text covers every page of the TEI")
+     ;; ... and the words of the book are in it.
+     (check-true (regexp-match? #px"drift of conference" h)
+                 "the reading text is the text")
+     ;; ... and it is scoped down. These are the facsimile's business, and the
+     ;; stylesheet claiming them is what made the two drift. If any of them
+     ;; comes back, the decision has been quietly reversed.
+     (for ([furniture (in-list '(#px"dev-" #px"--x:" #px"data-leaf"
+                                 #px"What the run came to" #px"class=\"dmg"))])
+       (check-false (regexp-match? furniture h)
+                    (format "the reading text does not attempt ~a" furniture)))]
     [else
-     (printf "  (no XSLT processor available; round-trip check skipped)\n")])
+     (printf "  (no XSLT processor available; reading-text check skipped)
+")])
 
   (delete-directory/files dir))

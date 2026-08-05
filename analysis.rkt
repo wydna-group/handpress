@@ -16,7 +16,7 @@
 (provide (struct-out page-evidence)
          spelling-evidence attribution-report contamination-report
          skeleton-report castingoff-report case-report press-report
-         description full-report report-html MCKENZIE)
+         description full-report MCKENZIE)
 
 (define word-rx #px"[A-Za-zſÀ-ɏﬀﬁﬂﬃﬄ'’]+")
 
@@ -728,38 +728,12 @@ TEXT
            (list MCKENZIE))
    (string-append "\n\n" (make-string 74 #\═) "\n\n")))
 
-(define (report-html b [r #f] [names '("A" "B")])
-  (define ev (spelling-evidence b names))
-  (define rows
-    (apply string-append
-           (for/list ([e (in-list ev)])
-             (format "<tr><td class='mono'>~a</td><td>~a</td><td>~a</td><td>~a</td><td>~a</td><td>~a</td></tr>"
-                     (html-escape (page-evidence-sig e))
-                     (hash-ref (page-evidence-counts e) "A" 0)
-                     (hash-ref (page-evidence-counts e) "B" 0)
-                     (html-escape (page-evidence-verdict e))
-                     (html-escape (page-evidence-truth e))
-                     (if (or (string=? (page-evidence-verdict e) "?")
-                             (string=? (page-evidence-verdict e) (page-evidence-truth e)))
-                         ""
-                         (string-append "wrong"
-                                        (if (page-evidence-crowded? e)
-                                            " — crowded page" "")))))))
-  (define variants
-    (if (not r) ""
-        (let ([vs (run-variants r)])
-          (format "<h2>Press variants</h2><div class='scroll'><table><tr><th>place</th><th>uncorrected</th><th>corrected</th><th>note</th></tr>~a</table></div>"
-                  (apply string-append
-                         (for/list ([v (in-list (take vs (min 40 (length vs))))])
-                           (format "<tr><td class='mono'>~a l.~a</td><td>~a</td><td>~a</td><td>~a</td></tr>"
-                                   (html-escape (pvariant-page v)) (pvariant-line v)
-                                   (html-escape (pvariant-uncorrected v))
-                                   (html-escape (pvariant-corrected v))
-                                   (html-escape (pvariant-note v)))))))))
-  (string-append
-   "<h2>Compositor attribution from spelling</h2><div class='scroll'><table>"
-   "<tr><th>sig.</th><th>A-forms</th><th>B-forms</th><th>attributed</th><th>truth</th><th></th></tr>"
-   rows "</table></div>" variants))
+;; report-html lived here. It formatted the analysis as an HTML fragment for
+;; the facsimile page, which meant the figures reached the page by a route that
+;; did not pass through the TEI -- so the TEI never had to carry them, and did
+;; not. They are now in <hp:statistics> and tei-html.rkt renders them from
+;; there, which is both one implementation instead of two and a file that is
+;; the whole record rather than most of it.
 
 (module+ test
   (require rackunit)
@@ -784,4 +758,4 @@ TEXT
   (define ev (spelling-evidence b))
   (check-true (> (length (filter (lambda (e) (not (string=? (page-evidence-verdict e) "?"))) ev))
                  0))
-  (check-true (regexp-match? #px"<table>" (report-html b r))))
+  )

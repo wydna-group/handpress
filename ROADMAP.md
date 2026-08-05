@@ -340,16 +340,38 @@ for the confident tables the reports now print.
 - [x] Openings in the direct HTML — done, and in the TEI rendering too, with
       the leaf, sheet and forme a page belongs to lit on hover and pinned on
       click.
-- [ ] **One rendering, not two.** `render.rkt` builds HTML from the book and
-      the XSLT builds it from the TEI, and the two duplicate each other. Three
-      separate drift bugs came out of that in a single session: a stylesheet
-      that existed twice and went stale in one copy, a script that existed in
-      only one of them so the TEI grew the buttons and none of the behaviour,
-      and classes one path uses that the other does not. The TEI carries
-      everything of substance, so the direct renderer is redundant and
-      `--html` should run the XSLT. Held back only because the Bowers
-      description, the statistics and the key have to be ported into XSLT 1.0,
-      which has no functions and no grouping.
+- [x] **One rendering, not two.** Done. `render.rkt` built HTML from the book
+      in memory and the XSLT built it from the TEI, and three drift bugs came
+      out of that in a single session. The facsimile is now built by
+      `tei-html.rkt` out of the `.tei.xml` file and nothing else, so anything
+      absent from the TEI is absent from the page — which is the property that
+      keeps the TEI honest rather than a discipline that has to be remembered.
+
+      It found two things immediately. The TEI carried no record of which
+      damaged sorts set a word, and no statistics; both had gone unnoticed
+      only because the renderer that needed them held its own copy of the
+      book. Following a piece of type from one forme to another is the whole
+      method this program exists to test, so a file that could not express it
+      was not the record it claimed to be.
+
+      **No Saxon.** The blocker was said to be XSLT 1.0's want of functions
+      and grouping, but what could not be ported was never transformation:
+      the statistics and the key are computations over counts and a join
+      against a declared taxonomy. In XSLT 3.0 they would still be a rewrite
+      of Racket that already exists, and the processor would be a JRE this
+      project otherwise does not need. The constraint that matters — the TEI
+      is the single source of truth — is about which way the data flows, not
+      about which language does the walking.
+
+      The stylesheet is kept, scoped to a plain reading text: the words, the
+      page breaks, and the *reading* rather than the glyph, which is the half
+      of every `<choice>` the facsimile does not show. It no longer attempts
+      the analytical furniture, and the test asserts that it does not — if
+      `dev-`, `--x:` or the statistics reappear in it, the decision has been
+      quietly reversed. Its reason to exist is that the TEI can be consumed by
+      standard tools; that reason survives without a parity claim it could
+      never keep.
+
 - [ ] Filter the type-facsimile by deviation class, so a reader can see all the
       foul case at once, or all the fitting alterations.
 
