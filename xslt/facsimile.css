@@ -262,3 +262,18 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 .dev-divided { box-shadow: inset 0 -0.10em 0 rgba(120,110,95,.35); }
 body.plain .dev-divided { box-shadow: none; }
 .key .u4 { background: rgba(120,110,95,.5); }
+
+/* A blank leaf. A gathering is a whole sheet and has to be completed, so a
+   book whose text runs out partway through its last one ends in blanks. The
+   paper is real and a description records it; the page says so rather than
+   looking like a rendering that failed. */
+.leaf.blankleaf::after {
+  content: "blank"; position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%); font-size: .7rem; letter-spacing: .28em;
+  text-transform: uppercase; opacity: .3;
+}
+.leaf.blankleaf { background-image: none; }
+
+/* The buttons are controls, not glossed words: they must not inherit the
+   help cursor that every annotated word carries. */
+.unit, .unit span, .unit span * { cursor: pointer !important; }

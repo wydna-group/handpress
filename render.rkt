@@ -300,6 +300,11 @@
   ;; casting-off report is talking about.
   (define n-lines
     (for/fold ([m 0]) ([c (in-list (page-columns p))]) (max m (length c))))
+  ;; A gathering is a whole sheet and must be completed, so a book whose text
+  ;; runs out partway through its last one ends in blank leaves. That is not a
+  ;; failure but a fact about folding paper, and a descriptive bibliography
+  ;; records it. Saying so on the page keeps it from looking like one.
+  (define blank? (zero? n-lines))
   ;; Which leaf and which sheet this page belongs to. The two are different
   ;; units and both matter: the leaf is what the reader turns, the sheet is
   ;; what the pressman printed. A quarto sheet makes four leaves, and its
@@ -322,7 +327,7 @@
                 1
                 (min leaf-n (- (add1 n-leaves) leaf-n)))))
   (format #<<HTML
-<div class="leaf plate" data-leaf="~a" data-sheet="~a" data-forme="~a"
+<div class="leaf plate~a" data-leaf="~a" data-sheet="~a" data-forme="~a"
      style="--m:~a;--cols:~a;--lines:~a">
   <div class="tag ~a">sig. ~a &nbsp;·&nbsp; ~a &nbsp;·&nbsp; Compositor ~a~a</div>
   <div class="unit"><span data-unit="leaf">leaf ~a</span><span data-unit="sheet">sheet ~a</span><span data-unit="forme">forme</span></div>
@@ -336,6 +341,7 @@
   <div class="direction"><span>~a</span><span>~a</span></div>
 </div>
 HTML
+          (if blank? " blankleaf" "")
           leaf-id sheet-id (html-escape (page-forme-name p))
           (real->decimal-string measure 2) columns
           (or lines-per-page n-lines)

@@ -171,8 +171,16 @@
   ;; An accident of the case has no pre-conventions counterpart, since the
   ;; wrong sort was picked after the spelling was settled. Its long s can be
   ;; stripped mechanically; its u and v have to stand.
+  ;; The accident test compares what printed against what was composed, both
+  ;; as set. It must not be run against the reading: `haue' and `have' differ
+  ;; by a convention, not by a wrong sort, and comparing those two classified
+  ;; every u-for-v in the book as foul case -- 1,048 of them against 12 real
+  ;; misreadings, where the measured rate is a quarter per thousand words.
+  (define accident? (not (string=? set-form (word-composed w))))
+  ;; For the apparatus, both members with the long s taken off, since that is
+  ;; a glyph and not part of the reading either.
   (define printed (strip-conventions set-form))
-  (define composed (word-final w))
+  (define composed (strip-conventions (word-composed w)))
   (define just? (for/or ([c (in-list (word-causes w))])
                   (string-prefix? c "justification")))
   ;; Either half. The first is caused "word divided at the end of the line"
@@ -183,7 +191,7 @@
   (define app (hash-ref variants key #f))
   (define ana
     (cond [app "#foul-case"]
-          [(not (string=? printed composed)) "#foul-case"]
+          [accident? "#foul-case"]
           ;; Division before misreading, and before justification. Both halves
           ;; of a divided word carry the whole word as their copy reading, so
           ;; every comparison against it reports a change that never happened,
@@ -209,7 +217,7 @@
          "")
         "</app>")]
       ;; A literal: what was printed, and what the type should have read.
-      [(not (string=? printed composed))
+      [accident?
        (format "<choice><sic>~a</sic><corr>~a</corr></choice>" (esc printed) (esc composed))]
       ;; Altered for room. Which way it went matters: a shortened form is an
       ;; abbreviation and takes <abbr>/<expan>, but a *lengthened* one is not
