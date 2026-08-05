@@ -313,6 +313,29 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
               border: 1px solid currentColor; background: transparent;
               color: inherit; cursor: pointer; opacity: .8; }
 
+/* Openings, as the book is bound: a verso and the recto facing it. The first
+   recto stands alone, because it has no verso before it. */
+.opening { display: flex; gap: 0; justify-content: center;
+           margin: 0 auto 2.4rem; width: fit-content; }
+.opening .leaf { margin: 0; }
+.opening .leaf + .leaf { border-left: 1px solid rgba(90,74,50,.22); }
+.opening .leaf:first-child:last-child { margin-left: 0; }
+
+/* The two units a page belongs to, and they are different things. The leaf is
+   what the reader turns; the sheet is what the pressman printed, and its
+   pages are scattered through the gathering rather than consecutive. Hovering
+   either button in the corner lights up every page of that unit wherever it
+   falls in the book. */
+.unit { position: absolute; top: -1.55rem; right: 0; display: flex; gap: .3rem;
+        font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.unit span { padding: .05rem .45rem; border-radius: 999px; cursor: pointer;
+             border: 1px solid rgba(90,74,50,.4); opacity: .6; }
+.unit span:hover { opacity: 1; }
+.leaf.lit-leaf  { outline: 2px solid rgba(29,85,96,.55); outline-offset: 2px; }
+.leaf.lit-sheet { outline: 2px solid rgba(140,80,20,.5); outline-offset: 6px; }
+.leaf.lit-forme { outline: 2px solid rgba(70,100,50,.55); outline-offset: 10px; }
+
 /* The statistical report at the foot. */
 .stats { margin: 3rem 0 0; }
 .stats pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -438,7 +461,7 @@ CSS
      (format "<div class=\"tline\">~a</div>" (apply string-append spans))]))
 
 (define (render-page-html p columns [readings #f] [measure-ems 21.0]
-                          [folio #f] [lines-per-page #f])
+                          [folio #f] [lines-per-page #f] [fmt-of-page QUARTO])
   (define lines (page-all-lines p))
   (define measure (if (pair? lines) (ems (set-line-measure (car lines))) measure-ems))
   (define cols
@@ -468,9 +491,32 @@ CSS
   ;; casting-off report is talking about.
   (define n-lines
     (for/fold ([m 0]) ([c (in-list (page-columns p))]) (max m (length c))))
+  ;; Which leaf and which sheet this page belongs to. The two are different
+  ;; units and both matter: the leaf is what the reader turns, the sheet is
+  ;; what the pressman printed. A quarto sheet makes four leaves, and its
+  ;; eight pages are scattered through the gathering rather than consecutive.
+  (define r (page-pref p))
+  (define leaf-id (format "~a~a" (signature-letter (page-ref-gathering r))
+                          (page-ref-leaf r)))
+  ;; Which sheet of the gathering this leaf came off, which is not a matter of
+  ;; counting leaves in twos. A quarto gathering is one sheet folded twice, so
+  ;; all four of its leaves are the same piece of paper. A folio in sixes is
+  ;; three sheets quired one inside another, so its outermost sheet is leaves
+  ;; 1 and 6, the next 2 and 5, the innermost 3 and 4 -- pairs that are as far
+  ;; apart in the book as they can be.
+  (define n-leaves (book-format-leaves fmt-of-page))
+  (define n-sheets (book-format-sheets fmt-of-page))
+  (define leaf-n (page-ref-leaf r))
+  (define sheet-id
+    (format "~a~a" (signature-letter (page-ref-gathering r))
+            (if (<= n-sheets 1)
+                1
+                (min leaf-n (- (add1 n-leaves) leaf-n)))))
   (format #<<HTML
-<div class="leaf plate" style="--m:~a;--cols:~a;--lines:~a">
+<div class="leaf plate" data-leaf="~a" data-sheet="~a" data-forme="~a"
+     style="--m:~a;--cols:~a;--lines:~a">
   <div class="tag ~a">sig. ~a &nbsp;·&nbsp; ~a &nbsp;·&nbsp; Compositor ~a~a</div>
+  <div class="unit"><span data-unit="leaf">leaf ~a</span><span data-unit="sheet">sheet ~a</span><span data-unit="forme">forme</span></div>
   <div class="headline">
     <span class="fol left">~a</span>
     <span class="runhead">~a</span>
@@ -481,10 +527,12 @@ CSS
   <div class="direction"><span>~a</span><span>~a</span></div>
 </div>
 HTML
+          leaf-id sheet-id (html-escape (page-forme-name p))
           (real->decimal-string measure 2) columns
           (or lines-per-page n-lines)
           tag-cls (html-escape (page-sig p)) (html-escape (page-forme-name p))
           (html-escape (page-compositor p)) note
+          leaf-id sheet-id
           ;; The page number sits in the headline beside the running title,
           ;; verso to the left and recto to the right, because that is where
           ;; the type for it stood. Where the paging went wrong the number
@@ -515,13 +563,35 @@ HTML
                           #:run [run #f])
   (define folios
     (for/hash ([f (in-list (book-paging b))]) (values (folio-number-sig f) f)))
+  ;; Bound as openings: a verso and the recto facing it. The first recto has
+  ;; no verso before it and stands alone, which is why a book opens on a
+  ;; single page and thereafter in pairs.
+  (define rendered
+    (for/list ([p (in-list (book-pages b))])
+      (cons (page-ref-recto? (page-pref p))
+            (render-page-html p (book-format-columns (book-fmt b)) readings
+                              (book-format-measure-ems (book-fmt b))
+                              (hash-ref folios (page-sig p) #f)
+                              (book-format-lines (book-fmt b))
+                              (book-fmt b)))))
   (define pages
-    (apply string-append
-           (for/list ([p (in-list (book-pages b))])
-             (render-page-html p (book-format-columns (book-fmt b)) readings
-                               (book-format-measure-ems (book-fmt b))
-                               (hash-ref folios (page-sig p) #f)
-                               (book-format-lines (book-fmt b))))))
+    (let loop ([ps rendered] [out '()])
+      (cond
+        [(null? ps) (apply string-append (reverse out))]
+        [(and (car (car ps)) (pair? (cdr ps)) (not (car (cadr ps))))
+         ;; a recto with its verso following is the wrong way round; the
+         ;; opening is verso then recto, so a recto begins one only when
+         ;; nothing precedes it
+         (loop (cdr ps)
+               (cons (format "<div class=\"opening\">~a</div>" (cdr (car ps))) out))]
+        [(and (not (car (car ps))) (pair? (cdr ps)) (car (cadr ps)))
+         (loop (cddr ps)
+               (cons (format "<div class=\"opening\">~a~a</div>"
+                             (cdr (car ps)) (cdr (cadr ps)))
+                     out))]
+        [else
+         (loop (cdr ps)
+               (cons (format "<div class=\"opening\">~a</div>" (cdr (car ps))) out))])))
   (format #<<HTML
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -540,6 +610,30 @@ HTML
   <span>Hover any word for its history.</span>
   <button onclick="document.body.classList.toggle('plain')">show the page plain</button>
 </div>
+<script>
+/* Light up every page of a unit at once. A leaf is two pages and they face
+   away from one another, so they are never both visible; a sheet's pages are
+   scattered through the gathering; a forme's are on opposite sides of the
+   book. Showing them together is the only way to see what the pressman
+   handled as one piece of paper. */
+document.addEventListener('mouseover', function (e) {
+  var b = e.target.closest && e.target.closest('.unit span');
+  if (!b) return;
+  var leaf = b.closest('.leaf'), kind = b.dataset.unit;
+  var key = kind === 'forme' ? leaf.dataset.forme
+          : kind === 'sheet' ? leaf.dataset.sheet : leaf.dataset.leaf;
+  document.querySelectorAll('.leaf').forEach(function (p) {
+    if (p.dataset[kind] === key) p.classList.add('lit-' + kind);
+  });
+});
+document.addEventListener('mouseout', function (e) {
+  var b = e.target.closest && e.target.closest('.unit span');
+  if (!b) return;
+  document.querySelectorAll('.leaf').forEach(function (p) {
+    p.classList.remove('lit-leaf', 'lit-sheet', 'lit-forme');
+  });
+});
+</script>
 ~a
 ~a
 <div class="stats">
