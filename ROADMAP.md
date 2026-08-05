@@ -149,6 +149,28 @@ program still cannot check itself.
 
 ### Still wanted
 
+- [ ] **Watermarks and chain-lines.** A can of worms of its own, and the
+      evidence that half the rest of this depends on. Every test in McKerrow's
+      cancel checklist that this program cannot yet run is a paper test:
+      "if the paper appears to be different" (p. 224), and the chain-line
+      comparison of a leaf against its conjugate — "if the gatherings are of
+      four leaves, compare the first with the fourth, the second with the
+      third … Are the chain-lines the same distance apart? If not, one of the
+      two leaves must be a cancel."
+
+      It is also how Bowers *proved* the cut-out preliminaries of Sandys's
+      Ovid: the two printed leaves "are always disjunct and have any watermark
+      on the outer edges of the two leaves, **an impossibility if they had been
+      printed as a fold** in the cut-off." The program now records whether a
+      cut-out pair was conjugate or disjunct, so the fact the watermark would
+      betray is already in the file; what is missing is the paper that would
+      betray it.
+
+      Wanted: a paper stock with a mould and a twin, watermarks falling in the
+      half-sheet the mould put them in, chain-lines at a spacing per mould, and
+      Blayney's own table of watermarks by sheet and copy (Appendix II, no. 56)
+      as the thing to reproduce.
+
 - [ ] **Correlated press-variant states between copies.** The finding above,
       built. `press.rkt` should gather each copy from the tops of the heaps in
       signature order rather than rolling every forme independently, and record

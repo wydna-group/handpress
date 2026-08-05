@@ -11,7 +11,7 @@
 (require racket/list racket/string racket/math racket/set
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt" "pagination.rkt"
-         "prelims.rkt" "titlepage.rkt" "binding.rkt" "import.rkt"
+         "prelims.rkt" "titlepage.rkt" "binding.rkt" "cancels.rkt" "import.rkt"
          "press.rkt" "render.rkt")
 
 (provide (struct-out page-evidence)
@@ -833,7 +833,49 @@ TEXT
               [(no-room) "There was not enough white paper left in the last sheet to take it."]
               [else "There was room, but the preliminaries take the same number of leaves either way, so nothing would have been saved."]))
            ""))
+   (if r (cancel-section b r) "")
    (if r (binding-section b r) "")))
+
+(define (cancel-section b r)
+  (define cp (press-run-cancels r))
+  (define cs (cancel-plan-cancels cp))
+  (string-append
+   "
+CANCELS
+"
+   (make-string 74 #\─) "
+
+"
+   (if (null? cs)
+       "No leaf was cancelled.
+
+"
+       (string-append
+        (format "~a lea~a cut out and replaced.
+
+" (length cs)
+                (if (= 1 (length cs)) "f" "ves"))
+        (apply string-append
+               (for/list ([c (in-list cs)]) (format "  ~a" (cancel-note c))))
+        "
+"))
+   (wrap (string-append
+          "The purpose of a cancel is not simulated and is not claimed to be. "
+          "McKerrow does not attempt it either: \"into the purpose of these "
+          "cancels we need not enter ... the point at present is the aid that "
+          "bibliography gives us in detecting them\" (p. 223). What is modelled "
+          "is the trace — the leaf cut out, the stub left for the replacement to "
+          "be pasted to, the white paper the replacement was printed on, and "
+          "the marks by which McKerrow says a cancel may be detected. Five of "
+          "his six are here; the sixth is the paper, and this program has none.")
+         74)
+   "
+"
+   (apply string-append
+          (for/list ([n (in-list (cancel-plan-notes cp))])
+            (string-append "
+" (wrap n 74) "
+")))))
 
 (define (binding-section b r)
   (define copies (press-run-copies r))

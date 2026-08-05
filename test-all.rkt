@@ -40,6 +40,7 @@
            (submod "prelims.rkt" test)
            (submod "titlepage.rkt" test)
            (submod "binding.rkt" test)
+           (submod "cancels.rkt" test)
            (submod "corrector.rkt" test)
            (submod "lexicon.rkt" test)
            (submod "orthography.rkt" test)

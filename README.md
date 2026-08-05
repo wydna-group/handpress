@@ -27,6 +27,8 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [What is modelled](#what-is-modelled)
 - [Reading the copy](#reading-the-copy)
 - [The preliminaries](#the-preliminaries)
+- [The last sheet](#the-last-sheet)
+- [Cancels](#cancels)
 - [Gathering, folding and binding](#gathering-folding-and-binding)
 - [The lexicon](#the-lexicon)
 - [Calibration](#calibration)
@@ -123,6 +125,9 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--no-contents` | do not build a table of contents from the document's own headings |
 | `--jaggard-alphabet` | sign from Jaggard's twenty letters, omitting X, Y and Z |
 | `--binding-error` | faults per gathering per copy at the folding — **no source gives a rate** |
+| `--cancels` | leaves cancelled for reasons outside the simulation |
+| `--cancel-rate` | chance an error surviving the proof is thought worth cutting a leaf out for |
+| `--imprint-change` | re-issue with the bookseller's name altered: a cancel title |
 | `--edition` | sheets printed; the Cambridge accounts show 400–820 |
 | `--copies` | how many made-up copies to collate for press variants |
 
@@ -339,6 +344,74 @@ a shop is given on 40 of 81, half as *and are to be sold at his shop in* and
 half as *dwelling in*; and about half the dates are set with the figures spaced
 apart — `1 6 0 8.` — because the last line of an imprint is short and the
 figures were quadded out to fill it.
+
+### The last sheet
+
+It costs as much to print part of a sheet as a whole one, so the end of a book
+is governed by an economy that decides where the preliminaries go and what
+becomes of the white paper. McKerrow, p. 159:
+
+> as it costs practically as much to print part of a sheet as a complete one,
+> it was always to the printer's interest to make up a complete sheet whenever
+> he could
+
+A text that stops two leaves short of the end of its last sheet, in a house
+with two leaves of preliminaries still to print, does not print a separate
+half-sheet and leave two leaves white. It prints the preliminaries **in** the
+white leaves and cuts them out:
+
+> he will as a matter of course impose these preliminaries in the middle of his
+> last sheet, which may therefore run, as actually printed (supposing it to be
+> in fours), **Z1, [\*], \*2, Z2, the two centre leaves being cut out to be used
+> as preliminaries**. Such a book will be described as `*², A–Y⁴, Z²`, quite
+> correctly. (p. 158–9)
+
+The program does this, and the collation comes out short in exactly the leaves
+that went. Cut from the centre they come off as a conjugate fold; cut from the
+tail they come off disjunct — which is how Bowers *proved* it of Sandys's Ovid,
+where the preliminary leaves "are always disjunct and have any watermark on the
+outer edges of the two leaves, an impossibility if they had been printed as a
+fold in the cut-off." The program records which; the paper that would betray it
+is [on the roadmap](ROADMAP.md).
+
+It is a tendency, not a law, and both authorities say so. McKerrow: "we must
+not assume that a printer would in every case economize his labour and paper in
+this fashion: it might sometimes have been more convenient to have the two
+extra leaves as covers or end-papers." Bowers, from the other side: "Even when
+normal printing practice might lead one to expect economical machining without
+blanks, it is dangerous, lacking proof, to assume their absence." So the
+program does it three times in four and leaves the paper white otherwise.
+
+### Cancels
+
+A leaf cut out and another pasted to the stub. The obvious objection is that
+cancels happen for reasons no simulation can produce — the Privy Council took
+exception to *Eastward Ho*. McKerrow gets there first and settles it:
+
+> **Into the purpose of these cancels we need not enter.** There may have been
+> in the original print something so grossly incorrect that it was too much for
+> even the easy-going printer of the day — or for the author; or, as often in
+> early times, there may have been something that the authorities found
+> objectionable. **The point at present is the aid that bibliography gives us
+> in detecting them.** (p. 223)
+
+So the cause is a parameter and the trace is a simulation. Three causes, of
+which only the first is modelled in the strong sense:
+
+- **an error the program made itself** and its own corrector missed — the run
+  knows what the error was and knows the proof went by without it (`--cancel-rate`)
+- **a change of imprint** — the same setting with the bookseller's name
+  altered, which is why a cancel title is commoner than any other kind
+  (`--imprint-change`)
+- **anything else** — `--cancels N`, a count and not a model, labelled as such
+  in the report
+
+The trace is complete: the leaf cut out leaving a stub, the replacement printed
+in the white paper at the end of a gathering — Gaskell has Rousseau's publisher
+"encourag[ing] the author to use up the blank leaves of final sheets for
+printing cancels" — or costing a half-sheet of its own when there is none. And
+five of McKerrow's six detection tests (p. 224) are generated as properties of
+the particular leaf. The sixth is the paper.
 
 ### Gathering, folding and binding
 

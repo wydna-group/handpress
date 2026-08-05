@@ -25,7 +25,7 @@
          (struct-out standing-type) (struct-out gathering-plan)
          make-house set-book
          page-sig page-all-lines page-text book-gatherings book-collation
-         book-find-page book-runs PRELIM-SCHEMES)
+         book-find-page book-runs plan-bound-leaves PRELIM-SCHEMES)
 
 ;; The field is `pref', not `ref': `page-ref' is already the struct that names
 ;; a leaf and side in imposition.rkt, and two bindings of that name in one
@@ -43,7 +43,8 @@
 
 (struct book (pages formes skeletons fmt events stints case title
                     copy-units authors-copy preparation standing paging
-                    plans division titlepage prelim-scheme moved-to-end)
+                    plans division titlepage prelim-scheme moved-to-end
+                    cut-from-last-sheet?)
   #:transparent)
 
 ;; The high-water mark of standing type, and the page-by-page ledger behind it.
@@ -356,7 +357,24 @@
 ;; to hold. `place' is its position in the finished book; the order in which
 ;; the plans are worked is a different order, because the preliminaries are
 ;; printed last.
-(struct gathering-plan (role series index leaves segments place) #:transparent)
+;; `excised' names the leaves of this gathering that were printed with it and
+;; then cut out, to be bound somewhere else. `shares' is the other side of the
+;; same fact: a plan that is a view of leaves belonging physically to another
+;; gathering, and which therefore has no formes and no presswork of its own.
+;; `overrides' signs individual leaves from a different series.
+(struct gathering-plan (role series index leaves segments place
+                             excised shares overrides conjugate?)
+  #:transparent)
+
+(define (plan leaves segments place role series index
+              #:excised [excised '()] #:shares [shares #f]
+              #:overrides [overrides (hash)] #:conjugate? [conj? #t])
+  (gathering-plan role series index leaves segments place
+                  excised shares overrides conj?))
+
+;; What the binder ends with, which is not what the pressman printed.
+(define (plan-bound-leaves p)
+  (- (gathering-plan-leaves p) (length (gathering-plan-excised p))))
 
 ;; How the preliminaries are signed.
 ;;
@@ -442,9 +460,8 @@
         [else
          (define n (* 2 (car ls)))
          (loop (cdr ls) (cdr ss) (drop segs (min n (length segs))) (add1 place)
-               (cons (gathering-plan 'prelim (car (car ss)) (cdr (car ss))
-                                     (car ls) (take segs (min n (length segs)))
-                                     place)
+               (cons (plan (car ls) (take segs (min n (length segs))) place
+                           'prelim (car (car ss)) (cdr (car ss)))
                      out))])))
   (define text-plans
     (let loop ([k 0] [segs text-segs] [out '()])
@@ -452,14 +469,134 @@
         [(>= k body-gatherings) (reverse out)]
         [else
          (loop (add1 k) (drop segs (min pages-per (length segs)))
-               (cons (gathering-plan 'text main (+ text-start k)
-                                     (book-format-leaves fmt)
-                                     (take segs (min pages-per (length segs)))
-                                     (+ n-front k))
+               (cons (plan (book-format-leaves fmt)
+                           (take segs (min pages-per (length segs)))
+                           (+ n-front k) 'text main (+ text-start k))
                      out))])))
   (values front-plans text-plans scheme))
 
+;; ---------------------------------------------------------------------------
+;; The last sheet
+;; ---------------------------------------------------------------------------
+;; The economy that governs the end of every book, and the reason a
+;; bibliographer is told to work the collation backwards.
+;;
+;;   "as it costs practically as much to print part of a sheet as a complete
+;;   one, it was always to the printer's interest to make up a complete sheet
+;;   whenever he could." (McKerrow, p. 159)
+;;
+;; So a text that stops two leaves short of the end of its last sheet, in a
+;; house that has two leaves of preliminaries still to print, does not print a
+;; separate half-sheet and leave two leaves white. It prints the preliminaries
+;; in the white leaves and cuts them out:
+;;
+;;   "he will as a matter of course impose these preliminaries in the middle of
+;;   his last sheet, which may therefore run, as actually printed (supposing it
+;;   to be in fours), Z1, [*], *2, Z2, the two centre leaves being cut out to be
+;;   used as preliminaries. Such a book will be described as *2, A-Y4, Z2,
+;;   quite correctly." (p. 158-9)
+;;
+;; And where the preliminaries are a single title-leaf: "the printer would be
+;; quite likely to print it Z1, Z2, Z3, [-], cutting off his last leaf to form
+;; the title."
+;;
+;; McKerrow's own reason for pressing the point is that the alternative makes
+;; bibliographers record leaves that never existed -- "*1 and Z4 wanting,
+;; probably blanks, thus inventing two blank leaves which in fact never
+;; existed." This program was doing precisely that: it always gave the
+;; preliminaries a sheet of their own and left the tail of the text white.
+;;
+;; Two things keep it honest. It is a tendency and not a law -- "we must not
+;; assume that a printer would in every case economize his labour and paper in
+;; this fashion: it might sometimes have been more convenient to have the two
+;; extra leaves as covers or end-papers" -- and Bowers puts the same caution
+;; the other way about: "Even when normal printing practice might lead one to
+;; expect economical machining without blanks, it is dangerous, lacking proof,
+;; to assume their absence."
+(define CUT-OUT-SHARE 0.75)
+
+;; Fold the preliminaries into the white leaves of the last text sheet, where
+;; they will go and where the house chooses to do it. Returns the plans
+;; rearranged, or #f if the economy does not apply.
+(define (cut-from-last-sheet fmt g front-plans text-plans)
+  (define last-text (and (pair? text-plans) (last text-plans)))
+  (define n-front-leaves (for/sum ([p (in-list front-plans)]) (gathering-plan-leaves p)))
+  ;; The white leaves at the tail of the last text gathering: pages with no
+  ;; copy in them.
+  (define white
+    (and last-text
+         (let ([segs (gathering-plan-segments last-text)])
+           (let count ([xs (reverse segs)] [k 0])
+             (if (and (pair? xs) (null? (cast-off-segment-units (car xs))))
+                 (count (cdr xs) (add1 k))
+                 k)))))
+  (define white-leaves (and white (quotient white 2)))
+  (cond
+    [(or (not last-text) (null? front-plans)) #f]
+    [(< white-leaves n-front-leaves) #f]
+    ;; the house may still prefer the two spare leaves as covers or endpapers
+    [(> (rnd g) CUT-OUT-SHARE) #f]
+    [else
+     (define total (book-format-leaves fmt))
+     ;; The centre of the sheet, which is where McKerrow says they go: in a
+     ;; quarto in fours the middle two leaves are a conjugate pair, so the
+     ;; preliminaries come off as a fold and their fellows Z1.Z2 stay one.
+     ;; Where the count will not centre -- a single leaf, or an odd number --
+     ;; they are cut from the tail instead and come off disjunct, which is the
+     ;; case Bowers proved from the watermarks of Sandys's Ovid.
+     (define centred?
+       (and (even? n-front-leaves)
+            (even? (- total n-front-leaves))
+            (<= n-front-leaves (- total 2))))
+     (define first-cut
+       (if centred?
+           (add1 (quotient (- total n-front-leaves) 2))
+           (add1 (- total n-front-leaves))))
+     (define cut-leaves
+       (for/list ([i (in-range n-front-leaves)]) (+ first-cut i)))
+     ;; Which series signs each cut leaf, and its number in that series.
+     (define overrides
+       (let loop ([ps front-plans] [cuts cut-leaves] [h (hash)])
+         (cond
+           [(null? ps) h]
+           [else
+            (define p (car ps))
+            (loop (cdr ps) (drop cuts (gathering-plan-leaves p))
+                  (for/fold ([h h]) ([leaf (in-range (gathering-plan-leaves p))])
+                    (hash-set h (list-ref cuts leaf)
+                              (list (gathering-plan-series p)
+                                    (gathering-plan-index p)
+                                    (add1 leaf)))))])))
+     ;; The preliminary copy goes into the white pages, in place.
+     (define front-segs (append* (map gathering-plan-segments front-plans)))
+     (define pages-of-cut
+       (append* (for/list ([leaf (in-list cut-leaves)])
+                  (list (sub1 (* 2 leaf)) (* 2 leaf)))))
+     (define filled
+       (let ([v (list->vector (gathering-plan-segments last-text))])
+         (for ([page (in-list pages-of-cut)] [s (in-list front-segs)])
+           (when (<= page (vector-length v))
+             (vector-set! v (sub1 page) s)))
+         (vector->list v)))
+     (define new-last
+       (struct-copy gathering-plan last-text
+                    [segments filled]
+                    [excised cut-leaves]
+                    [overrides overrides]))
+     ;; The preliminary plans become views: bound first, printed with sheet Z,
+     ;; and owning no formes of their own.
+     (define views
+       (for/list ([p (in-list front-plans)])
+         (struct-copy gathering-plan p
+                      [segments '()]
+                      [shares (gathering-plan-place last-text)]
+                      [conjugate? centred?])))
+     (list views
+           (append (drop-right text-plans 1) (list new-last)))]))
+
 ;; The collation formula, built from the plans in the order they are bound.
+;; A gathering is described by the leaves it *keeps*, not the leaves it was
+;; printed with, which is what makes McKerrow's example come out as Z².
 (define (plans->runs ps)
   (let loop ([ps ps] [out '()])
     (cond
@@ -477,7 +614,7 @@
        (loop (list-tail ps same)
              (cons (sig-run s (gathering-plan-index (car ps))
                             (for/list ([p (in-list (take ps same))])
-                              (gathering-plan-leaves p)))
+                              (plan-bound-leaves p)))
                    out))])))
 
 ;; ---------------------------------------------------------------------------
@@ -637,12 +774,24 @@
               (for/list ([i (in-range (- want n))])
                 (cast-off-segment (+ n i) '() 0 "blank")))))
 
-  (define-values (front-plans text-plans prelim-scheme)
+  (define-values (front-plans0 text-plans0 prelim-scheme)
     (make-plans fmt g front-leaves front-padded body-gatherings text-segs
                 (house-sig-alphabet h)))
-  ;; Reading order for the finished book; printing order for the shop.
+  ;; McKerrow's economy: where the text stops short of the end of its last
+  ;; sheet and the preliminaries will fit in the white leaves, they are printed
+  ;; there and cut out, rather than costing a sheet of their own.
+  (define cut (cut-from-last-sheet fmt g front-plans0 text-plans0))
+  (define front-plans (if cut (first cut) front-plans0))
+  (define text-plans (if cut (second cut) text-plans0))
+  (define cut-out? (and cut #t))
+
+  ;; Reading order for the finished book; printing order for the shop. A plan
+  ;; that shares another gathering's sheet is not worked on its own: its pages
+  ;; are set and printed with the sheet it was cut from.
   (define plans (append front-plans text-plans))
-  (define printing-plans (append text-plans front-plans))
+  (define printing-plans
+    (filter (lambda (p) (not (gathering-plan-shares p)))
+            (append text-plans front-plans)))
 
   (define skeletons
     (make-skeletons (house-n-skeletons h)
@@ -745,7 +894,8 @@
       (for/hash ([r (in-list (page-refs fmt gathering
                                         (gathering-plan-series plan)
                                         (gathering-plan-index plan)
-                                        #:leaves leaves))])
+                                        #:leaves leaves
+                                        #:overrides (gathering-plan-overrides plan)))])
         (values (page-ref-number r) r)))
     (define formes
       (formes-for-gathering fmt gathering (gathering-plan-series plan)
@@ -849,12 +999,29 @@
                       (if (house-by-formes? h) '() leftover))]))))
 
   ;; Read in the order the binder will fold them, which puts back in front the
-  ;; matter that was set last.
-  (define ordered
-    (for*/list ([plan (in-list plans)]
-                [p (in-range 1 (add1 (* 2 (gathering-plan-leaves plan))))]
-                #:when (hash-has-key? pages (cons (gathering-plan-place plan) p)))
-      (hash-ref pages (cons (gathering-plan-place plan) p))))
+  ;; matter that was set last -- and, where the preliminaries were cut out of
+  ;; the last sheet, moves those leaves from the end of the book to its front.
+  (define (pages-of pl)
+    (define place (or (gathering-plan-shares pl) (gathering-plan-place pl)))
+    (define owner
+      (for/or ([q (in-list plans)])
+        (and (= (gathering-plan-place q) place) (not (gathering-plan-shares q)) q)))
+    (define wanted
+      (cond
+        ;; a view: only the leaves that were cut out of the sheet it shares
+        [(gathering-plan-shares pl)
+         (append* (for/list ([leaf (in-list (gathering-plan-excised
+                                             (or owner pl)))])
+                    (list (sub1 (* 2 leaf)) (* 2 leaf))))]
+        ;; a real gathering: everything except what was cut out of it
+        [else
+         (for/list ([p (in-range 1 (add1 (* 2 (gathering-plan-leaves pl))))]
+                    #:unless (memv (quotient (add1 p) 2) (gathering-plan-excised pl)))
+           p)]))
+    (for/list ([p (in-list wanted)]
+               #:when (hash-has-key? pages (cons place p)))
+      (hash-ref pages (cons place p))))
+  (define ordered (append* (map pages-of plans)))
 
   (define with-catchwords (add-catchwords ordered))
   (define with-titles (add-running-titles with-catchwords all-formes fmt))
@@ -875,7 +1042,7 @@
         tc (house-title h) units authors-copy prepared
         (standing-type peak-sorts peak-pages (reverse ledger)
                        (house-by-formes? h))
-        paging plans div tp prelim-scheme migration))
+        paging plans div tp prelim-scheme migration cut-out?))
 
 ;; ---------------------------------------------------------------------------
 
@@ -1086,7 +1253,11 @@
   ;; A-Z straight through: it opens with a half-sheet in whatever series the
   ;; house signs its front matter with, and the text follows in the main.
   (check-regexp-match #px"^4°: " (book-collation b))
-  (check-regexp-match #px"A⁴" (book-collation b))
+  ;; The text is in the main series. Its *extent* is not asserted, because a
+  ;; gathering whose white leaves were used for the preliminaries and cut out
+  ;; is bound short: this sample comes out 4°: *² A², which is McKerrow's
+  ;; *2, A-Y4, Z2 in miniature.
+  (check-regexp-match #px"A[¹²³⁴⁵⁶⁷⁸]" (book-collation b))
 
   ;; A house that sets no title-page and looks for no preliminaries is the
   ;; book this program used to make, and still makes: one series, from A.
@@ -1164,8 +1335,50 @@
                                            (gathering-plan-series (car (book-plans b)))
                                            (gathering-plan-index (car (book-plans b))))))
                 (forme-order fm))])
-    (check-true (> (apply min front) (apply max rest))
-                "the preliminaries were the last thing set"))
+    ;; Either the preliminaries had formes of their own, and those were the
+    ;; last to press; or they had none at all, because they were printed in
+    ;; the white leaves of the last sheet and cut out -- which is the same
+    ;; fact about the order of work, arrived at more cheaply.
+    (cond
+      [(pair? front)
+       (check-true (> (apply min front) (apply max rest))
+                   "the preliminaries were the last thing set")]
+      [else
+       (check-true (book-cut-from-last-sheet? b)
+                   "preliminaries with no formes of their own were cut from the last sheet")]))
+
+  ;; McKerrow's economy, end to end. A book whose text stops short of the end
+  ;; of its last sheet does not pay for a preliminary half-sheet: the
+  ;; preliminaries go in the white leaves and are cut out, and the collation
+  ;; then shows the last gathering short by exactly the leaves that went.
+  (let scan ([seed 0])
+    (cond
+      [(> seed 40) (fail "no seed in 40 cut the preliminaries from the last sheet")]
+      [else
+       (define cb (set-book (make-house #:fmt QUARTO #:seed seed) sample))
+       (cond
+         [(not (book-cut-from-last-sheet? cb)) (scan (add1 seed))]
+         [else
+          (define ps (book-plans cb))
+          (define views (filter gathering-plan-shares ps))
+          (define owners (filter (lambda (p) (pair? (gathering-plan-excised p))) ps))
+          (check-true (pair? views) "the preliminaries became a view of another sheet")
+          (check-true (pair? owners) "some gathering had leaves cut out of it")
+          ;; the leaves cut out are exactly the leaves the view claims
+          (check-equal? (for/sum ([v (in-list views)]) (gathering-plan-leaves v))
+                        (for/sum ([o (in-list owners)]) (length (gathering-plan-excised o))))
+          ;; the sheet was printed whole and is bound short
+          (define owner (car owners))
+          (check-equal? (plan-bound-leaves owner)
+                        (- (gathering-plan-leaves owner)
+                           (length (gathering-plan-excised owner))))
+          (check-true (< (plan-bound-leaves owner) (gathering-plan-leaves owner)))
+          ;; and the cut leaves are bound at the front, signed in their own
+          ;; series, exactly as McKerrow's *2, A-Y4, Z2
+          (check-equal? (page-sig (car (book-pages cb)))
+                        (format "~a1r" (series-mark (gathering-plan-series (car views))
+                                                    (gathering-plan-index (car views)))))
+          (check-regexp-match #px"^4°: " (book-collation cb))])]))
 
   ;; No line anywhere overhangs its measure. `make-line' would have raised,
   ;; so reaching here at all is the check; assert it explicitly anyway.

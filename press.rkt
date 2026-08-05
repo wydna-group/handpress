@@ -47,8 +47,8 @@
 ;;; variant at all. So the catalogue of press variants, however many copies
 ;;; are collated, records only the corrections made too late.
 
-(require racket/list racket/string racket/math
-         "compositor.rkt" "book.rkt" "imposition.rkt" "binding.rkt"
+(require racket/list racket/string racket/math racket/set
+         "compositor.rkt" "book.rkt" "imposition.rkt" "binding.rkt" "cancels.rkt"
          "rng.rkt" "lexicon.rkt"
          (only-in "orthography.rkt" split-point))
 
@@ -91,7 +91,8 @@
            (for/sum ([p (in-list ps)])
              (if (string=? (page-signature p) "") 0 1)))))
 
-(struct press-run (states copies events silent-readings edition binding-error)
+(struct press-run (states copies events silent-readings edition binding-error
+                          cancels)
   #:transparent)
 
 (define (run-variants r)
@@ -143,6 +144,17 @@
                    ;; No source gives one; see binding.rkt, which says so at
                    ;; length and prints the disclaimer beside every fault.
                    #:binding-error [binding-error BINDING-ERROR-RATE]
+                   ;; How often an error that survived the proof is thought
+                   ;; worth cutting a leaf out for. Zero by default: a cancel
+                   ;; is a deliberate and expensive act, and this program does
+                   ;; not know how grave an error has to be before a shop
+                   ;; committed it.
+                   #:cancel-rate [cancel-rate 0.0]
+                   ;; Leaves cancelled for reasons outside the simulation --
+                   ;; the Privy Council, a withdrawn dedication. A count, not
+                   ;; a model. See cancels.rkt.
+                   #:cancels [external-cancels 0]
+                   #:imprint-change? [imprint-change? #f]
                    #:edition [edition 750])
   (define g (make-rng (+ seed 99)))
 
@@ -347,7 +359,52 @@
        (bind quires #:name nm #:rate binding-error
              #:rng (make-rng (+ seed 9001 (* 31 i)))))))
 
-  (press-run states made (reverse log) silent-readings edition binding-error))
+  ;; What was cut out and replaced. The errors offered as candidates are the
+  ;; ones this run made itself and its own corrector let through, which is the
+  ;; only cause that needs nothing supplied from outside.
+  (define surviving
+    (for*/list ([p (in-list (book-pages b))]
+                [l (in-list (page-all-lines p))]
+                [w (in-list (set-line-words l))]
+                #:unless (string=? (word-composed w) (word-printed w)))
+      (cons (page-sig p) (format "the case gave ~s for ~s"
+                                 (word-printed w) (word-composed w)))))
+  ;; A cancellans is a leaf, so the white paper it can be printed on has to be
+  ;; a leaf blank on both sides -- not merely a blank page, whose other side is
+  ;; very likely printed. Named by the leaf, in the form a collation uses.
+  (define blank-pages
+    (for/set ([p (in-list (book-pages b))]
+              #:when (for/and ([l (in-list (page-all-lines p))])
+                       (null? (set-line-words l))))
+      (page-sig p)))
+  (define white
+    (remove-duplicates
+     (for/list ([p (in-list (book-pages b))]
+                #:when (and (page-ref-recto? (page-pref p))
+                            (set-member? blank-pages (page-sig p))
+                            (set-member? blank-pages
+                                         (string-append
+                                          (substring (page-sig p) 0
+                                                     (sub1 (string-length (page-sig p))))
+                                          "v"))))
+       (substring (page-sig p) 0 (sub1 (string-length (page-sig p)))))))
+  (define cancels
+    (plan-cancels (for/list ([p (in-list (book-pages b))])
+                    (cons (page-sig p)
+                          (for/or ([l (in-list (page-all-lines p))])
+                            (pair? (set-line-words l)))))
+                  #:errors surviving
+                  #:white white
+                  #:rate cancel-rate
+                  #:external external-cancels
+                  #:imprint-change? imprint-change?
+                  #:title-leaf (and (book-titlepage b)
+                                    (pair? (book-pages b))
+                                    (page-sig (car (book-pages b))))
+                  #:rng (make-rng (+ seed 7331))))
+
+  (press-run states made (reverse log) silent-readings edition binding-error
+             cancels))
 
 ;; The readings actually shown by one copy: the silent corrections, which
 ;; every copy has, plus whichever state of each variant forme it was made up

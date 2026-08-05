@@ -72,6 +72,9 @@
                        #:find-prelims? [find-prelims? #f]
                        #:contents? [contents? #t]
                        #:binding-error [binding-error #f]
+                       #:cancel-rate [cancel-rate 0.0]
+                       #:cancels [cancels 0]
+                       #:imprint-change? [imprint-change? #f]
                        #:jaggard? [jaggard? #f]
                        #:pages [pages 0]
                        #:numbers? [numbers? #f]
@@ -148,7 +151,10 @@
   (define b (set-book h copy kind))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
                        #:edition edition
-                       #:binding-error (or binding-error BINDING-ERROR-RATE)))
+                       #:binding-error (or binding-error BINDING-ERROR-RATE)
+                       #:cancel-rate cancel-rate
+                       #:cancels cancels
+                       #:imprint-change? imprint-change?))
   ;; The setting is finished before this point and is not affected by it. The
   ;; parameter governs only how the page is shown -- the same forme read in
   ;; the reader's spelling instead of the compositor's.
@@ -248,6 +254,9 @@
   (define find-prelims? #f)
   (define contents? #t)
   (define binding-error #f)
+  (define cancel-rate 0.0)
+  (define cancels 0)
+  (define imprint-change? #f)
   (define jaggard? #f)
   (define pages 0)
   (define numbers? #f)
@@ -303,6 +312,12 @@
       (set! contents? #f)]
      [("--binding-error") x "faults per gathering per copy at the folding (no source gives a rate)"
       (set! binding-error (string->number x))]
+     [("--cancels") n "leaves cancelled for reasons outside the simulation"
+      (set! cancels (string->number n))]
+     [("--cancel-rate") x "chance that an error surviving the proof is thought worth cutting a leaf out for"
+      (set! cancel-rate (string->number x))]
+     [("--imprint-change") "re-issue with the bookseller's name altered: a cancel title"
+      (set! imprint-change? #t)]
      [("--jaggard-alphabet") "sign from Jaggard's 20 letters, omitting X, Y and Z"
       (set! jaggard? #t)]
      [("--pages") n "show only the first N pages on screen"
@@ -340,6 +355,8 @@
                        #:titlepage? titlepage? #:find-prelims? find-prelims?
                        #:contents? contents?
                        #:binding-error binding-error #:jaggard? jaggard?
+                       #:cancel-rate cancel-rate #:cancels cancels
+                       #:imprint-change? imprint-change?
                        #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
                        #:modern-spelling? modern-spelling? #:scribal? scribal? #:year year

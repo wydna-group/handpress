@@ -200,10 +200,28 @@
     [(= (page-ref-leaf r) 1) (page-ref-mark r)]
     [else (format "~a~a" (page-ref-mark r) (page-ref-leaf r))]))
 
+;; `overrides' lets single leaves of a gathering be signed from a different
+;; series, which is not a curiosity but the commonest economy in the trade.
+;;
+;; McKerrow, p. 158: a printer whose text ends leaving two blank leaves in the
+;; last sheet, and who has two leaves of preliminaries to print, "will as a
+;; matter of course impose these preliminaries in the middle of his last sheet,
+;; which may therefore run, as actually printed (supposing it to be in fours),
+;; Z1, [*], *2, Z2, the two centre leaves being cut out to be used as
+;; preliminaries." One sheet, four leaves, two signature series -- and the
+;; middle two leaves carry * while their fellows carry Z.
+;;
+;; The map is from leaf position in the sheet to (list series index leaf), so
+;; that the second leaf of sheet Z can be the first leaf of the star series.
 (define (page-refs f gathering [series MAIN-SERIES] [index gathering]
-                   #:leaves [leaves (book-format-leaves f)])
+                   #:leaves [leaves (book-format-leaves f)]
+                   #:overrides [overrides (hash)])
   (for/list ([p (in-range 1 (add1 (* 2 leaves)))])
-    (page-ref gathering (quotient (add1 p) 2) (odd? p) p series index)))
+    (define leaf (quotient (add1 p) 2))
+    (define o (hash-ref overrides leaf #f))
+    (if o
+        (page-ref gathering (third o) (odd? p) p (first o) (second o))
+        (page-ref gathering leaf (odd? p) p series index))))
 
 ;; The first half of the leaves of a gathering carry a signature.
 (define (signed-leaves f) (max 1 (quotient (book-format-leaves f) 2)))
