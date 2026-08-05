@@ -17,8 +17,9 @@
 
 (provide (struct-out draw) (struct-out tcase) (struct-out sort-piece)
          make-type-case pick! distribute! distribute-pieces! scarcest
-         case-depletion take!
-         ADJACENT TURNED-PAIRS FOUNT-SORTS
+         case-depletion take! replenish! inversion-boost
+         supply-factor box-fraction
+         ADJACENT TURNED-PAIRS INVERSION-RATES FOUNT-SORTS
          LOWER-CASE-LEFT LOWER-CASE-RIGHT UPPER-CASE-LAY
          damage-vocabulary damage-for damage-phrase CONDITIONS batter!
          note-recurrence! sort-piece-note)
@@ -104,11 +105,45 @@
         #\d #\p  #\p #\d
         #\6 #\9  #\9 #\6))
 
+;; ---------------------------------------------------------------------------
+;; The turn that changes nothing
+;; ---------------------------------------------------------------------------
+;; The pairs above are the turns a *reader* notices, because they hand him a
+;; different letter. There is a second and commoner kind that no reader notices
+;; and no corrector marks, and it is worth far more to the bibliographer.
+;;
+;; Short s set upside down is still short s. It leans the wrong way and its
+;; terminals sit wrong, so it can be picked out of a photograph three centuries
+;; later, but the word reads correctly and the proof passes. Blayney measured
+;; the rate in _King Lear_: "Before sheet L, 's' had been set the right way up
+;; 2,332 times; on only 16 occasions was it inverted", and elsewhere "the rate
+;; in the rest of the book is approximately 1 in 150" (i. 140-1).
+;;
+;; Blayney is careful about the cause, and rejects the obvious one: "The mere
+;; fact that the letter looks fairly similar either way up can hardly account
+;; for the frequency of the error, since a compositor does not usually decide
+;; which way up to set a type by looking at the face. Types were cast with a
+;; nick in the lower edge of the shank, and it is easy enough to detect an
+;; inverted type in the stick by the way in which it interrupts the groove
+;; formed by the lined-up nicks." The face-symmetry explains why the error
+;; *survives* -- nobody catches it -- not why it is made.
+;;
+;; So this is deliberately not a rule about symmetrical letters. It is one
+;; measured rate for one sort, which is all anybody has measured.
+(define INVERSION-RATES (hash #\s (/ 1.0 150)))
+
 ;; The compositor's shifts when a box is empty, in order of preference.
+;;
+;; The three-letter ligatures break in two stages, not one. Okes owned about
+;; eight of them all told, and Blayney observes that "his compositors often set
+;; such letter-groups with a single type followed by a two-letter ligature"
+;; (i. 147) -- so ffi is set f + fi before it is set f + f + i, because the
+;; two-letter ligature is the thing he actually had.
 (define SUBSTITUTIONS
   (hash #\W '("VV") #\w '("vv")
         #\ſ '("s")
-        #\ﬀ '("ff") #\ﬁ '("fi") #\ﬂ '("fl") #\ﬃ '("ffi") #\ﬄ '("ffl")
+        #\ﬀ '("ff") #\ﬁ '("fi") #\ﬂ '("fl")
+        #\ﬃ '("fﬁ" "ffi") #\ﬄ '("fﬂ" "ffl")
         #\J '("I") #\U '("V") #\j '("i") #\u '("v")
         #\ā '("am") #\ē '("em") #\ō '("om") #\ū '("um")
         #\Ā '("Am") #\Ē '("Em") #\Ō '("Om") #\Ū '("Um")))
@@ -116,35 +151,117 @@
 ;; ---------------------------------------------------------------------------
 ;; The bill of type
 ;; ---------------------------------------------------------------------------
-;; Anchored on the eighteenth-century 'full bill' Gaskell gives (p. 37): 3,000
-;; m, 7,000 a, 12,000 e, 400 x, 800 A. The rest are interpolated on those
-;; proportions, adjusted for the letters as they are *printed* rather than as
-;; they are spelt today: under the conventions of the case u does duty for v
-;; inside a word and i for j throughout, so an English fount carries far more
-;; u and i, and very little v or j, than modern frequencies suggest. The long
-;; s takes most of the work of the short.
+;; This was interpolated from the eighteenth-century full bill Gaskell gives
+;; (p. 37) until Blayney supplied something far better: a sort-by-sort count of
+;; the type actually used in an English quarto of 1608.
+;;
+;; Working from type-recurrence, Blayney tabulated how many of every sort stood
+;; in type before each distribution during the printing of _King Lear_ Q1, and
+;; set the maxima against a quarter of Smith's 'standard' bill (_The Printer's
+;; Grammar_, 1755) and against van den Keere's own registre for the roman he
+;; supplied to Plantin in 1571 (i. 145-7, table at 146). Three columns, one of
+;; them measured from a real English book of the right decade:
+;;
+;;        Lear  Smith/4   vdK          Lear  Smith/4   vdK
+;;   a    1479    1750    1250    p     301     400     650
+;;   b     270     400     375    q      23     150     320
+;;   c     361     600     642    r    1230    1250     788
+;;   d     766    1000     658    long-s 343     600     969
+;;   e    2907    3000    1879    s     540     750     450
+;;   f     384     500     240    t    1606    1750    1281
+;;   g     367     400     260    u     812     750    1274
+;;   h    1275    1500     266    v      80     250     250
+;;   i    1046    1500    1875    w     469     400       -
+;;   k     218     250      27    x      15     100     144
+;;   l     770     750     736    y     500     400     148
+;;   m     576     750     850    &      10     100     160
+;;   n    1174    1500    1269
+;;   o    1588    1500    1317   total 19116   22550   18324
+;;
+;; A bill is a fount proportioned to 3,000 m; Smith's quarter-bill weighed
+;; 125-150 lb. Blayney concludes that the roman used for _Lear_ "is unlikely to
+;; have been much more than 120 lb, and may well have been less" (i. 147-8),
+;; against a net total of 21,953 types.
+;;
+;; The figures below are Blayney's Lear maxima, which are a lower bound on the
+;; fount rather than the fount itself, lifted in the four places he says they
+;; must be:
+;;
+;;   * the rare sorts. Okes surely owned more q, x and z than _Lear_ ever put
+;;     in type at once; demand never tested the supply. Raised toward Smith.
+;;   * the capitals. "The figures for capitals differ greatly between Okes and
+;;     Smith, and van den Keere's totals are far closer to those from _Lear_"
+;;     (i. 147) -- so Blayney rules a *tenth* of Smith's bill the right yardstick
+;;     for 1607, not a quarter. Each capital is the greater of the Lear figure
+;;     and Smith/10. An early fount carries about a third of the capitals an
+;;     eighteenth-century one does, relative to lower case.
+;;   * I and W. Lear's I is inflated by cannibalization and by the first-person
+;;     pronoun of dialogue; W was probably bought during the printing, its
+;;     earlier total being 41-4.
+;;   * the long s, which reads far too low at 343 until one notices where the
+;;     rest of it went. Okes's fount had separate sorts for the long-s
+;;     ligatures, and they are counted separately: ſt at 200 is his commonest
+;;     ligature by a wide margin, then ſh at 83 and ſi at 48. This program has
+;;     no ſt sort, so their work falls back on the plain long s and the box has
+;;     to be big enough to do it -- 745 rather than 343. The alternative is to
+;;     model ſt and ſh as sorts in their own right, which is the right answer
+;;     and is on the roadmap.
+;;
+;; Points get the same treatment: Lear's 1,395 against Smith's 2,775, because
+;; "eighteenth-century orthography demanded far more capitals and punctuation
+;; sorts than were normally used in earlier periods" (i. 145). The old bill here
+;; carried better than twice the punctuation a 1608 fount held.
 
 (define lower-bill
-  (hash #\e 12000 #\t 9000 #\a 7000 #\o 8000 #\i 8400 #\n 8000
-        #\ſ 6500 #\s 3500 #\h 6400 #\r 6200 #\d 4400 #\l 4000
-        #\c 3000 #\u 4200 #\m 3000 #\w 2400 #\f 2300 #\g 2000
-        #\y 2000 #\p 1900 #\b 1600 #\v 600 #\k 800 #\x 400
-        #\j 60 #\q 150 #\z 100
-        #\ﬀ 400 #\ﬁ 500 #\ﬂ 300 #\ﬃ 120 #\ﬄ 100
-        #\. 2000 #\, 3000 #\; 700 #\: 900 #\? 400 #\! 200
-        #\' 500 #\- 600 #\( 200 #\) 200
-        #\ā 60 #\ē 120 #\ī 40 #\ō 60 #\ū 40
-        #\Ā 20 #\Ē 30 #\Ī 15 #\Ō 20 #\Ū 15
-        #\ᵉ 80 #\ᵗ 60 #\ᶜ 40 #\ʰ 40 #\ˢ 30 #\ʳ 30))
+  (hash #\e 2907 #\t 1606 #\o 1588 #\a 1479 #\r 1230 #\h 1275
+        #\n 1174 #\i 1046 #\u 812  #\l 770  #\d 766  #\ſ 745
+        #\m 576  #\s 540  #\y 500  #\w 469  #\f 384  #\g 367
+        #\c 361  #\p 301  #\b 270  #\k 218  #\v 80   #\q 60
+        #\x 40   #\z 30   #\j 8
+        ;; Blayney, i. 147: "The _Lear_ maxima for ligatures are all lower than
+        ;; Smith's figures, most noticeably in the case of three-letter
+        ;; ligatures. I do not believe that the 8 shown in the table constituted
+        ;; Okes's entire stock, but it is evident that he owned very few. The
+        ;; fact that his compositors often set such letter-groups with a single
+        ;; type followed by a two-letter ligature could be the cause of the low
+        ;; apparent total, but is more likely to be the result of a shortage."
+        ;; Hence the three-letter ligatures are scarce and SUBSTITUTIONS breaks
+        ;; them the way his men did.
+        #\ﬀ 18 #\ﬁ 48 #\ﬂ 71 #\ﬃ 8 #\ﬄ 6
+        ;; Points, from van den Keere's registre rather than from Lear, and for
+        ;; a reason Blayney gives: "Early printers evidently considered many
+        ;; roman and italic points to be interchangeable (with each other and to
+        ;; some extent with textura), and it may have been usual for printers to
+        ;; treat punctuation as Okes treated it - as the common property of all
+        ;; founts of the same body-size. Okes's stock of roman punctuation sorts
+        ;; was lower than suggested either by Smith or by van den Keere. His new
+        ;; roman stock was even lower, for it is evident that some of the
+        ;; Snowdons' roman points were still in use" (i. 147).
+        ;;
+        ;; So the Lear column undercounts these worse than any other part of the
+        ;; table: it is one fount's share of a stock the whole house drew on.
+        ;; The compositor reaches into a box holding all the pica commas in the
+        ;; shop, and van den Keere's figures for a real 1571 fount are the
+        ;; nearest thing to that total.
+        #\. 386 #\, 612 #\; 109 #\: 126 #\? 30 #\! 12
+        #\' 54  #\- 257 #\( 19  #\) 50
+        ;; Not in Blayney's table: the fount would have carried a few of these
+        ;; and no more. A house with fifteen tilde vowels cannot set many.
+        #\ā 12 #\ē 20 #\ī 8 #\ō 12 #\ū 8
+        #\Ā 4  #\Ē 6  #\Ī 3 #\Ō 4  #\Ū 3
+        #\ᵉ 16 #\ᵗ 12 #\ᶜ 8 #\ʰ 8 #\ˢ 6 #\ʳ 6))
 
+;; The greater of Lear's measured maximum and a tenth of Smith's bill; see
+;; above. J and U are near-absent by the conventions of the case, not by
+;; accident of supply.
 (define upper-bill
-  (hash #\A 800 #\B 500 #\C 600 #\D 500 #\E 600 #\F 450 #\G 400
-        #\H 500 #\I 900 #\K 250 #\L 500 #\M 600 #\N 500 #\O 600
-        #\P 450 #\Q 200 #\R 450 #\S 700 #\T 800 #\V 400 #\W 240
-        #\X 120 #\Y 250 #\Z 80 #\J 90 #\U 120
-        #\& 300 #\— 200 #\¶ 60 #\§ 60 #\* 80
-        #\0 200 #\1 250 #\2 220 #\3 200 #\4 180
-        #\5 180 #\6 170 #\7 170 #\8 170 #\9 170))
+  (hash #\A 80  #\B 50  #\C 60  #\D 50  #\E 80  #\F 50  #\G 60
+        #\H 60  #\I 160 #\K 50  #\L 50  #\M 50  #\N 60  #\O 60
+        #\P 60  #\Q 30  #\R 60  #\S 60  #\T 107 #\V 50  #\W 63
+        #\X 20  #\Y 50  #\Z 20  #\J 6   #\U 8
+        #\& 40  #\— 30 #\¶ 10 #\§ 10 #\* 14
+        #\0 30 #\1 40 #\2 34 #\3 30 #\4 28
+        #\5 28 #\6 26 #\7 26 #\8 26 #\9 26))
 
 ;; ---------------------------------------------------------------------------
 ;; Reach: why foul case is not uniform across the alphabet
@@ -183,11 +300,27 @@
 
 ;; Sorts in a fount as the founder delivered it.
 ;;
-;; A useful anchor: Jaggard printed the whole of the First Folio from a worn
-;; fount of pica that "can have weighed no more than about 90 kg. (200 lb.)"
-;; (Gaskell, p. 38, calculating from Hinman), and 100,000 pieces of pica run
-;; to about 180 kg. So the Folio was set from roughly 50,000 sorts.
-(define FOUNT-SORTS 60000)
+;; This stood at 60,000 on the strength of one anchor at the top of the trade:
+;; Jaggard printed the whole of the First Folio from a worn pica that "can have
+;; weighed no more than about 90 kg. (200 lb.)" (Gaskell, p. 38, calculating
+;; from Hinman), which at about 180 kg per 100,000 pieces makes roughly 50,000
+;; sorts. But that is the largest printing house in London working in folio,
+;; and it was the wrong end of the trade to calibrate a quarto on.
+;;
+;; Blayney counted the other end. Nicholas Okes set the whole of _King Lear_ Q1
+;; from a fount whose net total was 21,953 types, weighing "unlikely to have
+;; been much more than 120 lb, and may well have been less" (i. 147-8) -- about
+;; a quarter of a bill. He "did not own a very large stock of type. It can be
+;; estimated that his books of 1607-8 could have been printed with a minimum of
+;; about 120 lb each of his most frequently-used founts. He may, of course,
+;; have owned more than the bare minimum, but many of his books testify to
+;; local shortages of one sort or another, and it seems unlikely that he would
+;; have owned much more than he used" (i. 94).
+;;
+;; So the default is now the small quarto house, not the great folio house, and
+;; the case runs short because Okes's case ran short. Pass --case-scale 2.3 for
+;; something on Jaggard's footing.
+(define FOUNT-SORTS 22000)
 
 (define total-weight
   (+ (for/sum ([(k v) (in-hash lower-bill)]) v)
@@ -270,19 +403,82 @@
 ;; the question of how much type a gathering eats: a sort whose low-water mark
 ;; is near its bill was never in danger, and one that touches nought is a sort
 ;; the house was short of, which is why `w' comes to be set as `VV'.
+;; `inverted' holds any batch of new type lately added to a box that was cast
+;; from a badly-struck matrix: ch -> (vector remaining multiplier). See
+;; `replenish!'.
 (struct tcase (boxes initial low exhausted distributed foulness turn-rate rng
-                     distinctive recurrence counter)
+                     distinctive recurrence counter inverted replenished)
   #:transparent)
 
 ;; Every sort that leaves a box leaves it through here, so the low-water mark
-;; cannot drift out of step with the stock.
+;; cannot drift out of step with the stock -- and so a defective batch is used
+;; up by being set, which is what makes it a dated marker rather than a
+;; permanent property of the fount.
 (define (take! tc ch [n 1])
   (define boxes (tcase-boxes tc))
   (when (hash-has-key? boxes ch)
     (define left (- (hash-ref boxes ch 0) n))
     (hash-set! boxes ch left)
     (when (< left (hash-ref (tcase-low tc) ch +inf.0))
-      (hash-set! (tcase-low tc) ch left))))
+      (hash-set! (tcase-low tc) ch left)))
+  (define batch (hash-ref (tcase-inverted tc) ch #f))
+  (when (and batch (> (vector-ref batch 0) 0))
+    (vector-set! batch 0 (- (vector-ref batch 0) n))))
+
+;; How much likelier this sort is to stand inverted just now: 1.0 unless a
+;; defective batch is in the box and not yet used up.
+(define (inversion-boost tc ch)
+  (define batch (hash-ref (tcase-inverted tc) ch #f))
+  (if (and batch (> (vector-ref batch 0) 0)) (vector-ref batch 1) 1.0))
+
+;; ---------------------------------------------------------------------------
+;; Replenishment
+;; ---------------------------------------------------------------------------
+;; A box that runs dry is not simply a box that stays dry. The master sends to
+;; the founder, and the sorts come back. Hinman caught Jaggard doing it -- new
+;; type added to the 'a' and 'u' boxes towards the end of 1622 (i. 86-9) -- and
+;; Blayney caught Okes doing it in the middle of a sheet.
+;;
+;; What makes Okes's case worth modelling is that the new type was faulty.
+;; "While sheet L of _Lear_ was being set, the 's' sort-box was replenished. The
+;; new types, however, appear to have been cast from a wrongly-struck matrix,
+;; and the 's' is inverted" (i. 500). The effect on the page is arithmetic:
+;;
+;;   before sheet L    16 inverted in 2,348      0.7%
+;;   L1v                6 in 31
+;;   L2r                7 in 29
+;;   L2v               14 in 32
+;;   L3r                3 in 31, all in the first ten lines
+;;   L1v-L3r           30 in 83                 36%
+;;
+;; "a localized increase of over 5,000% can hardly be explained away as
+;; accidental" (i. 141). And then the batch is gone and the rate falls back.
+;;
+;; Two things follow, and the second is the reason this is here at all. The
+;; first is a fount state that dates every later book in the shop: an unusual
+;; frequency of inverted 's' runs through Okes's output for a year afterwards,
+;; and separates what he printed before _Lear_ L from what he printed after.
+;; The second is that a batch used up in one continuous run is a tracer through
+;; the setting order. Blayney: "The clustering of the aberrant types shows that
+;; they had been added to the box as a group just before they began to appear
+;; in L1v, and that the new batch was more or less used up by the middle of
+;; L3r. L1v-3r must therefore have been set seriatim."
+;;
+;; That last inference is the whole of Hinman's method in miniature, run on one
+;; sort instead of six hundred, and it is a good deal cheaper to check.
+(define DEFECTIVE-BATCH 0.15)
+(define REPLENISH-AFTER 40)
+
+(define (replenish! tc ch n)
+  (define g (tcase-rng tc))
+  (hash-update! (tcase-boxes tc) ch (lambda (k) (+ k n)) 0)
+  (bump! (tcase-replenished tc) ch)
+  ;; A wrongly-struck matrix is not the usual outcome of an order, but it is
+  ;; the outcome that leaves a record.
+  (when (and (hash-has-key? INVERSION-RATES ch) (< (rnd g) DEFECTIVE-BATCH))
+    (hash-set! (tcase-inverted tc) ch
+               (vector n (/ 0.36 (hash-ref INVERSION-RATES ch)))))
+  n)
 
 (define (make-type-case #:scale [scale 1.0]
                         ;; Calibrated, at last, against a real book rather
@@ -329,7 +525,8 @@
                    (sort-piece (format "t~a" (unbox counter)) ch
                                (damage-for ch rng))))))
   (tcase boxes (hash-copy boxes) (hash-copy boxes) (make-hash) (make-hash)
-         foulness turn-rate rng distinctive (make-hash) counter))
+         foulness turn-rate rng distinctive (make-hash) counter
+         (make-hash) (make-hash)))
 
 ;; Types are battered at press as well as in the case. A sound sort may become
 ;; distinctive part-way through a book, which is why Hinman could date some
@@ -364,6 +561,15 @@
 
     [(<= (hash-ref boxes ch 0) 0)
      (bump! (tcase-exhausted tc) ch)
+     ;; A box that empties once is an inconvenience and the compositor shifts.
+     ;; A box that keeps emptying is a standing complaint, and at some point
+     ;; the master sends to the founder rather than go on setting VV for W.
+     ;; The threshold is a guess; that replenishment happened at all is not.
+     (when (and (> (hash-ref (tcase-exhausted tc) ch 0) REPLENISH-AFTER)
+                (zero? (modulo (hash-ref (tcase-exhausted tc) ch 0)
+                               REPLENISH-AFTER)))
+       (replenish! tc ch (max 20 (exact-round
+                                  (* 0.15 (hash-ref (tcase-initial tc) ch 0))))))
      (define shift
        (for/or ([s (in-list (hash-ref SUBSTITUTIONS ch '()))])
          (and (for/and ([c (in-string s)]) (> (hash-ref boxes c 1) 0)) s)))
@@ -418,6 +624,14 @@
         (define t (hash-ref TURNED-PAIRS ch))
         (draw ch (string t) 'turned
               (format "turned ~a, printing as ~a" ch t) #f)]
+       ;; The reading is untouched, so `got' is the sort itself and the word
+       ;; prints correctly. Only the event records that the type stood upside
+       ;; down. It must not reach the corrector: the whole interest of these is
+       ;; that they were not caught, sixteen of them surviving 2,332 settings.
+       [(< (rnd g) (* (hash-ref INVERSION-RATES ch 0.0)
+                      (inversion-boost tc ch)))
+        (draw ch (string ch) 'inverted
+              (format "~a standing inverted" ch) #f)]
        [else (draw ch (string ch) #f "" #f)])))
 
 ;; Return a printed-off forme to the case.
@@ -436,6 +650,74 @@
                   (lambda (xs) (cons p xs)) '())
     ;; it was counted as a sound sort by distribute!, so give that back
     (take! tc (sort-piece-char p))))
+
+;; ---------------------------------------------------------------------------
+;; What is in the box, and what the compositor therefore spells
+;; ---------------------------------------------------------------------------
+;; The most useful thing in Blayney, and the one that most embarrasses the rest
+;; of compositor-study: a man's spelling is partly a fact about his cases.
+;;
+;; Compositor B of _Lear_ chose between -ie and -y some 320 times, and his
+;; practice looked incoherent -- 73% -ie in sheet D, 38% in sheet K -- until
+;; Blayney counted the type. He tabulated the contents of the 'i' and 'y' boxes
+;; at the head of every page (i. 174), and the incoherence resolved:
+;;
+;;   'y' box over 200      B set 49% -y endings
+;;   'y' box 100-200                 42%
+;;   'y' box under 100               29%
+;;
+;; against a stock of "at least 500 'y's and 1,046 'i's". The level of the 'i'
+;; box "seems to have played virtually no part in the matter", and the asymmetry
+;; is arithmetical rather than psychological: "The -ie endings in _Lear_ account
+;; for fewer than 4% of the total number of 'i's set - but 60% of the 'y's are
+;; terminal." Setting six -ie endings makes no impression on a box of a
+;; thousand; setting six -y endings visibly empties one of five hundred. So the
+;; sort that the choice can exhaust is the sort that governs the choice, and the
+;; relative bias between the two boxes matters much less than the absolute level
+;; of the vulnerable one.
+;;
+;; Blayney's conclusion is the caution: B "was so prone to the influence of
+;; several factors, especially that of type-supply, that one could hardly use
+;; this group of spellings as a reliable discriminant" (i. 176). A spelling test
+;; measures the case as well as the man.
+;;
+;; The bands below are his three figures as multipliers on habit, with the
+;; unstressed band as the baseline: 42/49 and 29/49. They are expressed as
+;; fractions of the bill rather than as counts, so that --case-scale does not
+;; silently move the thresholds.
+(define (box-fraction tc ch)
+  (define bill (hash-ref (tcase-initial tc) ch 0))
+  (if (<= bill 0)
+      1.0
+      (max 0.0 (/ (exact->inexact (hash-ref (tcase-boxes tc) ch 0)) bill))))
+
+(define (char-tally s)
+  (define h (make-hash))
+  (for ([c (in-string s)]) (hash-update! h c add1 0))
+  h)
+
+;; How much likelier the compositor is to set `to' in place of `from', given
+;; what the two forms cost the case. 1.0 when nothing scarce is at stake, which
+;; is the ordinary answer: the effect only bites near the bottom of a box.
+;;
+;; Both forms must be passed *as they will be set*, after the conventions, or
+;; this will compare an s against a long s and see a difference where the case
+;; sees none.
+(define (supply-factor tc from to)
+  (define spent (char-tally from))
+  (define extra
+    (for/list ([(ch n) (in-hash (char-tally to))]
+               #:when (> n (hash-ref spent ch 0))
+               #:when (hash-has-key? (tcase-initial tc) ch))
+      (box-fraction tc ch)))
+  (cond
+    [(null? extra) 1.0]
+    [else
+     (define lowest (apply min extra))
+     (cond
+       [(>= lowest 0.40) 1.0]
+       [(>= lowest 0.20) 0.86]
+       [else 0.59])]))
 
 ;; How near the cases came to running dry. Reported per sort as the fewest
 ;; ever left in the box, against the bill it started with.
@@ -480,6 +762,54 @@
   (check-true (<= (reach-factor #\z) 4.0) "capped")
 
   (define tc (make-type-case #:rng (make-rng 1623)))
+
+  ;; The bill against the two figures Blayney states outright for Okes's
+  ;; fount (i. 173): "Okes owned at least 500 'y's and 1,046 'i's". A scaled
+  ;; bill that lands within a tenth of both is the check that the proportions
+  ;; and the fount size are consistent with each other.
+  (check-true (< 420 (hash-ref (tcase-initial tc) #\y) 550))
+  (check-true (< 930 (hash-ref (tcase-initial tc) #\i) 1150))
+
+  ;; An average page of _Lear_ "contains 66 'i's and 31 'y's" (i. 173). The
+  ;; program's quarto page runs to about 1,400 sorts, so the bill's share for
+  ;; 'i' has to put roughly that many on a page or the two calibrations
+  ;; contradict each other.
+  (define total (for/sum ([(ch n) (in-hash (tcase-initial tc))]) n))
+  (check-true (< 55 (* 1400 (/ (hash-ref (tcase-initial tc) #\i) 1.0 total)) 80)
+              "about 66 i to a page, as Blayney counted")
+
+  ;; The turn that leaves the reading alone. Short s inverted is still short s.
+  (check-equal? (hash-ref INVERSION-RATES #\s) (/ 1.0 150))
+  (check-false (hash-ref INVERSION-RATES #\e #f)
+               "only s was measured, so only s has a rate")
+
+  ;; A defective batch raises the rate for its sort and for no other, and is
+  ;; spent by being set -- which is what makes it date a stretch of setting.
+  (let ([tc2 (make-type-case #:rng (make-rng 1608))])
+    (check-equal? (inversion-boost tc2 #\s) 1.0 "no batch, no boost")
+    (hash-set! (tcase-inverted tc2) #\s (vector 30 50.0))
+    (check-equal? (inversion-boost tc2 #\s) 50.0)
+    (check-equal? (inversion-boost tc2 #\e) 1.0 "and it is one sort only")
+    (for ([i (in-range 30)]) (take! tc2 #\s))
+    (check-equal? (inversion-boost tc2 #\s) 1.0 "the batch is used up"))
+
+  ;; Blayney's bands: a form is set less often when it spends a sort the box is
+  ;; running out of, and the pressure is one-way. Emptying the y box discourages
+  ;; -y without encouraging anything against -ie, because -ie spends an i from a
+  ;; box that never feels it.
+  (let ([tc3 (make-type-case #:rng (make-rng 1608))])
+    (define (set-y! frac)
+      (hash-set! (tcase-boxes tc3) #\y
+                 (exact-round (* frac (hash-ref (tcase-initial tc3) #\y)))))
+    (set-y! 1.0)
+    (check-equal? (supply-factor tc3 "honeſtie" "honeſty") 1.0)
+    (set-y! 0.30)
+    (check-equal? (supply-factor tc3 "honeſtie" "honeſty") 0.86)
+    (set-y! 0.05)
+    (check-equal? (supply-factor tc3 "honeſtie" "honeſty") 0.59)
+    (check-equal? (supply-factor tc3 "honeſty" "honeſtie") 1.0
+                  "the i box does not feel a handful of -ie endings"))
+
   ;; W is the scarce sort, which is why VV appears in early books.
   (check-true (< (hash-ref (tcase-boxes tc) #\W)
                  (hash-ref (tcase-boxes tc) #\e)))

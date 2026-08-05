@@ -220,13 +220,24 @@
       [else (define-values (core tail) (split-point word))
             (define head (head-form core))
             (hash-ref hs (or head "") (lambda () (hash-ref hs "" 0.85)))]))
+  ;; Habit is not the whole of it. Blayney showed that a compositor choosing
+  ;; between two spellings is influenced by what is left in the box the choice
+  ;; would empty -- see `supply-factor'. A habit that spends a scarce sort is
+  ;; indulged less often than the same habit costing nothing.
+  (define (strength-toward from to)
+    (* (strength-for from)
+       (supply-factor (comp-case c)
+                      (apply-conventions cv from)
+                      (apply-conventions cv to))))
   (define habit
     (cond
-      [(and pref (< (rnd g) (strength-for read-word))) pref]
+      [(and pref (< (rnd g) (strength-toward read-word pref))) pref]
       [else
        (define-values (form rule)
          (pattern-form read-word (profile-pattern-style prof)))
-       (if (and form (< (rnd g) (strength-for read-word))) form read-word)]))
+       (if (and form (< (rnd g) (strength-toward read-word form)))
+           form
+           read-word)]))
   (define composed (apply-conventions cv habit))
   (word copy-word read-word habit habit composed composed
         (width-of-word composed) '() italic? '()))
@@ -795,6 +806,12 @@
                    (add-event!
                     c (make-event (case (draw-event d)
                                     [(shortage wrong-fount) 'shift]
+                                    ;; Its own kind, because it is not an
+                                    ;; error: the word reads correctly and the
+                                    ;; corrector has nothing to mark. It is
+                                    ;; evidence, and press.rkt must leave it
+                                    ;; alone.
+                                    [(inverted) 'inversion]
                                     [else 'accident])
                                   (draw-detail d)
                                   #:page page #:line lineno #:word wi

@@ -416,6 +416,26 @@
     (for/sum ([ch (in-string (page-text pg))])
       (if (char-whitespace? ch) 0 1)))
 
+  ;; How much type the house can leave standing before the cases are too thin
+  ;; to set from.
+  ;;
+  ;; A forme count alone is the wrong governor, because the binding constraint
+  ;; was never the number of formes but the weight of metal. Blayney on Okes:
+  ;; "When the tied pages of two formes were kept intact, what was left would
+  ;; not have overflowed a normal pair of cases" (i. 94) -- and, on the limit
+  ;; of that, "Okes did not own enough type to allow sixteen pages of _Lear_
+  ;; (which uses less type per page than Okes's 'normal' pica quartos) to stand
+  ;; without having their margins cannibalized for capitals" (i. 111).
+  ;;
+  ;; So the shop distributes when it runs short, not only when a forme count is
+  ;; exceeded, and a house whose fount is small distributes oftener. Without
+  ;; this the small fount that Blayney measured produced a shop with nothing
+  ;; left in its boxes, borrowing wrong-fount sorts by the hundred, which is
+  ;; not what his books show. Two thirds is a judgement about how thin a pair
+  ;; of cases may get and still be worked; that the ceiling exists is not.
+  (define type-ceiling
+    (* 2/3 (for/sum ([(ch n) (in-hash (tcase-initial tc))]) n)))
+
   (for ([gathering (in-range gatherings)])
     (define refs
       (for/hash ([r (in-list (page-refs fmt gathering))])
@@ -486,9 +506,16 @@
 
            (when (= (length (hash-ref forme-pages (forme-name fm)))
                     (length (forme-page-numbers fm)))
-             (set! standing (append standing (list (forme-name fm))))
-             (let dist ()
-               (when (> (length standing) (house-formes-standing h))
+             (set! standing (append standing (list (forme-name fm)))))
+
+           ;; Checked after every page, not only when a forme is made up. The
+           ;; cases run thinnest in the middle of setting a forme -- that is
+           ;; where the peak always falls -- so a check that only fires on
+           ;; completion never sees the moment the shop actually feels.
+           (let dist ()
+             (when (and (pair? standing)
+                        (or (> (length standing) (house-formes-standing h))
+                            (> standing-sorts type-ceiling)))
                  (define printed (car standing))
                  (set! standing (cdr standing))
                  (for ([p (in-list (hash-ref forme-pages printed '()))])
@@ -504,7 +531,7 @@
                          (cdr pr))))
                  ;; and a few sound sorts are battered at press each time
                  (batter! tc 2)
-                 (dist))))
+                 (dist)))
 
            (page-loop (cdr ps) (add1 pos)
                       (if (house-by-formes? h) '() leftover))]))))

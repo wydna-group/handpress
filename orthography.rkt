@@ -215,9 +215,27 @@
 
 (define SPELLING-PATTERNS
   (list
+   ;; Okes's C has a real preference here and his fellow B has none, which is
+   ;; the whole point of Blayney's tabulation. C set -ie 57% of the time
+   ;; overall and 64% in unjustified lines; B's totals were 173 : 147, which
+   ;; looks like a weak -ie preference until it is broken down and turns out to
+   ;; be two opposite preferences imposed on him from outside -- justification
+   ;; pushing him toward the longer form, and the level of the 'y' box pushing
+   ;; him off it. "C preferred -ie, while B's practice was extremely
+   ;; inconsistent. B preferred -ie in justified lines and may possibly have had
+   ;; a preference for -y in unjustified text. But he was so prone to the
+   ;; influence of several factors, especially that of type-supply, that one
+   ;; could hardly use this group of spellings as a reliable discriminant"
+   ;; (Blayney, i. 176).
+   ;;
+   ;; So B is deliberately absent from this table. He is not indifferent by
+   ;; oversight: giving him an entry would assert a habit that Blayney spent
+   ;; four pages showing he did not have, and the two mechanisms that in fact
+   ;; governed him -- `adjust' in compositor.rkt and `supply-factor' in
+   ;; typecase.rkt -- are both already in the program.
    (list "final -ie for -y"
          #px"^(?i:(.{2,}?[bcdfghjklmnpqrstvwxz])(ie|y))$"
-         (hash "A" "ie" "B" "y"))
+         (hash "A" "ie" "B" "y" "OkesC" "ie"))
    (list "final -ll for -l"
          #px"^(?i:(.{3,}?[aeiou])(ll|l))$"
          (hash "A" "ll" "B" "l"))
@@ -259,7 +277,17 @@
 
 ;; Which workman's habit this form testifies to, if any.
 ;; Returns (values rule-name who) or (values #f #f).
-(define (pattern-witness word)
+;;
+;; `names' is the crew actually at the frames. It matters, and leaving it out
+;; was a bug that lay quiet until Okes's C was given his -ie preference: with
+;; the whole table in scope, two men anywhere in it agreeing on a form killed
+;; that form as evidence, even when the two had never stood in the same shop.
+;; A and OkesC both set -ie, but a book is set by one crew, and in a house of A
+;; and B the -ie ending discriminates perfectly. The word-tests in analysis.rkt
+;; had always scoped themselves this way; this did not, and so quietly
+;; discarded evidence as more compositors were added to the table -- the
+;; opposite of what adding evidence should do.
+(define (pattern-witness word [names #f])
   (define-values (core tail) (split-point word))
   (let loop ([ps SPELLING-PATTERNS])
     (cond
@@ -271,10 +299,13 @@
          [m
           (define ending (string-downcase (caddr m)))
           (define whos
-            (for/list ([(k v) (in-hash forms)] #:when (string=? v ending)) k))
-          ;; A form that several workmen would all have set is no evidence of
-          ;; any of them. The elided ending is a habit of the house as much as
-          ;; of the man, so it must not be counted as a discriminant.
+            (for/list ([(k v) (in-hash forms)]
+                       #:when (and (string=? v ending)
+                                   (or (not names) (member k names))))
+              k))
+          ;; A form that several of *these* workmen would all have set is no
+          ;; evidence of any of them. The elided ending is a habit of the house
+          ;; as much as of the man, so it must not be counted as a discriminant.
           (if (= 1 (length whos)) (values name (car whos)) (values #f #f))]
          [else (loop (cdr ps))])])))
 
@@ -692,7 +723,15 @@
     (check-equal? form "beautie"))
   (let-values ([(form rule) (pattern-form "beauty" "B")])
     (check-false form "B already agrees"))
-  (let-values ([(rule who) (pattern-witness "beautie")])
+  ;; Scoped to a crew, -ie discriminates: A sets it and B does not.
+  (let-values ([(rule who) (pattern-witness "beautie" '("A" "B"))])
     (check-equal? who "A"))
+  ;; Put two men who both set -ie at the same frames and it stops being
+  ;; evidence, which is the whole purpose of the check.
+  (let-values ([(rule who) (pattern-witness "beautie" '("A" "OkesC"))])
+    (check-false who "both these men set -ie, so it names neither"))
+  ;; And a man who is not in the shop cannot spoil the evidence of one who is.
+  (let-values ([(rule who) (pattern-witness "beautie" '("OkesC" "OkesB"))])
+    (check-equal? who "OkesC"))
   (let-values ([(rule who) (pattern-witness "my")])
     (check-false who "too short to be evidence")))

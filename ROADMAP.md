@@ -57,6 +57,51 @@ one piece of work in disguise, which is the interesting part.
       the gate by design and their rate is governed only by the compositor's
       `contracts` weight.
 
+---
+
+## 0a. Out of Blayney, and not yet done
+
+Mining *The Texts of King Lear* fixed six things (see §5 and the commit) and
+opened four. These are ordered by how much they would change.
+
+- [ ] **Cannibalization, and the ladder of shifts.** The fount is now Okes's
+      size, and that is right; but the *responses* to a shortage are still one
+      rung of a five-rung ladder. Blayney watches compositor B want a `W` and
+      work down it: set `VV`; take the sort out of a page already standing,
+      preferring the margins and speech prefixes because "if types are taken
+      from the middle of an undistributed page there is a risk that several
+      lines will be pied"; distribute a forme early; **set an `M` or a ligature
+      face down so that the foot printed as two black rectangles, and insert
+      the right type during proofing**; buy or borrow more. The program has the
+      first rung and a crude version of the third. It has no cannibalization at
+      all, which is why *Areopagitica* still shows 248 wrong-fount sorts where
+      Okes's books show a handful. The face-down placeholder is the prettiest
+      of them: a deliberate blank that makes press-correction *necessary*
+      rather than optional.
+
+- [ ] **`ſt`, `ſh`, `ſi` as sorts.** `ſt` at 200 is Okes's commonest ligature by
+      a wide margin — more than `ﬀ`, `ﬁ` and `ﬂ` together — and the program has
+      no such sort, so their work falls back on the plain long s and the box is
+      inflated to 745 to cover it. The glyph pipeline already carries long s as
+      markup rather than as text, so this may be cheaper than it looks.
+
+- [ ] **Turner's rule, run against the truth.** The best experiment in the
+      book, and the program is the only thing that can settle it. Turner's
+      principle is that "in a quarto set by formes, type from the first forme of
+      each sheet normally reappears in both formes of the succeeding sheet, but
+      type from the second forme only in the second forme". Blayney takes his
+      *Midsummer Night's Dream* table and shows the claim that "when type
+      reappears in this manner, composition cannot have been seriatim" is
+      "completely untrue" — the same evidence is perfectly consistent with
+      seriatim setting. This program knows which it did. Generate the
+      recurrence table, run the rule, count how often it is right. See §2.
+
+- [ ] **Points shared between founts.** Punctuation was "the common property of
+      all founts of the same body-size", and Okes was still setting the
+      Snowdons' points among his own. So a point is not owned by a fount, and
+      the comma box should be shared across every fount in the house. Matters
+      as soon as there is more than one fount, i.e. with §3.
+
 ## 1. Defects — investigated
 
 Four were listed here. Measuring them found that two were not what they
@@ -128,6 +173,23 @@ looked like, which is the usual result and the reason for measuring first.
 **This is Hinman's actual method, and the program is uniquely placed to test
 it.**
 
+Blayney sharpens the target and supplies the threshold. Hinman recorded 314
+distinctive types in the Folio *Lear* — "a density of approximately 23 per
+forme, or 11-12 per page" — and that sufficed to order a folio. A quarto forme
+holds four pages, each less than half a folio page, so the same fount condition
+yields "no more than 5 or 6 types per page", which "is not nearly enough to
+allow the page-order of a quarto to be determined with any great precision".
+His criterion is exact: **unless the evidence-density is great enough to reveal
+at least two prior distributions in every quarto page, the order in which those
+pages were set cannot be proved.** Two, because when a forme is distributed into
+depleted cases its types crowd into the next few pages, so knowing which of two
+distributions came first is the whole question.
+
+That is a numeric prediction about when the method works, made by its most
+careful practitioner, and the simulator can run it at any density and check.
+Expect Hinman's folio density to succeed and the quarto density to fail, and
+the interesting number is where the boundary actually falls.
+
 Everything needed is already tracked. `typecase.rkt` follows individual sorts
 by their damage, records where each one printed, and `note-recurrence!` keeps
 the places. What is missing is the inference: given only the recurrences, work
@@ -190,9 +252,13 @@ for the confident tables the reports now print.
       apparatus rather than diffing, since the interesting cases are errors
       *shared* between texts, which a mechanical diff cannot see.
 
-- [ ] **Blayney properly.** 778 pages, and the only source not worked through.
-      Its subject — one quarto's transmission reconstructed in detail — is the
-      closest thing in the literature to what this program does end to end.
+- [x] **Blayney properly.** Done, and it supplied more usable numbers than the
+      other five sources together — because his subject is one quarto
+      reconstructed in detail, which is what this program does end to end.
+      What came out of it is in §0 and §5; the short version is that the fount
+      was nearly three times too large, the bill was interpolated from an
+      eighteenth-century table when a measured English one exists, and a
+      compositor's spelling turns out to be partly a fact about his boxes.
 
 - [ ] **Manuscript copy.** Every misreading profile here assumes printed copy.
       Setting from a secretary hand is a different problem with a different
@@ -203,9 +269,40 @@ for the confident tables the reports now print.
 
 ## 5. Modelling gaps, in descending order of consequence
 
+- [x] **The bill of type, and the size of the fount.** Both were wrong, and the
+      fount by nearly a factor of three. It stood at 60,000 sorts on one anchor
+      at the top of the trade — Jaggard's Folio pica, calculated by Gaskell from
+      Hinman — and the bill was interpolated from an eighteenth-century table.
+      Blayney counted the other end: Okes set the whole of *Lear* Q1 from
+      21,953 types weighing "unlikely to have been much more than 120 lb", and
+      tabulated every sort of it against a quarter of Smith's 1755 bill and van
+      den Keere's 1571 registre. So the default is now the small quarto house
+      rather than the great folio house, on figures measured from an English
+      book of the right decade. Two independent checks came out right: the
+      scaled bill gives 465 `y` and 974 `i` against Blayney's "at least 500
+      'y's and 1,046 'i's", and puts 67 `i` on a page against his measured
+      average of 66.
+- [x] **Type-supply governs spelling.** The best thing in the book. Compositor
+      B's choice between `-ie` and `-y` looked incoherent — 73% in one sheet,
+      38% in another — until Blayney tabulated the boxes page by page: over 200
+      `y` available he set 49% `-y`, between 100 and 200 he set 42%, below 100
+      he set 29%. The asymmetry is arithmetic, not psychology: `-ie` endings are
+      under 4% of all the `i` set, but 60% of the `y` are terminal, so the
+      choice can empty the one box and not the other. Hence his caution, which
+      the program now embodies: a spelling test measures the case as well as the
+      man.
+- [x] **Inverted sorts as evidence.** Short `s` set upside down at 1 in 150 —
+      invisible to reader and corrector, and legible three centuries later.
+      With it, replenishment: Okes's `s` box was refilled mid-sheet from a
+      wrongly-struck matrix, the rate went to 30 in 83 for three pages, and the
+      cluster proves those pages were set seriatim.
 - [ ] **Per-compositor type cases.** Hinman distinguishes cases x, y and z, and
       much of his argument turns on which man used which. Here every workman
       draws from one pair, which makes the type evidence cleaner than it was.
+      Blayney adds the sharper version: Okes's men *divided* one fount into two
+      cases part-way through the book, and after that "it is impossible to be
+      sure how much type was in either case at any one point" — the division
+      itself destroys the evidence.
 - [ ] **Standing type between editions**, and the half-sheet imposition that
       goes with short books.
 - [ ] **Cancels.** A leaf cut out and a cancellans pasted in is common, visible,
@@ -266,6 +363,14 @@ differ by convention, and it began reporting 1,048 accidents where there were
 7. Nothing failed; the number was simply wrong, and only a reader who knew the
 expected rate would have caught it. Which is the argument for keeping the
 measured rates written down beside the code.
+
+And a fourth, from the fount size: **a parameter anchored on one example is
+anchored on that example's end of the range.** 60,000 sorts was not a guess; it
+was carefully derived from the best-documented fount in the period. It was also
+the largest printing house in London working in folio, and using it as the
+default made every other shop three times richer than it was — which suppressed
+the shortages that are half the evidence. One good anchor at the wrong end of a
+range is more misleading than no anchor, because it looks like diligence.
 
 And: **a parameter no test exercises and no report counts will be dead without
 anyone noticing.** Four so far — `catches-misreading`, the catchword

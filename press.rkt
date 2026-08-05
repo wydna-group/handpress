@@ -407,9 +407,16 @@
 
   ;; Corrections made before the run leave no variant to collate. Set by the
   ;; prentice hand, whose case is foul, so that there is something to correct.
+  ;;
+  ;; The sample has to be long enough for that to be reliable. At eight
+  ;; repetitions it was about 250 words, and the prentice's measured rate of
+  ;; 2 accidents per thousand words made the assertion below a coin-toss that
+  ;; happened to land the right way for one seed. It failed the moment anything
+  ;; upstream moved the random stream, which is a test of the seed and not of
+  ;; the program. Sixty repetitions puts the expected count near forty.
   (define long-sample
     (apply string-append
-           (for/list ([i (in-range 8)])
+           (for/list ([i (in-range 60)])
              (format "Ham. To be, or not to be, that is the question ~a,\nWhether tis nobler in the mind to suffer\nThe slings and arrows of outrageous fortune,\nOr to take arms against a sea of troubles.\n\n" i))))
   (define b2 (set-book (make-house #:fmt QUARTO #:seed 11 #:compositors '("E"))
                        long-sample))

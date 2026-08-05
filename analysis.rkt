@@ -78,7 +78,7 @@
              (set! found (cons (list head norm) found)))]
           [else
            ;; the pattern tests, which is where most of the evidence is
-           (define-values (rule who) (pattern-witness norm))
+           (define-values (rule who) (pattern-witness norm names))
            (when (and who (hash-has-key? counts who))
              (hash-update! tally who add1 0)
              (set! found (cons (list rule norm) found)))])))
