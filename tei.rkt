@@ -36,7 +36,7 @@
          "pagination.rkt"
          (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary
                   substitution-only? placeholder?)
-         (only-in "deviation.rkt" deviation-counts word-deviation)
+         (only-in "deviation.rkt" deviation-counts word-deviation stages-cancel?)
          (only-in "orthography.rkt" strip-conventions))
 
 (provide book->tei HP-NS TEI-NS)
@@ -298,8 +298,12 @@
   ;; a glyph and not part of the reading either.
   (define printed (strip-conventions set-form))
   (define composed (strip-conventions (word-composed w)))
-  (define just? (for/or ([c (in-list (word-causes w))])
-                  (string-prefix? c "justification")))
+  ;; A word whose stages cancelled carries a justification cause but shows no
+  ;; justification: it was contracted and then written out again, and stands as
+  ;; it was read. See `stages-cancel?'.
+  (define just? (and (not (stages-cancel? w))
+                     (for/or ([c (in-list (word-causes w))])
+                       (string-prefix? c "justification"))))
   ;; Either half. The first is caused "word divided at the end of the line"
   ;; and the second "second half of a divided word", and matching only the
   ;; latter left every first half classified as a misreading.
@@ -327,6 +331,9 @@
           [divided? "#division"]
           [just? "#justification"]
           [(not (string=? (word-read w) (word-copy w))) "#misreading"]
+          ;; Stages that cancel are not a departure: the form set is the form
+          ;; read, so the word follows copy however it got there.
+          [(stages-cancel? w) (if app "#press-variant" "#copy")]
           [(not (string=? (word-habit w) (word-read w))) "#habit"]
           [app "#press-variant"]
           [else "#copy"]))

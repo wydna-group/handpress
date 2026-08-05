@@ -48,6 +48,61 @@
 ;; What happened to this one word, in the order it happened, so that a reader
 ;; hovering over it is told which stage of the process put it there. Returns
 ;; #f for a word that stands exactly as the copy had it.
+
+;; The compositor went out and came back. His habit shortened `cōposed' to
+;; `cōpos'd', the line then wanted filling and the ending was written out
+;; again, so the form he set is the form he read -- and the note described a
+;; journey with no destination:
+;;
+;;   habit: “cōposed” → “cōpos'd”; justification: “cōpos'd” → “cōposed”
+;;
+;; The page shows `cōpoſed', agreeing with the copy in every letter. There is
+;; no evidence on it of either stage, and no bibliographer could recover one,
+;; so the record must not assert what cannot be observed -- any more than it
+;; may ring a u-for-v as an accident. Five words of one quarto did this, each
+;; marked on the page and counted among the justifications.
+;;
+;; The simulation is left to do it: two passes over a word is what the model
+;; is, the width the line ends at is real, and the outcome on paper is exactly
+;; the outcome of never having contracted at all. It is the *reporting* that
+;; was claiming more than the page holds.
+(define (stages-cancel? w)
+  (and (word-read w) (word-habit w) (word-final w)
+       (not (string=? (word-read w) (word-habit w)))
+       (string=? (word-read w) (word-final w))))
+
+(provide stages-cancel?)
+
+(module+ test
+  (require rackunit (only-in "compositor.rkt" [word mk-word]))
+  (define (w* read habit final)
+    (mk-word read read habit final final final 0
+             (list "justification: -ed written out for -'d") #f '()))
+  (check-true (stages-cancel? (w* "composed" "compos'd" "composed"))
+              "contracted, then written out again: the page shows the copy's form")
+  (check-false (stages-cancel? (w* "composed" "compos'd" "compos'd"))
+               "the contraction stood")
+  (check-false (stages-cancel? (w* "composed" "composed" "composed"))
+               "nothing happened at all")
+  (check-false (word-deviation (w* "composed" "compos'd" "composed"))
+               "and it is reported as no departure")
+  (check-equal? (deviation-class (w* "composed" "compos'd" "composed")) ""
+                "and nothing is coloured on the page")
+
+  ;; A capital set V for U is the fount, not a corruption, and must not be
+  ;; reported as copy X -> printed Y.
+  ;; The conventions are applied on the way from `final' to the metal, so both
+  ;; `composed' and `printed' carry them: setting them apart would exercise the
+  ;; foul-case branch instead of the one under test.
+  (define (set-as copy printed)
+    (mk-word copy copy copy copy printed printed 0 '() #f '()))
+  (check-regexp-match #rx"conventions of the case"
+                      (word-deviation (set-as "PICTURE" "PICTVRE")))
+  (check-regexp-match #rx"no capital U"
+                      (word-deviation (set-as "PICTURE" "PICTVRE")))
+  (check-regexp-match #rx"^copy" (word-deviation (set-as "PICTURE" "PICTORE"))
+                      "but a letter that really differs still is"))
+
 (define (word-deviation w)
   (define (d a b) (and a b (not (string=? a b))))
   ;; A divided word is not a corrupt one. Both halves carry the whole word as
@@ -86,11 +141,11 @@
                        (format "misreading: copy “~a” → read “~a”"
                                (word-copy w) (word-read w))))
          '())
-     (if (d (word-read w) (word-habit w))
+     (if (and (not (stages-cancel? w)) (d (word-read w) (word-habit w)))
          (list (staged "habit"
                        (format "habit: “~a” → “~a”" (word-read w) (word-habit w))))
          '())
-     (if (d (word-habit w) (word-final w))
+     (if (and (not (stages-cancel? w)) (d (word-habit w) (word-final w)))
          (list (staged "justification"
                        (format "justification: “~a” → “~a”"
                                (word-habit w) (word-final w))))
@@ -116,12 +171,28 @@
        c)))
   (cond
     [(pair? notes) (string-join notes "; ")]
+    ;; This branch is for a difference nothing above accounts for, so the
+    ;; comparison has to have *all* the conventions taken off both sides --
+    ;; u/v and i/j as well as the long s and the ligatures, since
+    ;; `strip-conventions' does only the two that can be undone by rule. With
+    ;; them left in, PICTVRE was reported as `copy "PICTURE" -> printed
+    ;; "PICTVRE"', which reads like a corruption and is the fount doing exactly
+    ;; what it should.
     [(and (not divide-note)
-          (d (strip-conventions (word-copy w)) (strip-conventions (word-printed w))))
+          (d (fold-conventions (word-copy w)) (fold-conventions (word-printed w))))
      (format "copy “~a” → printed “~a”" (word-copy w) (word-printed w))]
     [(d (word-copy w) (word-printed w))
      (conventions-shown (word-copy w) (word-printed w))]
     [else #f]))
+
+;; Every convention folded away, so that two settings differing only by them
+;; compare equal. Not a reading -- `haue' and `vertue' both fold to the same
+;; shape as forms they are not -- which is why this is used only to ask whether
+;; anything *else* differs, and never to recover a word.
+(define (fold-conventions s)
+  (regexp-replaces (strip-conventions s)
+                   '((#rx"[uv]" "v") (#rx"[UV]" "V")
+                     (#rx"[ij]" "i") (#rx"[IJ]" "I"))))
 
 ;; Name the conventions this word actually shows, rather than reciting all of
 ;; them at every word that shows any.
@@ -134,10 +205,18 @@
 ;; copy and the setting are compared and the direction named.
 (define (conventions-shown copy printed)
   (define (either a b set) (and (memv a set) (memv b set) (not (char=? a b))))
+  ;; The capitals are a separate rule and want a separate sentence: the lower
+  ;; case sets v at the head and u within, but the capital V does duty for both
+  ;; letters wherever it stands, so "v for u, at the head" would be wrong of
+  ;; PICTVRE, where the U is medial.
   (define uv
     (for/or ([a (in-string copy)] [b (in-string printed)])
-      (cond [(and (memv a '(#\u #\U)) (memv b '(#\v #\V))) "v for u, at the head"]
-            [(and (memv a '(#\v #\V)) (memv b '(#\u #\U))) "u for v, within"]
+      (cond [(and (char=? a #\U) (char=? b #\V))
+             "V for U, the fount having no capital U"]
+            [(and (char=? a #\u) (char=? b #\v)) "v for u, at the head"]
+            [(and (char=? a #\v) (char=? b #\u)) "u for v, within"]
+            [(and (memv a '(#\u #\U)) (memv b '(#\v #\V))) "v for u"]
+            [(and (memv a '(#\v #\V)) (memv b '(#\u #\U))) "u for v"]
             [else #f])))
   (define ij
     (for/or ([a (in-string copy)] [b (in-string printed)])
@@ -164,6 +243,9 @@
           (not (string=? (word-composed w) (word-printed w)))
           (not (substitution-only? (word-composed w) (word-printed w))))
      "dev-accident"]
+    ;; and stages that cancel leave nothing to colour: the word on the page is
+    ;; the word he read
+    [(stages-cancel? w) ""]
     [(and (word-habit w) (word-final w)
           (not (string=? (word-habit w) (word-final w)))) "dev-fit"]
     [(and (word-read w) (word-habit w)
@@ -237,6 +319,15 @@
    ;; the measure come out -- not merely lines that were spaced. Every line in
    ;; a justified setting is spaced, so counting those told us the line count
    ;; back and nothing else.
+   ;; Habits given up because the line wanted the copy's spelling after all.
+   ;; The cheapest thing the compositor can do to a word, and it has to be
+   ;; counted here or it becomes another mechanism that is silently dead: its
+   ;; whole effect is to leave the word agreeing with copy, so nothing else in
+   ;; the report or the facsimile can distinguish it from never having happened.
+   'habit-suspended (for/sum ([w (in-list words)])
+                      (if (ormap (lambda (c) (regexp-match? #rx"habit not applied" c))
+                                 (word-causes w))
+                          1 0))
    'expedient (for/sum ([l (in-list lines)])
                 (if (for/or ([w (in-list (set-line-words l))])
                       (and (not (divided? w))
@@ -314,6 +405,8 @@
           "his eye, not his judgement")
      (row "respelt by habit" (g 'habit) n
           "what he sets left to himself")
+     (row "habit given up for the measure" (g 'habit-suspended) n
+          "he set the copy's spelling instead")
      (row "altered to fit the measure" (g 'fitting) n
           "forced by the line, not chosen")
      (row "accident of the case" (g 'accident) n

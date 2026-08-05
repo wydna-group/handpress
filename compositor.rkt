@@ -8,10 +8,22 @@
 ;;;
 ;;; The order of operations is the order of the trade:
 ;;;
+;;; The order below is the order it happened in, and it matters that there is
+;;; only one place where the spelling of a word is settled. An earlier version
+;;; settled it twice -- habit committed a form as the word was made, and
+;;; justification revised that form when the line came up short -- so the two
+;;; could and did contradict each other, turning `composed' into `compos'd' and
+;;; back into `composed' and reporting both moves. A compositor does not change
+;;; his mind about a word after setting it; he decides once, and the line is
+;;; part of what he decides with. So habit proposes and the measure disposes:
+;;; step 3 may give the habit up (which costs the reader nothing, and is
+;;; therefore the first thing tried), but nothing after step 3 touches spelling.
+;;;
 ;;;   1. he reads a stretch of copy, and may misread it;
 ;;;   2. he sets it in his own spelling, not his author's;
-;;;   3. he finds the line will not justify, and alters the spelling again --
-;;;      this time for room, not for habit;
+;;;   3. he finds the line will not justify, and settles the spelling for room
+;;;      rather than for habit: first by giving the habit up and setting what
+;;;      the copy said, then, if that will not serve, by another spelling;
 ;;;   4. he applies the conventions of the house: long s, u for v, i for j;
 ;;;   5. he picks the sorts, and picks some of them wrong.
 ;;;
@@ -298,7 +310,33 @@
       (list (variant-form v)
             (width-of-word (apply-conventions cv (variant-form v)))
             (variant-device v))))
-  (sort out (if widen? > <) #:key cadr))
+  ;; The cheapest change he can make to a word is not to make the one he was
+  ;; going to make. If his habit turned `composed' into `compos'd' and the line
+  ;; then wants filling, he sets what the copy said; he does not contrive a
+  ;; third spelling to undo the second.
+  ;;
+  ;; This move was missing altogether, so it could only happen by accident --
+  ;; as whatever orthographic device happened to map the habit form back, and
+  ;; ranked as violently as any other. The record then read
+  ;;
+  ;;   habit: “cōposed” → “cōpos'd”; justification: “cōpos'd” → “cōposed”
+  ;;
+  ;; which is a round trip to nowhere, and looks like two stages fighting each
+  ;; other. They were not: one decision was taken, and taken once, when the
+  ;; line turned out not to hold.
+  ;;
+  ;; Blayney's numbers say this is the common case rather than a curiosity.
+  ;; Okes's compositor C set -ie 57% of the time overall but 64% in unjustified
+  ;; lines (i. 190): a habit is weaker where the measure has to be met, which
+  ;; is only possible if meeting the measure is what suspends it.
+  (define unhabit
+    (let* ([r (word-read wd)]
+           [wid (and (not (string=? r (word-final wd)))
+                     (width-of-word (apply-conventions cv r)))])
+      (and wid
+           (if widen? (> wid (word-width wd)) (< wid (word-width wd)))
+           (list (list r wid "the habit not applied here")))))
+  (sort (append (or unhabit '()) out) (if widen? > <) #:key cadr))
 
 ;; How much a device costs the reader. The compositor works down this list.
 ;; The ampersand ranks below the spelling variants, not above them. A reader
@@ -307,7 +345,10 @@
 ;; ampersands in twelve thousand words, against a quarto's six -- the trade
 ;; used it, but sparingly, and after everything gentler had been tried.
 (define violence-table
-  '(("terminal -e" 0) ("full form" 0) ("short form" 1) ("-ll for -l" 1)
+  ;; Below everything: setting the copy's own spelling costs the reader nothing
+  ;; at all, because it is what the copy said.
+  '(("habit not applied" -1)
+    ("terminal -e" 0) ("full form" 0) ("short form" 1) ("-ll for -l" 1)
     ("-ie for -y" 1) ("and for &" 1) ("elided" 1) ("written out" 1)
     ("-y for -ie" 2)
     ("double" 3) ("& for and" 4) ("contracted to" 5) ("tilde" 6)))
