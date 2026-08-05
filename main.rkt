@@ -134,6 +134,12 @@
     (when xslt?
       (define xml (build-path out-dir (string-append stem ".tei.xml")))
       (define xsl (build-path xslt-dir "tei-to-html.xsl"))
+      ;; The stylesheet is shared with the direct rendering and linked rather
+      ;; than inlined, so it has to travel with the output.
+      (for ([asset (in-list '("facsimile.css" "facsimile.js"))])
+        (copy-file (build-path xslt-dir asset)
+                   (build-path out-dir asset)
+                   #t))
       (define out (build-path out-dir (string-append stem ".tei.html")))
       (unless (apply-xslt xml xsl out #:witness witness #:layout layout)
         (eprintf "could not run an XSLT processor; ~a not written\n"

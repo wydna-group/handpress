@@ -13,3 +13,9 @@ corpus/
 areopagitica*
 out-areo/
 out-chk/
+
+# The scholarly sources themselves. These are copyrighted books, and the
+# repository is public: they must never be committed. Kept here so the
+# project and its evidence sit together on disk.
+sources/
+*.pdf

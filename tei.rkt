@@ -32,7 +32,7 @@
 
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
-         "press.rkt" "corrector.rkt" "description.rkt")
+         "press.rkt" "corrector.rkt" "description.rkt" "pagination.rkt")
 
 (provide book->tei HP-NS TEI-NS)
 
@@ -212,7 +212,7 @@
   (string-append "        " lb "\n"
                  (if (null? ws) "" (string-append "        " (string-join ws "") "\n"))))
 
-(define (page->tei p fmt variants)
+(define (page->tei p fmt variants [folio #f])
   (define sig (page-sig p))
   (define rt (page-running-title p))
   (define cols
@@ -236,15 +236,44 @@
                       "        </ab>\n      </div>\n")
                      acc))])))
   (string-append
-   (format "    <div type=\"page\" n=\"~a\" resp=\"#comp~a\" hp:forme=\"~a\" hp:pressure=\"~a\">\n"
+   ;; The leaf and the sheet a page belongs to, resolved here rather than left
+   ;; to the stylesheet. Which sheet a leaf came off is not arithmetic on leaf
+   ;; numbers: a quarto gathering is one sheet folded twice, so all four of its
+   ;; leaves are the same paper, while a folio in sixes is three sheets quired
+   ;; one inside another, its outermost being leaves 1 and 6. XSLT 1.0 should
+   ;; not have to know that, and the format is here.
+   (format "    <div type=\"page\" n=\"~a\" resp=\"#comp~a\" hp:forme=\"~a\" hp:pressure=\"~a\" hp:leaf=\"~a\" hp:sheet=\"~a\">\n"
            (esc sig) (esc (page-compositor p)) (esc (page-forme-name p))
-           (real->decimal-string (page-pressure p) 2))
+           (real->decimal-string (page-pressure p) 2)
+           (esc (format "~a~a" (signature-letter (page-ref-gathering (page-pref p)))
+                        (page-ref-leaf (page-pref p))))
+           (esc (let* ([r (page-pref p)]
+                       [n-leaves (book-format-leaves fmt)]
+                       [leaf-n (page-ref-leaf r)])
+                  (format "~a~a" (signature-letter (page-ref-gathering r))
+                          (if (<= (book-format-sheets fmt) 1)
+                              1
+                              (min leaf-n (- (add1 n-leaves) leaf-n)))))))
    (format "      <pb n=\"~a\" xml:id=\"pb-~a\"~a/>\n"
            (esc sig) (esc sig)
            (if rt (format " ed=\"~a\"" (esc (running-title-identifier rt))) ""))
    (if rt
        (format "      <fw type=\"head\" place=\"top-centre\" hp:damage=\"~a\">~a</fw>\n"
                (esc (title-fingerprint rt)) (esc (running-title-text rt)))
+       "")
+   ;; The page number is forme work like the running title and the signature:
+   ;; a piece of type in the headline, carried from forme to forme with the
+   ;; skeleton. Where the compositor set the wrong one, what printed is what
+   ;; stands, and @n records the number it should have been.
+   (if (and folio (not (string=? (folio-number-printed folio) "")))
+       (format "      <fw type=\"pageNum\" place=\"top-~a\"~a>~a</fw>\n"
+               (if (page-ref-recto? (page-pref p)) "right" "left")
+               (if (string=? (folio-number-note folio) "")
+                   ""
+                   (format " n=\"~a\" hp:error=\"~a\""
+                           (folio-number-want folio)
+                           (esc (folio-number-note folio))))
+               (esc (folio-number-printed folio)))
        "")
    (apply string-append cols)
    (if (string=? (page-signature p) "") ""
@@ -261,8 +290,11 @@
    (header b run names) "\n"
    "  <text>\n    <body>\n"
    (apply string-append
-          (for/list ([p (in-list (book-pages b))])
-            (page->tei p (book-fmt b) variants)))
+          (let ([folios (for/hash ([f (in-list (book-paging b))])
+                          (values (folio-number-sig f) f))])
+            (for/list ([p (in-list (book-pages b))])
+              (page->tei p (book-fmt b) variants
+                         (hash-ref folios (page-sig p) #f)))))
    "    </body>\n  </text>\n</TEI>\n"))
 
 (module+ test

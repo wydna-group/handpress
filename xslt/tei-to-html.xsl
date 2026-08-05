@@ -52,7 +52,8 @@
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <title><xsl:value-of select="//tei:titleStmt/tei:title"/></title>
-        <style><xsl:call-template name="css"/></style>
+        <link rel="stylesheet" href="facsimile.css"/>
+        <script src="facsimile.js" defer="defer"></script>
       </head>
       <body>
         <div class="wrap">
@@ -222,6 +223,20 @@
 
   <xsl:template match="tei:div[@type='page']">
     <div class="leaf plate">
+      <!-- The units a page belongs to. The signature carries them: A3r is
+           leaf 3 of gathering A, and its recto. Sheet membership needs the
+           format, which the header records as leaves per gathering; for a
+           gathering folded from one sheet every leaf is that sheet, and for a
+           quired one leaf L pairs with leaf (leaves+1-L). -->
+      <xsl:attribute name="data-leaf">
+        <xsl:value-of select="@hp:leaf"/>
+      </xsl:attribute>
+      <xsl:attribute name="data-sheet">
+        <xsl:value-of select="@hp:sheet"/>
+      </xsl:attribute>
+      <xsl:attribute name="data-forme">
+        <xsl:value-of select="@hp:forme"/>
+      </xsl:attribute>
       <div>
         <xsl:attribute name="class">
           <xsl:text>tag</xsl:text>
@@ -236,11 +251,29 @@
         <xsl:if test="@hp:pressure &lt; -0.35"> · spun out</xsl:if>
       </div>
 
-      <div class="runhead">
-        <xsl:attribute name="title">
-          <xsl:value-of select="tei:fw[@type='head']/@hp:damage"/>
-        </xsl:attribute>
-        <xsl:value-of select="tei:fw[@type='head']"/>
+      <div class="unit">
+        <span data-unit="leaf">leaf <xsl:value-of select="@hp:leaf"/></span>
+        <span data-unit="sheet">sheet <xsl:value-of select="@hp:sheet"/></span>
+        <span data-unit="forme">forme</span>
+      </div>
+
+      <!-- The headline: page number and running title stood in it together,
+           both of them forme work carried from forme to forme with the
+           skeleton. The number goes to the outer edge, left on a verso and
+           right on a recto, which is where its type was. -->
+      <div class="headline">
+        <span class="fol left">
+          <xsl:apply-templates select="tei:fw[@type='pageNum'][@place='top-left']"/>
+        </span>
+        <span class="runhead">
+          <xsl:attribute name="title">
+            <xsl:value-of select="tei:fw[@type='head']/@hp:damage"/>
+          </xsl:attribute>
+          <xsl:value-of select="tei:fw[@type='head']"/>
+        </span>
+        <span class="fol right">
+          <xsl:apply-templates select="tei:fw[@type='pageNum'][@place='top-right']"/>
+        </span>
       </div>
       <div class="rule"></div>
 
@@ -290,6 +323,13 @@
         <xsl:if test="tei:choice/tei:sic"> sic</xsl:if>
         <xsl:if test="tei:choice/tei:abbr"> abbr</xsl:if>
         <xsl:if test="tei:app"> app</xsl:if>
+        <!-- The stage that moved this word away from its copy, from the
+             taxonomy declared in the header. Faint on the page by design:
+             it should read as a page first. -->
+        <xsl:if test="@ana='#misreading'"> dev-misread</xsl:if>
+        <xsl:if test="@ana='#foul-case'"> dev-accident</xsl:if>
+        <xsl:if test="@ana='#justification'"> dev-fit</xsl:if>
+        <xsl:if test="@ana='#habit'"> dev-habit</xsl:if>
       </xsl:attribute>
       <xsl:attribute name="style">
         <xsl:text>--x:</xsl:text><xsl:value-of select="@hp:x"/>
@@ -407,99 +447,35 @@
   </xsl:template>
 
   <!-- Anything not otherwise matched contributes its text -->
+  <!-- A page number the compositor got wrong is still the number that
+       printed, so it stands as it is; @n carries what it should have been. -->
+  <xsl:template match="tei:fw[@type='pageNum']">
+    <span>
+      <xsl:attribute name="class">
+        <xsl:text>pageno</xsl:text>
+        <xsl:if test="@n"> wrong</xsl:if>
+      </xsl:attribute>
+      <xsl:if test="@n">
+        <xsl:attribute name="title">
+          <xsl:value-of select="@hp:error"/>
+          <xsl:text> — should be </xsl:text>
+          <xsl:value-of select="@n"/>
+        </xsl:attribute>
+      </xsl:if>
+      <xsl:value-of select="."/>
+    </span>
+  </xsl:template>
+
   <xsl:template match="tei:fw"/>
 
   <!-- ================================================================== -->
 
-  <xsl:template name="css">
-:root { color-scheme: light dark; }
-* { box-sizing: border-box; }
-body { margin:0; padding:2.5rem 1.25rem 5rem; background:#d9d2c3;
-  font-family:"Times New Roman",Times,"Liberation Serif","Nimbus Roman",ui-serif,Georgia,serif;
-  color:#1a150e;
-  /* declared here, not on .plate, so that a blank leaf can see them too */
-  --grid:16px; --fit:1.00; --lines:38; }
-@media (prefers-color-scheme: dark){ body{ background:#17140f; color:#e8e0d0; } }
-.wrap { max-width:62rem; margin:0 auto; }
-h1 { font-size:1.3rem; font-weight:600; letter-spacing:.09em;
-     text-transform:uppercase; margin:0 0 .35rem; }
-.lede { font-size:.95rem; opacity:.78; margin:0 0 2.5rem; max-width:44rem;
-        line-height:1.55; }
-.leaf { position:relative; margin:0 auto 3rem; padding:3.2em 3.4em 2.6em;
-  background:#efe8d7; border-radius:1px;
-  box-shadow:0 1px 2px rgba(0,0,0,.28),0 14px 34px rgba(0,0,0,.22);
-  background-image:
-    repeating-linear-gradient(90deg,rgba(120,105,80,.045) 0 1px,transparent 1px 9px),
-    repeating-linear-gradient(0deg,rgba(120,105,80,.05) 0 1px,transparent 1px 34px); }
-.leaf, .leaf * { color:#241c12; }
-/* --grid is one em of the type body in pixels; --fit is the set width of the
-   face against that body. Positions come from the simulation and only the
-   glyphs come from the font, so the two must be kept apart: expressing left
-   in em would scale both together and no adjustment could ever help. */
-.plate { font-size:var(--grid); }
-.runhead { text-align:center; letter-spacing:.22em; font-size:.82em;
-           text-transform:uppercase; margin-bottom:.5em; }
-.rule { border-bottom:1px solid rgba(40,28,14,.5); margin-bottom:1.1em; }
-.cols { display:flex; gap:2.2em; align-items:flex-start; }
-.col { position:relative; width:calc(var(--grid) * var(--m)); }
-.tline { position:relative; height:calc(var(--grid) * 1.44); white-space:nowrap; }
-.w { position:absolute; top:0; white-space:pre;
-     left:calc(var(--grid) * var(--x));
-     font-size:calc(var(--grid) * var(--fit)); }
-.it { font-style:italic; }
-.sic { border-bottom:1px dotted rgba(140,47,22,.55); }
-.abbr { border-bottom:1px dotted rgba(29,85,96,.5); }
-.app { background:rgba(190,150,60,.22); }
-.direction { display:flex; justify-content:space-between; margin-top:1.4em;
-             font-size:.9em; letter-spacing:.04em; }
-.tag { position:absolute; top:-1.55rem; left:0; font-size:.68rem;
-       letter-spacing:.11em; text-transform:uppercase; opacity:.72;
-       font-family:ui-monospace,Menlo,monospace; }
-.crowd { color:#8c2f16; } .gape { color:#1d5560; }
-table { border-collapse:collapse; width:100%; font-size:.86rem; margin:0 0 2rem; }
-th,td { text-align:left; padding:.4rem .6rem; vertical-align:top;
-        border-bottom:1px solid rgba(128,110,80,.35); }
-th { font-size:.72rem; letter-spacing:.1em; text-transform:uppercase;
-     opacity:.7; font-weight:600; }
-h2 { font-size:.78rem; letter-spacing:.13em; text-transform:uppercase;
-     opacity:.72; margin:2.6rem 0 .8rem; font-weight:600; }
-.mono { font-family:ui-monospace,Menlo,monospace; font-size:.86em; }
-.wit { font-size:.72em; opacity:.6; margin-left:.35em; }
-.lem { opacity:.5; }
-.scroll { overflow-x:auto; }
+  <!-- The stylesheet is not here. It lives in xslt/facsimile.css, which
+       render.rkt reads for the direct HTML and this links for the TEI one.
+       It used to exist in both places and the two drifted, until the TEI
+       rendering had none of the page numbers, deviation marks or unit
+       grouping the direct one had grown. main.rkt copies the file beside the
+       output. -->
 
-/* An opening: the verso of one leaf on the left, the recto of the next on
-   the right, as the book is held. The leaf is the unit of paper; the page is
-   one side of it, and the two sides of a leaf are never seen together. */
-.spread { display:flex; gap:1.6rem; justify-content:center; align-items:flex-start;
-          margin:0 auto 3.2rem; flex-wrap:wrap; }
-.spread .side { display:flex; flex-direction:column; }
-/* the lines of type, plus the running head, the rule and the direction line,
-   plus the margins -- about 11 ems of furniture above and below the text */
-.spread .leaf { margin:0;
-                min-height:calc(var(--grid) * (1.44 * var(--lines) + 11)); }
-.leaf.absent { background:none; box-shadow:none;
-               border:1px dashed rgba(120,105,80,.35);
-               min-width:calc(var(--grid) * 26); }
-.folio { text-align:center; margin-top:.55rem; font-size:.72rem;
-         letter-spacing:.1em; text-transform:uppercase; opacity:.75;
-         font-family:ui-monospace,Menlo,monospace; }
-.folio .sig { font-weight:600; opacity:.95; }
-.folio .rv.recto { color:#1d5560; }
-.folio .rv.verso { color:#7a5a1e; }
-.folio.empty { opacity:.4; font-style:italic; text-transform:none;
-               letter-spacing:0; }
-
-.desc { margin:0 0 3rem; padding:1.4rem 1.6rem;
-        border:1px solid rgba(120,105,80,.45); border-radius:2px;
-        background:rgba(255,252,244,.35); }
-.desc h2 { margin-top:0; }
-.desc dl { display:grid; grid-template-columns:max-content 1fr;
-           gap:.35rem 1.1rem; margin:0; font-size:.86rem; line-height:1.5; }
-.desc dt { font-weight:600; font-size:.72rem; letter-spacing:.08em;
-           text-transform:uppercase; opacity:.65; padding-top:.15rem; }
-.desc dd { margin:0; }
-.deskey { font-size:.74rem; opacity:.6; margin:.9rem 0 0; }
-  </xsl:template>
 
 </xsl:stylesheet>

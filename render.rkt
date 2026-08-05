@@ -8,7 +8,7 @@
 ;;; ems, so that the justification you see is the justification the compositor
 ;;; performed rather than the browser's.
 
-(require racket/list racket/string racket/math racket/file
+(require racket/list racket/string racket/math racket/file racket/runtime-path
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt" "press.rkt"
          "description.rkt" "typecase.rkt" "pagination.rkt"
          (only-in "deviation.rkt" word-deviation deviation-class deviation-report)
@@ -167,208 +167,17 @@
                                       ("\"" "&quot;")))])
     (string-replace s (car pair) (cadr pair))))
 
-(define css #<<CSS
-:root { color-scheme: light dark; }
-* { box-sizing: border-box; }
-body {
-  margin: 0; padding: 2.5rem 1.25rem 5rem;
-  background: #d9d2c3;
-  /* An old-face roman is narrow. Georgia and Palatino are not, and a wide
-     face on this body makes the words collide, because the positions come
-     from the simulation and only the glyphs come from the font. Times-like
-     faces are the closest common approximation to the set widths modelled
-     in metrics.rkt. */
-  font-family: "Times New Roman", Times, "Liberation Serif", "Nimbus Roman",
-               ui-serif, Georgia, serif;
-  color: #1a150e;
-}
-@media (prefers-color-scheme: dark) { body { background: #17140f; color: #e8e0d0; } }
-:root[data-theme="dark"] body { background: #17140f; color: #e8e0d0; }
-:root[data-theme="light"] body { background: #d9d2c3; color: #1a150e; }
-.wrap { max-width: 62rem; margin: 0 auto; }
-h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
-     text-transform: uppercase; margin: 0 0 .35rem; }
-.lede { font-size: .95rem; opacity: .78; margin: 0 0 2.5rem; max-width: 44rem;
-        line-height: 1.55; }
-.leaf {
-  position: relative; margin: 0 auto 3rem; padding: 3.2em 3.4em 2.6em;
-  background: #efe8d7;
-  box-shadow: 0 1px 2px rgba(0,0,0,.28), 0 14px 34px rgba(0,0,0,.22);
-  border-radius: 1px;
-  background-image:
-    repeating-linear-gradient(90deg, rgba(120,105,80,.045) 0 1px,
-                              transparent 1px 9px),
-    repeating-linear-gradient(0deg, rgba(120,105,80,.05) 0 1px,
-                              transparent 1px 34px);
-}
-@media (prefers-color-scheme: dark) { .leaf { background: #e6dcc6; } }
-:root[data-theme="dark"] .leaf { background: #e6dcc6; }
-.leaf, .leaf * { color: #241c12; }
-/* --grid is one em of the type body, in pixels. Every position the
-   simulation computed is expressed as a multiple of it, so the layout is the
-   compositor's arithmetic and not the browser's.
-
-   --fit is the set width of the face against that body. It must be tuned to
-   whatever font actually renders: if the glyphs are wider than the widths in
-   metrics.rkt, the words collide and the word-spaces vanish. Keeping the two
-   apart is the whole trick -- expressing `left' in em would scale the glyphs
-   and the grid together, and no amount of adjustment would ever help.
-
-   Calibrated against Times at 16px by measuring every word in the rendered
-   page: at --fit 1.00 the median word occupies its modelled width to within
-   1%, and the median gap between words comes out at 5.4px against a true
-   thick space of 5.33px. That is the point -- the white you see between two
-   words is the space the compositor actually put there.
-
-   Measured again on Areopagitica, 16,219 adjacent pairs: median gap 6.1px,
-   and 13 pairs (0.08%) touching. Those are not a modelling error but the
-   residue of substituting a real font for a table of widths -- a word heavy
-   in long s or capitals renders a shade wider than the model allows, and the
-   space it borrows comes from its neighbour. Lowering --fit would clear them
-   and would also widen every other gap away from the thick space it is meant
-   to be, which is the wrong trade: the collisions are one pair in 1,250 and
-   the spacing is the whole point of the exercise. Left as measured. */
-.plate { --grid: 16px; --fit: 1.00; --lead: 1.44; font-size: var(--grid); }
-
-/* Every leaf is the same size, because every leaf of a book is. The width is
-   the type page plus the margins the period actually left; the height is the
-   full measure of lines whether or not this page filled them, so a spun-out
-   page shows as white at the foot rather than as a shorter piece of paper.
-
-   The proportions are the book's, not the screen's: a hand-press page carries
-   a narrow inner margin and a generous outer and lower one, the text sitting
-   high and towards the gutter. */
-.leaf {
-  width: calc(var(--grid) * ((var(--m) * var(--cols)) + (2.2 * (var(--cols) - 1)) + 11));
-  height: calc(var(--grid) * var(--lead) * var(--lines) + var(--grid) * 9);
-  box-sizing: border-box;
-  padding: 3.4em 4.6em 4.2em 3.4em;
-  display: flex; flex-direction: column;
-}
-.headline { display: flex; align-items: baseline; justify-content: space-between;
-            gap: 1em; margin-bottom: .5em; }
-.runhead { flex: 1; text-align: center; letter-spacing: .22em; font-size: .82em;
-           text-transform: uppercase; }
-.fol { font-size: .82em; min-width: 2.4em; }
-.fol.right { text-align: right; }
-.pageno { letter-spacing: .06em; }
-/* A number the compositor got wrong is still the number that printed. It is
-   shown as it stands and says on hover what it should have been. */
-.pageno.wrong { border-bottom: 1px dotted rgba(140,47,22,.55); cursor: help; }
-.rule { border-bottom: 1px solid rgba(40,28,14,.5); margin-bottom: 1.1em; }
-.cols { display: flex; gap: 2.2em; align-items: flex-start; flex: 1;
-        min-height: calc(var(--grid) * var(--lead) * var(--lines)); }
-.col { position: relative; width: calc(var(--grid) * var(--m)); }
-.tline { position: relative; height: calc(var(--grid) * 1.44);
-         white-space: nowrap; }
-.w { position: absolute; top: 0; white-space: pre;
-     left: calc(var(--grid) * var(--x));
-     font-size: calc(var(--grid) * var(--fit)); }
-.it { font-style: italic; }
-
-/* Individually identifiable types. Each defect prints differently, which is
-   the point: these are the pieces a bibliographer can follow through a book,
-   and they ought to be visible on the page rather than only in the record. */
-.dmg { display: inline-block; }
-.dmg.broken-serif { transform: translateY(0.4px) scaleY(.97); opacity: .8; }
-.dmg.battered     { opacity: .68; transform: skewX(-2deg); }
-.dmg.nicked-bowl  { opacity: .82; transform: scaleX(.96); }
-.dmg.chipped      { transform: translateY(-0.4px); opacity: .78; }
-.dmg.cracked-stem { transform: skewX(2.5deg); opacity: .85; }
-.dmg.worn         { opacity: .5; }
-.dmg.bent         { transform: rotate(2.5deg); }
-.dmg.clogged      { text-shadow: 0 0 .5px currentColor, 0 0 .9px currentColor; }
-.dmg.broken-tail  { transform: scaleY(.94) translateY(0.5px); opacity: .8; }
-.dmg.low          { opacity: .42; transform: translateY(0.6px); }
-/* Hovering a damaged sort names the injury; the whole point of tracking them
-   individually is that a reader can follow one through the book. */
-.dmg { cursor: help; }
-
-/* A letter the case got wrong -- a turned n for a u, an e from the next box.
-   It printed, so it is shown; it was wrong, so it is marked. */
-.acc { border-bottom: 1px solid rgba(140,47,22,.5); cursor: help; }
-
-/* Words that depart from the copy, coloured by the stage that moved them.
-   Faint by design: the page should read as a page first, and give up its
-   apparatus to attention rather than force it on the eye. */
-.w[title] { cursor: help; }
-.dev-misread  { box-shadow: inset 0 -0.10em 0 rgba(140,47,22,.30); }
-.dev-accident { box-shadow: inset 0 -0.10em 0 rgba(176,110,20,.30); }
-.dev-fit      { box-shadow: inset 0 -0.10em 0 rgba(29,85,96,.26); }
-.dev-habit    { box-shadow: inset 0 -0.10em 0 rgba(70,100,50,.26); }
-body.plain .dev-misread, body.plain .dev-accident,
-body.plain .dev-fit, body.plain .dev-habit { box-shadow: none; }
-body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
-
-.key { display: flex; flex-wrap: wrap; gap: .35rem 1.4rem; font-size: .78rem;
-       margin: 0 0 2rem; opacity: .85; align-items: center; }
-.key b { font-weight: 500; }
-.key i { display: inline-block; width: 1.6em; height: .5em; margin-right: .4em;
-         vertical-align: middle; border-radius: 1px; }
-.key .k1 { background: rgba(140,47,22,.45); }
-.key .k2 { background: rgba(176,110,20,.45); }
-.key .k3 { background: rgba(29,85,96,.4); }
-.key .k4 { background: rgba(70,100,50,.4); }
-.key button { font: inherit; padding: .2rem .7rem; border-radius: 999px;
-              border: 1px solid currentColor; background: transparent;
-              color: inherit; cursor: pointer; opacity: .8; }
-
-/* Openings, as the book is bound: a verso and the recto facing it. The first
-   recto stands alone, because it has no verso before it. */
-.opening { display: flex; gap: 0; justify-content: center;
-           margin: 0 auto 2.4rem; width: fit-content; }
-.opening .leaf { margin: 0; }
-.opening .leaf + .leaf { border-left: 1px solid rgba(90,74,50,.22); }
-.opening .leaf:first-child:last-child { margin-left: 0; }
-
-/* The two units a page belongs to, and they are different things. The leaf is
-   what the reader turns; the sheet is what the pressman printed, and its
-   pages are scattered through the gathering rather than consecutive. Hovering
-   either button in the corner lights up every page of that unit wherever it
-   falls in the book. */
-.unit { position: absolute; top: -1.55rem; right: 0; display: flex; gap: .3rem;
-        font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.unit span { padding: .05rem .45rem; border-radius: 999px; cursor: pointer;
-             border: 1px solid rgba(90,74,50,.4); opacity: .6; }
-.unit span:hover { opacity: 1; }
-.leaf.lit-leaf  { outline: 2px solid rgba(29,85,96,.55); outline-offset: 2px; }
-.leaf.lit-sheet { outline: 2px solid rgba(140,80,20,.5); outline-offset: 6px; }
-.leaf.lit-forme { outline: 2px solid rgba(70,100,50,.55); outline-offset: 10px; }
-
-/* The statistical report at the foot. */
-.stats { margin: 3rem 0 0; }
-.stats pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-             font-size: .76rem; line-height: 1.5; white-space: pre-wrap;
-             background: rgba(128,110,80,.09); padding: 1.2rem 1.4rem;
-             border-radius: 3px; overflow-x: auto; }
-.direction { display: flex; justify-content: space-between;
-             margin-top: 1.4em; font-size: .9em; letter-spacing: .04em; }
-.tag { position: absolute; top: -1.55rem; left: 0; font-size: .68rem;
-       letter-spacing: .11em; text-transform: uppercase; opacity: .72;
-       font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.crowd { color: #8c2f16; }
-.gape  { color: #1d5560; }
-table { border-collapse: collapse; width: 100%; font-size: .86rem;
-        margin: 0 0 2rem; }
-th, td { text-align: left; padding: .4rem .6rem; vertical-align: top;
-         border-bottom: 1px solid rgba(128,110,80,.35); }
-th { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase;
-     opacity: .7; font-weight: 600; }
-code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-              font-size: .86em; }
-h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
-     opacity: .72; margin: 2.6rem 0 .8rem; font-weight: 600; }
-.scroll { overflow-x: auto; }
-.desc { margin: 0 0 3rem; padding: 1.4rem 1.6rem; max-width: 62rem;
-        border: 1px solid rgba(120,105,80,.45); border-radius: 2px;
-        background: rgba(255,252,244,.35); }
-.desc h2 { margin-top: 0; }
-.desc pre { margin: 0; white-space: pre-wrap; font-size: .8rem;
-            line-height: 1.5; font-family: ui-monospace, Menlo, monospace; }
-.deskey { font-size: .74rem; opacity: .6; margin: .9rem 0 0; }
-CSS
-  )
+;; The stylesheet lives in xslt/facsimile.css and is read at run time, not
+;; kept here.
+;;
+;; It used to exist twice: once in this string and once inside the XSLT, and
+;; the two drifted until the TEI rendering had none of the page numbers,
+;; deviation marks or unit grouping the direct one had grown. Two copies of a
+;; stylesheet is one copy too many, and the second is always the stale one.
+(define-runtime-path facsimile-css "xslt/facsimile.css")
+(define-runtime-path facsimile-js "xslt/facsimile.js")
+(define css (file->string facsimile-css))
+(define js (file->string facsimile-js))
 
 ;; Uneven inking: a handpress page is never evenly black. Deterministic in the
 ;; word, so that redeploying the same book does not reshuffle the ink.
@@ -610,30 +419,14 @@ HTML
   <span>Hover any word for its history.</span>
   <button onclick="document.body.classList.toggle('plain')">show the page plain</button>
 </div>
-<script>
-/* Light up every page of a unit at once. A leaf is two pages and they face
-   away from one another, so they are never both visible; a sheet's pages are
-   scattered through the gathering; a forme's are on opposite sides of the
-   book. Showing them together is the only way to see what the pressman
-   handled as one piece of paper. */
-document.addEventListener('mouseover', function (e) {
-  var b = e.target.closest && e.target.closest('.unit span');
-  if (!b) return;
-  var leaf = b.closest('.leaf'), kind = b.dataset.unit;
-  var key = kind === 'forme' ? leaf.dataset.forme
-          : kind === 'sheet' ? leaf.dataset.sheet : leaf.dataset.leaf;
-  document.querySelectorAll('.leaf').forEach(function (p) {
-    if (p.dataset[kind] === key) p.classList.add('lit-' + kind);
-  });
-});
-document.addEventListener('mouseout', function (e) {
-  var b = e.target.closest && e.target.closest('.unit span');
-  if (!b) return;
-  document.querySelectorAll('.leaf').forEach(function (p) {
-    p.classList.remove('lit-leaf', 'lit-sheet', 'lit-forme');
-  });
-});
-</script>
+<div class="key">
+  <b>The units a page belongs to:</b>
+  <span><i class="u1"></i>leaf — the two sides of one piece of paper, facing away from each other</span>
+  <span><i class="u2"></i>sheet — everything printed on one sheet, scattered through the gathering</span>
+  <span><i class="u3"></i>forme — the pages locked up and inked together</span>
+  <span>Hover the buttons above any page to light up the rest of its unit.</span>
+</div>
+<script>~a</script>
 ~a
 ~a
 <div class="stats">
@@ -645,6 +438,7 @@ document.addEventListener('mouseout', function (e) {
 HTML
           (html-escape title) css (html-escape title) (html-escape lede)
           (description-html b run)
+          js
           pages extra
           (html-escape (deviation-report b run))
           (html-escape (pagination-report (book-paging b)))))
