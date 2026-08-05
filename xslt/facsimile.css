@@ -126,7 +126,16 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
 .dev-accident { box-shadow: inset 0 -0.10em 0 rgba(176,110,20,.30); }
 .dev-fit      { box-shadow: inset 0 -0.10em 0 rgba(29,85,96,.26); }
 .dev-habit    { box-shadow: inset 0 -0.10em 0 rgba(70,100,50,.26); }
-body.plain .dev-misread, body.plain .dev-accident,
+/* A box that was empty, not a box that was foul: dotted, because nothing is
+   wrong with the reading and the mark is about the shop's supply. */
+.dev-shift    { box-shadow: inset 0 -0.09em 0 rgba(120,110,95,.34); }
+/* A hole left for the proof: the forme cannot go to press like this, so it is
+   marked more strongly than anything else on the page. */
+.dev-wanting  { box-shadow: inset 0 -0.12em 0 rgba(90,20,90,.40); }
+/* The copies disagree here and nothing else explains it. */
+.dev-variant  { box-shadow: inset 0 -0.10em 0 rgba(150,120,20,.34); }
+body.plain .dev-misread, body.plain .dev-accident, body.plain .dev-shift,
+body.plain .dev-wanting, body.plain .dev-variant,
 body.plain .dev-fit, body.plain .dev-habit { box-shadow: none; }
 body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
 

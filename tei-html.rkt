@@ -106,7 +106,8 @@
 (define ANA-CLASS
   (hash "#division" "dev-divided" "#misreading" "dev-misread"
         "#foul-case" "dev-accident" "#justification" "dev-fit"
-        "#habit" "dev-habit"))
+        "#habit" "dev-habit" "#substitution" "dev-shift"
+        "#sort-wanting" "dev-wanting" "#press-variant" "dev-variant"))
 
 ;; ---------------------------------------------------------------------------
 ;; One word
@@ -390,7 +391,11 @@
                (format "<span><i class=\"~a\"></i>~a</span>"
                        (hash-ref ANA-CLASS (string-append "#" (attr c '|xml:id| "")))
                        (esc (text-of (find c 'catDesc))))))
-      "<span>Hover any word for its history.</span>"
+      ;; Not "hover any word": about a fifth of them have anything to say, and
+      ;; promising a history for all of them made the other four fifths look
+      ;; broken. The marked ones are the ones that moved.
+      "<span>The marked words carry their history; hover one to read it. "
+      "The rest stand as the copy had them.</span>"
       "<button onclick=\"document.body.classList.toggle('plain')\">"
       "show the page plain</button></div>")]))
 

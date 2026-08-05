@@ -164,29 +164,38 @@ program still cannot check itself.
       out. Printing unrelated matter on them is the one option to leave alone:
       McKerrow raises it and calls it "merely a suggestion".
 
-- [ ] **The tooltips do not all fire.** Reported from the review build and not
-      yet looked at. Some annotated words in the facsimile show no gloss on
-      hover.
+- [ ] **The fount has too few figures, and it is Lear's fault.** The exhaustion
+      has now been measured, which was the prerequisite for touching
+      `BLANK-FOR-PROOF` at all. In Floyd's *Common Wealth* the arabic figures
+      run to *zero*: `1` bill 38 → 0, `2` 33 → 0, `3` 29 → 0, `4` 27 → 0, and
+      `&` 38 → 0. That is why 129 face-down placeholders appear in a 48-page
+      quarto where Blayney proves one in a whole book (i. 161, at I4v36).
 
-- [ ] **The face-down placeholder fires about ninety times too often.** Found by
-      looking at a generated book: Floyd's *Common Wealth* comes out with 130
-      of them over 136 pages, very nearly one a page, mostly on `&` and on
-      figures. Blayney proves **one** in a whole quarto (i. 161, at I4v36), and
-      that one is remarkable enough to be the evidence for the practice.
+      So the rate was never the first question. `upper-bill` gives each figure
+      26–40 sorts, on the rule "the greater of Lear's measured maximum and a
+      tenth of Smith's bill". But *Lear* is a play: no numbered chapters, no
+      arabic pagination, no marginal citations. Its demand for figures was
+      near zero, so its maximum is no evidence about the fount, and Blayney's
+      Smith/10 yardstick was a statement about **capitals**, not about figures.
+      A book with a two-hundred-entry numbered table of contents cannot be set
+      out of that case.
 
-      Two things to look at, and it is not obvious which is at fault.
-      `BLANK-FOR-PROOF` is 0.25, so a quarter of exhausted-sort cases take this
-      course rather than a wrong-fount sort; that is a guess and probably far
-      too high. But the prior question is why `&` and the figures are running
-      out at all — the bill may simply be short of them, or they may not be
-      getting distributed back. Measure the exhaustion before touching the
-      0.25, or the rate will be tuned to hide a supply bug.
+      What to do: find what a real bill gives for figures — Smith's standard
+      bill in Gaskell p. 37, and van den Keere's 1571 registre, which Blayney
+      prints alongside the Lear column — and set them from that rather than
+      from a play. Only then is `BLANK-FOR-PROOF` (0.25, a guess) worth
+      looking at.
 
-      Also: the placeholder is classified `ana="#foul-case"` in the TEI, and it
-      is not foul case. It is a deliberate blank — the compositor knew exactly
-      what he was doing — and it belongs in a category of its own, since it is
-      the one expedient that makes press-correction *necessary* rather than
-      optional.
+      The misclassification is fixed: the placeholder now has its own category
+      `#sort-wanting` rather than being reported as foul case.
+
+- [ ] **Word division breaks inside consonant clusters.** 23% of the divided
+      words in Floyd break somewhere no compositor would break them —
+      `Exc-epte`, `conſtr-`, `praecl-`, `ſhipp-`, `omn-`, `Ariſt-`. Moxon and
+      McKerrow both have division by syllable, and the rule here appears to
+      divide by width alone. 42% break after a single consonant and 35% after
+      a vowel, which are the ordinary cases; it is the remaining quarter that
+      wants a syllable rule rather than a measurement.
 
 - [ ] **Watermarks and chain-lines.** A can of worms of its own, and the
       evidence that half the rest of this depends on. Every test in McKerrow's

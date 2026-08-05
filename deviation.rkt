@@ -40,6 +40,7 @@
 
 (require racket/list racket/string racket/format racket/math
          "compositor.rkt" "book.rkt" "press.rkt" "imposition.rkt"
+         (only-in "typecase.rkt" substitution-only? substitution-phrase placeholder?)
          (only-in "orthography.rkt" strip-conventions))
 
 (provide deviation-report deviation-counts word-deviation)
@@ -60,25 +61,58 @@
            (format "division: ~a of “~a”"
                    (if (regexp-match? #rx"second half" c) "second half" "first half")
                    (word-copy w)))))
+  ;; The devices arrive with their stage already on the front --
+  ;; "justification: terminal -e added" -- so appending them after the
+  ;; transformation note said "justification" twice in one tooltip, 242 times
+  ;; in one book: `justification: "most" -> "moste"; justification: terminal -e
+  ;; added'. The device belongs *inside* the note for its own stage, and only
+  ;; the ones that match no stage are left to stand on their own.
+  (define (devices-for stage)
+    (for/list ([c (in-list (word-causes w))]
+               #:when (string-prefix? c (string-append stage ": ")))
+      (substring c (+ 2 (string-length stage)))))
+  (define (staged stage note)
+    (define ds (devices-for stage))
+    (if (null? ds) note (format "~a (~a)" note (string-join ds ", "))))
+  (define claimed
+    (for*/list ([stage (in-list '("misreading" "habit" "justification"))]
+                [d (in-list (devices-for stage))])
+      (string-append stage ": " d)))
   (define notes
     (append
      (if divide-note (list divide-note) '())
      (if (and (not divide-note) (d (word-copy w) (word-read w)))
-         (list (format "misreading: copy “~a” → read “~a”"
-                       (word-copy w) (word-read w)))
+         (list (staged "misreading"
+                       (format "misreading: copy “~a” → read “~a”"
+                               (word-copy w) (word-read w))))
          '())
      (if (d (word-read w) (word-habit w))
-         (list (format "habit: “~a” → “~a”" (word-read w) (word-habit w))) '())
+         (list (staged "habit"
+                       (format "habit: “~a” → “~a”" (word-read w) (word-habit w))))
+         '())
      (if (d (word-habit w) (word-final w))
-         (list (format "justification: “~a” → “~a”" (word-habit w) (word-final w)))
+         (list (staged "justification"
+                       (format "justification: “~a” → “~a”"
+                               (word-habit w) (word-final w))))
          '())
+     ;; A box that was empty is not a box that was foul. See
+     ;; `substitution-only?': the reading is untouched, and calling it foul case
+     ;; produced notes like `foul case: "officers" set for "officers"'.
      (if (d (word-composed w) (word-printed w))
-         (list (format "foul case: “~a” set for “~a”"
-                       (word-printed w) (word-composed w)))
+         (list (cond
+                 [(placeholder? (word-printed w))
+                  (format "no sort to set “~a” with: a type laid face down to hold the place, to be put right at proof"
+                          (word-composed w))]
+                 [(substitution-only? (word-composed w) (word-printed w))
+                  (substitution-phrase (word-composed w) (word-printed w))]
+                 [else
+                  (format "foul case: “~a” set for “~a”"
+                          (word-printed w) (word-composed w))]))
          '())
-     ;; the device that did it, in the compositor's own terms
+     ;; the device that did it, in the compositor's own terms, where no stage
+     ;; above has already named it
      (for/list ([c (in-list (word-causes w))]
-                #:unless (regexp-match? #rx"divid" c))
+                #:unless (or (regexp-match? #rx"divid" c) (member c claimed)))
        c)))
   (cond
     [(pair? notes) (string-join notes "; ")]
@@ -86,8 +120,36 @@
           (d (strip-conventions (word-copy w)) (strip-conventions (word-printed w))))
      (format "copy “~a” → printed “~a”" (word-copy w) (word-printed w))]
     [(d (word-copy w) (word-printed w))
-     "conventions of the house: long s, u for v, i for j"]
+     (conventions-shown (word-copy w) (word-printed w))]
     [else #f]))
+
+;; Name the conventions this word actually shows, rather than reciting all of
+;; them at every word that shows any.
+;;
+;; This is much the commonest note in a book -- 1,468 words of one quarto, 61%
+;; of every tooltip in it -- and it read "conventions of the house: long s, u
+;; for v, i for j" on all of them, which tells a reader nothing whatever about
+;; the word under the cursor. Two of the three cannot be seen by looking at the
+;; printed form alone, since u, v, i and j all exist in both alphabets, so the
+;; copy and the setting are compared and the direction named.
+(define (conventions-shown copy printed)
+  (define (either a b set) (and (memv a set) (memv b set) (not (char=? a b))))
+  (define uv
+    (for/or ([a (in-string copy)] [b (in-string printed)])
+      (cond [(and (memv a '(#\u #\U)) (memv b '(#\v #\V))) "v for u, at the head"]
+            [(and (memv a '(#\v #\V)) (memv b '(#\u #\U))) "u for v, within"]
+            [else #f])))
+  (define ij
+    (for/or ([a (in-string copy)] [b (in-string printed)])
+      (and (either a b '(#\i #\I #\j #\J)) "i doing duty for j")))
+  (define parts
+    (filter values
+            (list (and (regexp-match? #rx"ſ" printed) "the long s")
+                  (and (regexp-match? #px"[ﬀﬁﬂﬃﬄ]" printed) "a ligature")
+                  uv ij)))
+  (if (null? parts)
+      "the conventions of the case"
+      (string-append "the conventions of the case: " (string-join parts ", "))))
 
 ;; Which of the stages to colour it by, for the page itself.
 (define (deviation-class w)
@@ -96,8 +158,12 @@
     [(divided? w) "dev-divided"]
     [(and (word-copy w) (word-read w)
           (not (string=? (word-copy w) (word-read w)))) "dev-misread"]
+    ;; but a box that was empty is not a box that was foul, so the page must
+    ;; not ring it in the colour it uses for the compositor's errors
     [(and (word-composed w) (word-printed w)
-          (not (string=? (word-composed w) (word-printed w)))) "dev-accident"]
+          (not (string=? (word-composed w) (word-printed w)))
+          (not (substitution-only? (word-composed w) (word-printed w))))
+     "dev-accident"]
     [(and (word-habit w) (word-final w)
           (not (string=? (word-habit w) (word-final w)))) "dev-fit"]
     [(and (word-read w) (word-habit w)

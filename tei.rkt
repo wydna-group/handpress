@@ -34,7 +34,8 @@
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
          "press.rkt" "binding.rkt" "cancels.rkt" "corrector.rkt" "description.rkt"
          "pagination.rkt"
-         (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary)
+         (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary
+                  substitution-only? placeholder?)
          (only-in "deviation.rkt" deviation-counts word-deviation)
          (only-in "orthography.rkt" strip-conventions))
 
@@ -126,6 +127,9 @@
           "          <category xml:id=\"justification\"><catDesc>Altered so that the line would fill the measure exactly.</catDesc></category>"
           "          <category xml:id=\"misreading\"><catDesc>Misread from the copy: minims, secretary-hand confusions, memory.</catDesc></category>"
           "          <category xml:id=\"foul-case\"><catDesc>A sort taken from an adjoining box of the case.</catDesc></category>"
+          "          <category xml:id=\"substitution\"><catDesc>A different sort of the same letters, taken because the box wanted was empty: f + fi for the ffi ligature, a round s for a long. The reading is unaffected; the shop's supply is not.</catDesc></category>"
+          "          <category xml:id=\"sort-wanting\"><catDesc>A type laid face down to hold a place, printing as a black rectangle, because the sort was not in the house at all. To be put right at proof: the forme cannot go to press as it stands.</catDesc></category>"
+          "          <category xml:id=\"press-variant\"><catDesc>The copies do not agree here, the forme having been altered while the run went on, and no other cause accounts for the word. What the copies read is in the apparatus.</catDesc></category>"
           "          <category xml:id=\"division\"><catDesc>Half of a word broken at the end of a line. Not a corruption: the reading is the whole word, and the hyphen is a fact about the line.</catDesc></category>"
           "          <category xml:id=\"house-style\"><catDesc>Imposed on the copy by the corrector before setting.</catDesc></category>"
           "        </taxonomy>"
@@ -259,6 +263,9 @@
   ;; guess; reading them off `final' is exact.
   (define set-form (word-printed w))
   (define reading (word-final w))
+  ;; The readings that actually differ between copies, wanted this early
+  ;; because a place held for the proof survives only in the uncorrected one.
+  (define app (hash-ref variants key #f))
   ;; An accident of the case has no pre-conventions counterpart, since the
   ;; wrong sort was picked after the spelling was settled. Its long s can be
   ;; stripped mechanically; its u and v have to stand.
@@ -267,7 +274,26 @@
   ;; by a convention, not by a wrong sort, and comparing those two classified
   ;; every u-for-v in the book as foul case -- 1,048 of them against 12 real
   ;; misreadings, where the measured rate is a quarter per thousand words.
-  (define accident? (not (string=? set-form (word-composed w))))
+  ;;
+  ;; A forced substitution is not an accident either. The compositor who has no
+  ;; ffi sets f + fi, and the reading is the same; classifying that as foul case
+  ;; put fifteen words of this book in the same class as a wrong sort, and gave
+  ;; each of them a note saying `officers' had been set for `officers'.
+  ;; And a place held open for the proof is not an accident either: it is a
+  ;; hole the compositor left on purpose because the sort was not in the house.
+  ;; The hole is normally *gone* from the printed form, because the whole point
+  ;; of it is that the corrector fills it during the run -- so it survives only
+  ;; in the uncorrected state, which lives in the apparatus rather than in the
+  ;; word. Looking at `set-form' alone found 42 of them and missed the rest.
+  (define wanting?
+    (or (placeholder? set-form)
+        (and app (for/or ([r (in-list app)]) (placeholder? (cdr r))))))
+  (define shifted?
+    (and (not wanting?)
+         (not (string=? set-form (word-composed w)))
+         (substitution-only? (word-composed w) set-form)))
+  (define accident?
+    (and (not (string=? set-form (word-composed w))) (not shifted?) (not wanting?)))
   ;; For the apparatus, both members with the long s taken off, since that is
   ;; a glyph and not part of the reading either.
   (define printed (strip-conventions set-form))
@@ -279,10 +305,20 @@
   ;; latter left every first half classified as a misreading.
   (define divided? (for/or ([c (in-list (word-causes w))])
                      (regexp-match? #rx"divid" c)))
-  (define app (hash-ref variants key #f))
   (define ana
-    (cond [app "#foul-case"]
+    ;; This taxonomy is of *causes*, and being a press variant is not one. It
+    ;; says that the readings differ between copies -- which the <app> below
+    ;; already records -- and says nothing about what moved the word. Tested
+    ;; first, as it was, it swallowed every other classification: words whose
+    ;; own note read "habit: Democratie -> Democraty" or "division: first half
+    ;; of consuls," or simply "the long s" came out labelled foul case, 38 of
+    ;; them in one book and 24 in another. So the causes are asked first and
+    ;; the variant is what is left when none of them answers.
+    (cond [wanting? "#sort-wanting"]
           [accident? "#foul-case"]
+          ;; After the errors: a shift is a fact about the case, and the word is
+          ;; otherwise faithful.
+          [shifted? "#substitution"]
           ;; Division before misreading, and before justification. Both halves
           ;; of a divided word carry the whole word as their copy reading, so
           ;; every comparison against it reports a change that never happened,
@@ -292,6 +328,7 @@
           [just? "#justification"]
           [(not (string=? (word-read w) (word-copy w))) "#misreading"]
           [(not (string=? (word-habit w) (word-read w))) "#habit"]
+          [app "#press-variant"]
           [else "#copy"]))
   (define inner
     (cond

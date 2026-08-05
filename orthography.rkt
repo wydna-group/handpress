@@ -24,7 +24,8 @@
 ;;; page is suspect as evidence of habit -- a point Hinman presses against his
 ;;; own method at i. 186-7.
 
-(require racket/string racket/list racket/match "metrics.rkt" "lexicon.rkt")
+(require racket/string racket/list racket/match racket/set
+         "metrics.rkt" "lexicon.rkt")
 
 ;; The gate every produced spelling passes through.
 ;;
@@ -47,9 +48,79 @@
 (define (spelling? s)
   (regexp-match? #px"^[A-Za-zſ']+$" s))
 
+;; A word that is nearly always pointed is an abbreviation, and its point is a
+;; mark of truncation rather than of a sentence. No word list can make the
+;; distinction -- `lib' and `command' are both in the corpus and both turn up
+;; followed by a point -- but the *share* separates them completely. Over 900
+;; books:
+;;
+;;     lib  93.4%   pag 94.3%   chap 93.0%   psal 94.0%   viz 83.7%
+;;     most  0.4%   king 6.1%   command 7.1%   sound 5.0%   accounted 0.7%
+;;
+;; Nothing sits between 57% and 83% except `fol', which is both. These are the
+;; 73 tokens at or above 80% with 400 occurrences or more, and they are what
+;; you would expect: the books of the Bible, the classical authors cited in
+;; margins, and the furniture of a citation.
+;;
+;; Without this the terminal -e device read `lib.' as a word ending in b and
+;; made `libe.', and the variant group let it through, because the corpus does
+;; contain `libe' -- 17,824 occurrences of `lib' are 17,824 abbreviations.
+(define ABBREVIATIONS
+  (list->seteq
+   (map string->symbol
+        (string-split
+         (string-append
+          "guaz fvlk annib answ posit hebr matth heb ezek exod prov ephes math "
+          "greg ibid plut apoc pag ezech psal deut epist concil lib ier chap ib "
+          "ioh vii chron cic luk arist eccles rom epig hist serm chrysost psa "
+          "doct eph bern viii esa quaest luc iii dist phil tit prou orat eccl "
+          "isa reu aug sam tim pet vers ephe psalm cap hom c viz cant finis "
+          "mart ep ii ioan")))))
+
+(define (abbreviation? core tail)
+  (and (regexp-match? #rx"^\\." tail)
+       (set-member? ABBREVIATIONS
+                    (string->symbol (string-replace (string-downcase core) "ſ" "s")))))
+
+;; The stroke over a vowel is a sign, and no word list will hold `cōmon'. But a
+;; word that *already* carries the stroke is still a word, and the test above
+;; was throwing the word away along with the sign: `accoūted' is not a spelling
+;; by that test, so `warranted?' answered "not the lexicon's business" and every
+;; device had a free hand over anything the compositor had abbreviated. The
+;; terminal -e rule duly made `accoūtede', which does not occur once in 800
+;; books of the corpus, where `accounted' occurs 1,242 times.
+;;
+;; So the two directions are separated. A device that *adds* the stroke is the
+;; tilde device and the lexicon has nothing to say about its output, as before.
+;; A device that appends letters to a word already carrying one is judged on
+;; the letters underneath: the stroke stands for a following m or n and does
+;; not say which, so the reading the corpus recognises is the one taken --
+;; `accoūted' is `accounted', not `accoumted'.
+(define MARKED-VOWELS
+  (hash #\ā #\a #\ē #\e #\ī #\i #\ō #\o #\ū #\u
+        #\Ā #\A #\Ē #\E #\Ī #\I #\Ō #\O #\Ū #\U))
+
+(define (marked? s)
+  (for/or ([ch (in-string s)]) (and (hash-has-key? MARKED-VOWELS ch) #t)))
+
+(define (unmark s nasal)
+  (apply string-append
+         (for/list ([ch (in-string s)])
+           (cond [(hash-ref MARKED-VOWELS ch #f)
+                  => (lambda (v) (string v nasal))]
+                 [else (string ch)]))))
+
 (define (warranted? produced base)
   (define group (map car (variants-of base)))
   (cond
+    [(marked? base)
+     (define n-base (unmark base #\n))
+     (define m-base (unmark base #\m))
+     (cond
+       [(attested? n-base) (warranted? (unmark produced #\n) n-base)]
+       [(attested? m-base) (warranted? (unmark produced #\m) m-base)]
+       ;; neither reading is a word the corpus knows, so it has nothing to say
+       [else #t])]
     ;; signs are not the lexicon's business
     [(not (spelling? produced)) #t]
     ;; Where the corpus knows this word's spellings, the produced form must be
@@ -579,12 +650,28 @@
      ;; `marks' into `markse', `wars' into `warse' and `man's' into `man'se',
      ;; and since the long s is medial in all three the page then showed
      ;; `markſe' and `warſe'. Nothing of the kind was ever set.
+     ;;
+     ;; And not over an ending that is itself a mark of contraction, which is
+     ;; the same argument twice more:
+     ;;
+     ;;   compos'd -> compos'de   the apostrophe already stands for the very e
+     ;;                           being added, so the form spells it twice. In
+     ;;                           the printed book this ran at 7.3% of all -'d
+     ;;                           endings against 0.88% across 500 corpus books.
+     ;;   lib.     -> libe.       the point marks a truncation, not a sentence:
+     ;;                           there is no word-ending there to lengthen.
+     ;;
+     ;; A point after a word that is not an abbreviation is ordinary sentence
+     ;; punctuation and is left alone, so `command.' may still take its e.
      (and (> len 2)
           (memv (string-ref lcore (sub1 len)) (string->list "bdfgklmnprtvz"))
           (not (hash-has-key? long-forms lcore))
+          (not (regexp-match? #px"'[a-zſ]$" lcore))
+          (not (abbreviation? core tail))
           (add (string-append core "e" tail) "terminal -e added"))
      ;; -all for -al, -ll for -l
      (and (string-suffix? lcore "l") (not (string-suffix? lcore "ll")) (> len 3)
+          (not (abbreviation? core tail))
           (add (string-append core "l" tail) "-ll for -l"))
      ;; the ending written out again: ruled for rul'd
      (and (string-suffix? lcore "'d") (> len 3)
@@ -608,15 +695,31 @@
 
 ;; v initially, u medially: vpon, haue, loue, neuer.
 ;;
-;; Two things this got wrong, and both showed on the page rather than in any
-;; test. A capital V medially was turned into a *lower-case* u, so a word set
-;; in capitals came out with a small letter in the middle of it. And the rule
-;; was applied to the VV that does duty for W in a fount without one -- which
-;; is not two v's at all but a single letter spelt with two sorts, so
-;; "VVHAT" was printed "VuHAT", eight times in one book.
-(define (apply-uv word)
+;; That rule is the lower case's. The capitals do not follow it, and treating
+;; the two alphabets alike was wrong in both directions.
+;;
+;; In a fount of this period the capital V does duty for both letters, and the
+;; capital U is very nearly not there. Counted over 400 books of the corpus, a
+;; capital standing inside an all-capital word is V in 6,028 places against U
+;; in 158, and in the 1600s alone 1,045 against 24 -- 2.2%. It is the 1640s
+;; before the U becomes ordinary (22%), which is where Blayney puts the change
+;; (i. 145) and where SCRIBAL-RATES puts the tilde's.
+;;
+;; The rule here said the opposite, turning a medial capital V into a capital
+;; U, so SENATVS was composed SENATUS. The case holds eight capital U's, so it
+;; then substituted V and printed SENATVS after all -- and the round trip was
+;; reported as a foul-case error in a word that had been right to begin with,
+;; five times on one page of Latin.
+;;
+;; The other fault was the VV that does duty for W in a fount without one:
+;; not two v's at all but one letter spelt with two sorts, so "VVHAT" was
+;; printed "VuHAT", eight times in one book.
+(define CAPITAL-U-YEAR 1640)
+
+(define (apply-uv word [year 1600])
   (define n (string-length word))
   (define (at i) (and (>= i 0) (< i n) (string-ref word i)))
+  (define v-for-u? (< year CAPITAL-U-YEAR))
   (list->string
    (for/list ([ch (in-string word)] [i (in-naturals)])
      (define prev (at (sub1 i)))
@@ -628,9 +731,9 @@
      (cond
        [double-v? ch]
        [(and (char=? ch #\u) (not prev-letter?)) #\v]
-       [(and (char=? ch #\U) (not prev-letter?)) #\V]
        [(and (char=? ch #\v) prev-letter?) #\u]
-       [(and (char=? ch #\V) prev-letter?) #\U]
+       ;; the capitals: V throughout, wherever it stands in the word
+       [(and (char=? ch #\U) v-for-u?) #\V]
        [else ch]))))
 
 ;; i does duty for j: Iohn, iustice, ioy.
@@ -715,7 +818,7 @@
 
 (define (apply-conventions cv word)
   (let* ([s word]
-         [s (if (conventions-uv? cv) (apply-uv s) s)]
+         [s (if (conventions-uv? cv) (apply-uv s (conventions-year cv)) s)]
          [s (if (conventions-ij? cv) (apply-ij s) s)]
          [s (if (conventions-ligatures? cv) (apply-ligatures s) s)]
          [s (if (conventions-long-s? cv) (apply-long-s s) s)])
@@ -746,15 +849,44 @@
   (check-equal? (apply-uv "upon") "vpon")
   (check-equal? (apply-uv "haue") "haue")
   ;; The VV that stands for W is one letter spelt with two sorts, not two v's,
-  ;; and must be left alone; and a capital medially stays a capital.
+  ;; and must be left alone.
   (check-equal? (apply-uv "VVHAT") "VVHAT")
   (check-equal? (apply-uv "VVhat") "VVhat")
-  (check-equal? (apply-uv "SALVE") "SALUE")
-  (check-equal? (apply-uv "LOVE") "LOUE")
   (check-false (regexp-match? #px"[a-z]" (apply-uv "COMMONVVEALTH"))
                "a word set in capitals stays in capitals")
+  ;; The capitals do not follow the lower case's positional rule. V does duty
+  ;; for both letters: 1,045 medial capital V in the corpus for the 1600s
+  ;; against 24 U. These stand as they are.
+  (check-equal? (apply-uv "SALVE") "SALVE")
+  (check-equal? (apply-uv "LOVE") "LOVE")
+  ;; and a capital U is turned into one, rather than left for the case to
+  ;; substitute and the result reported as a foul-case error
+  (check-equal? (apply-uv "SENATUS") "SENATVS")
+  (check-equal? (apply-uv "EIUS") "EIVS")
+  (check-equal? (apply-uv "UNTO") "VNTO")
+  ;; but not after the U becomes ordinary, which the corpus puts in the 1640s
+  (check-equal? (apply-uv "SENATUS" 1660) "SENATUS")
   (check-equal? (apply-uv "love") "loue")
   (check-equal? (apply-uv "very") "very")
+  ;; A justification device may not lengthen an ending that is itself a mark of
+  ;; contraction. The apostrophe of compos'd stands for the very e being added,
+  ;; and the point of lib. marks a truncation and not a sentence.
+  (define (forms w) (map variant-form (expansions w)))
+  (check-false (member "compos'de" (forms "compos'd")))
+  (check-false (member "caus'de" (forms "caus'd")))
+  (check-false (member "libe." (forms "lib.")))
+  (check-false (member "cape." (forms "cap.")))
+  (check-true (and (member "commande." (forms "command.")) #t)
+              "an ordinary word before a full stop is untouched")
+  (check-true (and (member "moste" (forms "most")) #t))
+  ;; A word that already carries the stroke is judged on the letters under it,
+  ;; not waved through as a sign: accoūted is accounted, and accoūtede is a
+  ;; form the corpus does not have.
+  (check-false (member "accoūtede" (forms "accoūted")))
+  ;; but the stroke itself is still the compositor's to reach for
+  (check-true (and (member "mēte" (map variant-form
+                                       (contractions "mente" #:tilde? #t))) #t))
+
   (check-equal? (apply-ij "joy") "ioy")
   (check-equal? (apply-long-s "sinnes") "ſinnes")
   ;; A final ss prints as long-s followed by short: confeſs, not confeſſ.

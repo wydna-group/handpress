@@ -18,7 +18,7 @@ analysis.
 | `md` | `4°: *⁴ A–E⁴` | 3 | YAML metadata; Pandoc `::: dedication` |
 | `html` | `4°: *⁴ A–E⁴` | 3 | `<meta>`; `<section class="dedication">` |
 | `docx` | `4°: *⁴ A–E⁴` | 3 | `docProps/core.xml`; paragraph styles |
-| `xml` | `4°: ¶⁴ A–Q⁴` | 3 | `<div type="dedication">`; `<teiHeader>` |
+| `xml` | `4°: a⁴ A–Q⁴` | 3 | `<div type="dedication">`; `<teiHeader>` |
 | `tex` | `4°: a⁴ A–E⁴` | 2 | `\title`/`\author`; `\frontmatter` |
 | `pdf` | `4°: *² A–B⁴ C²` | 1 | the Info dictionary and the outline |
 | `txt` | `4°: *² A–E⁴` | **0** | nothing |
@@ -39,5 +39,12 @@ preliminaries were small enough to be printed in the white leaves of the last
 sheet and cut out — McKerrow's economy — which is why `C` is bound as a
 two-leaf gathering.
 
-Made with `tools/tcp-to-copy.py` and a conversion script; regenerate with the
-command in the git log for this directory.
+The `floyd.*` sources were made with `tools/tcp-to-copy.py` and a conversion
+script. To rebuild the seven books from them:
+
+```sh
+sh review/regenerate.sh
+```
+
+One seed, one shop, one edition size for all seven, so that the only variable
+left is the format.

@@ -24,7 +24,9 @@
          LONG-S-LIGATURES LIGATURE-PRINTS take-ligature!
          LOWER-CASE-LEFT LOWER-CASE-RIGHT UPPER-CASE-LAY
          damage-vocabulary damage-for damage-phrase CONDITIONS batter!
-         note-recurrence! sort-piece-note)
+         note-recurrence! sort-piece-note
+         SUBSTITUTIONS substitution-only? substitution-phrase
+         PLACEHOLDER placeholder?)
 
 ;; ---------------------------------------------------------------------------
 ;; The lay of the case
@@ -181,6 +183,71 @@
         #\J '("I") #\U '("V") #\j '("i") #\u '("v")
         #\ā '("am") #\ē '("em") #\ō '("om") #\ū '("um")
         #\Ā '("Am") #\Ē '("Em") #\Ō '("Om") #\Ū '("Um")))
+
+;; The foot of a sort set face down, printing as a black rectangle. Blayney's
+;; compositor B does this when he wants a W and there is no W to be had
+;; (i. 161). It is neither an error nor a substitution: it is a hole in the
+;; page, left deliberately, to be filled at proof -- and calling it foul case
+;; produced the note `"▮96." set for "196."', which says the compositor took a
+;; black rectangle out of the wrong box.
+(define PLACEHOLDER #\▮)
+
+(define (placeholder? s) (and (regexp-match? (regexp (string PLACEHOLDER)) s) #t))
+
+;; Did the case merely shift, or did it err?
+;;
+;; These two are not the same thing and the page cannot tell them apart, since
+;; both come out as a word set otherwise than it was composed. A foul case is a
+;; sort from the wrong box and the reading suffers: DIGNISSIMO printed
+;; DIGNISSIEO. A substitution is the compositor doing the best he can with an
+;; empty box, and the reading does not suffer at all -- f + fi for the ffi he
+;; had not got, two f's for the ff, a round s for a long. Blayney watched Okes's
+;; men do exactly this (i. 147); it is evidence about the shop's supply, not
+;; about the man's care, and it should not be scored against him.
+;;
+;; Comparing the composed string with the printed one cannot separate them,
+;; which is how `officers' came to be reported as a foul case for `officers'
+;; -- fifteen times in one book, in a note no reader could make sense of.
+;; Walking the two strings against this table can: a difference the table
+;; accounts for is a shift, and anything left over is an error.
+(define (substitution-only? composed printed)
+  (define lc (string-length composed))
+  (define lp (string-length printed))
+  (let loop ([c 0] [p 0] [shifted? #f])
+    (cond
+      [(and (= c lc) (= p lp)) shifted?]
+      [(or (= c lc) (= p lp)) #f]
+      [(char=? (string-ref composed c) (string-ref printed p))
+       (loop (add1 c) (add1 p) shifted?)]
+      [else
+       (define hit
+         (for/or ([s (in-list (hash-ref SUBSTITUTIONS (string-ref composed c) '()))])
+           (and (<= (+ p (string-length s)) lp)
+                (string=? s (substring printed p (+ p (string-length s))))
+                s)))
+       (and hit (loop (add1 c) (+ p (string-length hit)) #t))])))
+
+;; Which box was empty, in the compositor's terms rather than the program's.
+(define (substitution-phrase composed printed)
+  (define lc (string-length composed))
+  (define lp (string-length printed))
+  (let loop ([c 0] [p 0])
+    (cond
+      [(or (= c lc) (= p lp)) "a sort the case had not got"]
+      [(char=? (string-ref composed c) (string-ref printed p))
+       (loop (add1 c) (add1 p))]
+      [else
+       (define want (string-ref composed c))
+       (define hit
+         (for/or ([s (in-list (hash-ref SUBSTITUTIONS want '()))])
+           (and (<= (+ p (string-length s)) lp)
+                (string=? s (substring printed p (+ p (string-length s))))
+                s)))
+       (if hit
+           (format "the ~a box was empty, so it was set ~a"
+                   (string want)
+                   (string-join (map string (string->list hit)) " + "))
+           "a sort the case had not got")])))
 
 ;; ---------------------------------------------------------------------------
 ;; The bill of type
@@ -827,7 +894,7 @@
        ;; go to press as it stands.
        [(< (rnd g) BLANK-FOR-PROOF)
         (bump! (tcase-blanks tc) ch)
-        (draw ch "▮" 'blank-for-proof
+        (draw ch (string PLACEHOLDER) 'blank-for-proof
               (format "~a wanting; a sort set face down, to be inserted at proof" ch)
               #f)]
        [else
@@ -994,6 +1061,22 @@
 
 (module+ test
   (require rackunit)
+  ;; An empty box is not a foul one. Both come out as a word set otherwise than
+  ;; it was composed, and only the substitution table can separate them.
+  (check-true (substitution-only? "oﬃcers" "ofﬁcers") "ffi set f + fi")
+  (check-true (substitution-only? "aﬀection" "affection") "the ff box empty")
+  (check-true (substitution-only? "ſinne" "sinne") "no long s left")
+  (check-false (substitution-only? "DIGNISSIMO" "DIGNISSIEO") "an M from the E box")
+  (check-false (substitution-only? "officers" "officers") "nothing happened")
+  (check-false (substitution-only? "hine" "wine") "a wholly different letter")
+  ;; u/v and i/j are in the table on purpose: they are one letter apiece in
+  ;; this fount, so setting the one for the other empties a box without
+  ;; touching the reading, and belongs with the ligatures rather than with the
+  ;; errors.
+  (check-true (substitution-only? "haue" "have"))
+  (check-regexp-match #rx"ﬃ box was empty"
+                      (substitution-phrase "oﬃcers" "ofﬁcers"))
+
   ;; Adjacencies that the English divided lay does produce ...
   (check-not-false (memv #\h (hash-ref ADJACENT #\n)) "n adjoins h")
   (check-not-false (memv #\m (hash-ref ADJACENT #\n)) "n adjoins m")
