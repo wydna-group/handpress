@@ -7,6 +7,56 @@ good for.
 
 ---
 
+## 0. Wanted next
+
+Four things asked for, in the order I would build them. The first three are
+one piece of work in disguise, which is the interesting part.
+
+- [ ] **Preliminary signatures.** `*`, `¶`, `a`–`z` before `A`, instead of
+      continuing the sequence. Not decoration: McKerrow explains *why* they
+      exist. A printer who ends a book with spare leaves in the final sheet
+      and has preliminary matter to print "will as a matter of course" set the
+      preliminaries there — so they are printed **last**, on paper already on
+      the press, and must be "considered last and in close conjunction with
+      the final sheet of the book, as the printer necessarily considered
+      them." A separate signature series is the consequence of that, not a
+      convention on its own.
+
+- [ ] **Binding.** Sheets folded, gathered and sewn — and got wrong. Sheets
+      bound out of order, inverted, duplicated, omitted. This is the one stage
+      where the *book* diverges from the *printing*, and the analysis ought to
+      have to cope with it. It is also where the blank leaves go: fill them
+      with preliminaries and cancels and most of them stop being blank.
+
+- [ ] **Cancels.** Gaskell has Rousseau's publisher urging him "to use up the
+      blank leaves of final sheets for printing cancels" — a corrected leaf
+      cut out and its replacement pasted to the stub. Common, visible, and the
+      other half of the blank-leaf question.
+
+- [ ] **Collation mode.** Compare two witnesses, or a witness against its
+      copy-text, and report the differences as an apparatus. Most of the
+      machinery exists — `collate` superimposes two made-up copies, the TEI
+      already carries `<app>`/`<rdg wit>`, and the deviation classifier knows
+      what kind of change each one is. What is missing is the front end and
+      the ability to collate against an arbitrary text rather than another
+      copy of the same setting.
+
+- [ ] **More import formats.** PDF and Markdown at least.
+      `tools/strip-gutenberg.py` is the pattern: the job is not parsing but
+      *preparing copy* — joining wrapped lines so a paragraph reaches the
+      compositor whole, and discarding the modern edition's apparatus, which
+      would otherwise be cast off and set as though the author had written it.
+
+- [ ] **Scribal frequency.** They are on by default now and fire too often.
+      The target is measurable: the 1600 quarto has four tilde vowels in
+      12,000 words and F1623 none, while F1 has fourteen ampersands. So about
+      one scribal sign per 3,000 words for a printed English book of this
+      period, with the ampersand an order of magnitude commoner. Note that the
+      lexicon cannot help here and should not: a wordlist cannot vouch for
+      `yᵗ`, which is a mark rather than a spelling, so these are exempt from
+      the gate by design and their rate is governed only by the compositor's
+      `contracts` weight.
+
 ## 1. Defects — investigated
 
 Four were listed here. Measuring them found that two were not what they
@@ -42,6 +92,27 @@ looked like, which is the usual result and the reason for measuring first.
       human in the loop, and the honest next step is to **measure the error
       rate on a hand-checked sample** rather than to keep adjusting a rule
       that cannot in principle succeed.
+
+- [x] **Foul case fired on every u-for-v.** 1,048 words classified as
+      accidents of the case against 12 misreadings, where the measured rate is
+      a quarter per thousand words — about five for that book. Self-inflicted:
+      redefining `composed` as the *reading*, so the TEI would carry
+      searchable English, silently changed what the accident test compared. It
+      began asking whether the set form differed from the reading, which is
+      true of every convention applied. Now compares what printed against what
+      was composed, both as set. **1,048 → 7.** The lesson is the familiar
+      one: a rename that crosses a classification boundary is a change of
+      meaning, not of names.
+
+- [x] **A produced form ignored the case of its source.** The devices that
+      append letters built them from the word's core and added the letter in
+      lower case regardless, so `HONOUR` came back `HONOURe`. Fixed at the
+      chokepoint both `contractions` and `expansions` share, so every device
+      inherits it.
+
+- [x] **Blank leaves looked like a failure.** They are correct — a gathering
+      is a whole sheet and must be completed — and are now labelled. But see
+      §0: a printer would have filled them.
 
 - [x] **Milton's division rate is unvalidated.** Nothing to retract: the
       figure appears in no published document, only in a commit message that
@@ -146,10 +217,19 @@ for the confident tables the reports now print.
 
 ## 6. Output and interface
 
-- [ ] Openings in the direct HTML — verso and recto side by side as bound. The
-      XSLT path does this; the direct one does not.
-- [ ] A collation view: two made-up copies superimposed, as the Hinman collator
-      shows them.
+- [x] Openings in the direct HTML — done, and in the TEI rendering too, with
+      the leaf, sheet and forme a page belongs to lit on hover and pinned on
+      click.
+- [ ] **One rendering, not two.** `render.rkt` builds HTML from the book and
+      the XSLT builds it from the TEI, and the two duplicate each other. Three
+      separate drift bugs came out of that in a single session: a stylesheet
+      that existed twice and went stale in one copy, a script that existed in
+      only one of them so the TEI grew the buttons and none of the behaviour,
+      and classes one path uses that the other does not. The TEI carries
+      everything of substance, so the direct renderer is redundant and
+      `--html` should run the XSLT. Held back only because the Bowers
+      description, the statistics and the key have to be ported into XSLT 1.0,
+      which has no functions and no grouping.
 - [ ] Filter the type-facsimile by deviation class, so a reader can see all the
       foul case at once, or all the fitting alterations.
 
@@ -177,6 +257,15 @@ be off.
 Every parameter checked against a real book has been wrong, most by an order of
 magnitude, and always in the direction of making the simulation more
 picturesque than the truth. Assume the next one is too.
+
+A third, learned by breaking the foul-case classification while renaming
+variables around it: **a rename that crosses a classification boundary is a
+change of meaning, not of names.** Redefining `composed` to mean the reading
+rather than the set form left the accident test comparing two things that
+differ by convention, and it began reporting 1,048 accidents where there were
+7. Nothing failed; the number was simply wrong, and only a reader who knew the
+expected rate would have caught it. Which is the argument for keeping the
+measured rates written down beside the code.
 
 And: **a parameter no test exercises and no report counts will be dead without
 anyone noticing.** Four so far — `catches-misreading`, the catchword
