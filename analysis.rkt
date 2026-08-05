@@ -11,7 +11,8 @@
 (require racket/list racket/string racket/math racket/set
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt" "pagination.rkt"
-         "prelims.rkt" "titlepage.rkt" "binding.rkt" "press.rkt" "render.rkt")
+         "prelims.rkt" "titlepage.rkt" "binding.rkt" "import.rkt"
+         "press.rkt" "render.rkt")
 
 (provide (struct-out page-evidence)
          spelling-evidence attribution-report contamination-report
@@ -727,7 +728,7 @@ TEXT
    'unsigned "nothing set in the direction line at all; cited as π after McKerrow (p. 156), \"easily recalled by the p of 'preliminary'\"."
    'none "no preliminary matter, so no second series."))
 
-(define (prelims-report b [r #f])
+(define (prelims-report b [r #f] [src #f])
   (define div (book-division b))
   (define plans (book-plans b))
   (define front (filter (lambda (p) (eq? (gathering-plan-role p) 'prelim)) plans))
@@ -765,8 +766,35 @@ TEXT
        (format "Title-page, set from the shop's own formulae:\n\n    ~a\n\n"
                (string-replace (titlepage-transcript tp) " | " "\n    "))
        "No title-page was generated.\n\n")
+   ;; Where a book is called for in code rather than from the command line
+   ;; there is no source to describe, and the section is simply absent.
+   (if src
+       (string-append
+        "Where the copy came from:\n\n"
+        (wrap (format "Read as ~a. ~a" (source-origin src)
+                      (string-join (source-notes src) " "))
+              74)
+        "\n\n")
+       "")
    "How the division was arrived at:\n\n"
    (division-summary div) "\n\n"
+   (if (division-declared? div)
+       ""
+       (string-append
+        (wrap (string-append
+               "Nothing was declared by the document, so the book has no "
+               "preliminary matter beyond its title-page. That is the honest "
+               "answer and it is the default. The preliminaries a book has are "
+               "the ones its copy can be shown to contain: a division the "
+               "source names (a TEI type, a LaTeX \\frontmatter, a Word "
+               "paragraph style, a Pandoc div), a table built from its own "
+               "headings, or a title-page built from its own metadata. Where a "
+               "document says none of that, guessing would be inventing. The "
+               "heading vocabulary behind --guess-prelims is experimental and "
+               "period-bound: it cannot see front matter that carries no "
+               "heading, and it knows nothing of modern copy.")
+              74)
+        "\n\n"))
    (if (and (book-moved-to-end b) (second (book-moved-to-end b)))
        (format
         (string-append
@@ -859,11 +887,11 @@ TEXT
       [else (loop (cdr ws) (cons (car ws) line)
                   (+ len 1 (string-length (car ws))) out)])))
 
-(define (full-report b [r #f] [names '("A" "B")])
+(define (full-report b [r #f] [names '("A" "B")] #:source [src #f])
   (define ev (spelling-evidence b names))
   (string-join
    (append (list (description b)
-                 (prelims-report b r)
+                 (prelims-report b r src)
                  (attribution-report ev names)
                  (contamination-report b)
                  (skeleton-report b)

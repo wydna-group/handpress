@@ -55,6 +55,19 @@ Every one of these was wrong in the same direction until it was measured.
   379. The collations alone answer questions no prose passage does: `A2 B-L4`,
   `A4 *4 (−*2:3) B-X4`, `¶4 π A-B6`, `πA8(−A7,8) A-Bb8 Cc1,2[=πA7,8]`.
 
+## Reading the copy
+
+`import.rkt` is the door. Markdown+YAML, TEI/TCP, LaTeX, `.docx`, HTML, PDF;
+declared divisions reach `prelims.rkt` as `# [dedication] Heading` markers.
+**Do not add guessing here.** The heading vocabulary was tried, failed on the
+first real book (Aylett 1622 opens with unheaded dedicatory verse), and is now
+off by default behind `--guess-prelims`. Where a document declares nothing, the
+book gets no preliminary matter — that is the answer, not a gap to fill.
+
+Markup is read with regexes, not a parser, on purpose: TCP is SGML-ish,
+exported HTML is whatever the exporter felt like, and a parser that refuses one
+upload in twenty is worse than a regex that degrades on all of them.
+
 ## The shape of the program
 
 The `.tei.xml` is the record; `tei-html.rkt` builds the facsimile by reading

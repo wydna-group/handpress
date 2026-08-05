@@ -122,11 +122,24 @@
                     ;; how freely the paging goes wrong; no hand-press
                     ;; book of any length was numbered correctly
                     #:paging-error [paging-error 0.04]
-                    ;; Whether to look for preliminary matter in unmarked copy
-                    ;; at all. The division was a decision taken in the shop
-                    ;; and cannot be recovered from the words, so it is a
-                    ;; guess, and a guess should be refusable. See prelims.rkt.
-                    #:find-prelims? [find-prelims? #t]
+                    ;; Whether to fall back on the heading vocabulary when
+                    ;; the copy declares nothing. **Off by default, and
+                    ;; experimental.**
+                    ;;
+                    ;; The division was a decision taken in the shop and cannot
+                    ;; be recovered from the words. Worse, the vocabulary that
+                    ;; tries is period-bound -- it looks for "to the right
+                    ;; honourable" and "the epistle dedicatorie" -- so it is
+                    ;; useless on the modern copy people will actually bring,
+                    ;; and it fails on early copy too whenever the front matter
+                    ;; carries no heading, which is common. Aylett's Peace with
+                    ;; her Foure Garders opens with fourteen lines of
+                    ;; dedicatory verse under no heading at all.
+                    ;;
+                    ;; What replaces it is import.rkt: read what the document
+                    ;; says about itself, and where it says nothing, give the
+                    ;; book no preliminaries. See prelims.rkt.
+                    #:find-prelims? [find-prelims? #f]
                     #:titlepage? [titlepage? #t]
                     ;; The title as it is to be set on the title-page, which is
                     ;; not the running title: "M. William Shak-speare: HIS True
@@ -1104,11 +1117,15 @@
   ;; it. Worth a test of its own, because it is a branch that fires on the
   ;; arithmetic of two make-ups and would otherwise be invisible when it
   ;; stopped firing -- which is how four mechanisms in this program have died.
+  ;; The copy DECLARES its divisions, which is how a real document reaches the
+  ;; press now: a TEI type, a LaTeX \frontmatter, a Word style or a Pandoc div,
+  ;; carried through by import.rkt as a marker on the heading. The heading
+  ;; vocabulary is not used here, and is off by default.
   (let* ([rep (lambda (s n) (apply string-append (for/list ([i (in-range n)]) s)))]
          [copy (string-append
-                "# The Epistle Dedicatorie\n\n"
+                "# [dedication] The Epistle Dedicatorie\n\n"
                 (rep "To the Right Honourable the Lords and Commons of England, my very good Lords, whose favour hath emboldened this small labour to seek the light. " 40)
-                "\n\n# A Table of the principall matters\n\n"
+                "\n\n# [contents] A Table of the principall matters\n\n"
                 (rep "Of the licencing of bookes, page 1. Of the ancient practise of Athens, page 3. " 20)
                 "\n\n# THE FIRST BOOKE\n\n"
                 (rep "Now began the day to breake, and the shepheards to stirre, and the flockes to feede, and the birds to sing in every bush about them. " 300))]

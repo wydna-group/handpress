@@ -176,40 +176,117 @@
 (define BLOCK-WORD-LIMIT 2600)
 (define FRONT-WORD-LIMIT 5200)
 
+;; A heading may declare what it is, as "# [dedication] The Epistle
+;; Dedicatorie". That is how marked-up copy reaches this module: EEBO-TCP and
+;; TEI both record the division type, and `tools/tcp-to-copy.py --declare'
+;; carries it through into the copy rather than throwing it away and asking
+;; this module to guess it back.
+;;
+;; Without this the declared path was unreachable from the command line --
+;; implemented, tested, and dead, which is the trap this project has fallen
+;; into four times.
+(define DECLARATION-RX #px"^\\[([a-z-]+)\\]\\s*(.*)$")
+
+(define (declaration-of u)
+  (and (eq? (copy-unit-kind u) 'heading)
+       (let ([m (regexp-match DECLARATION-RX (string-trim (copy-unit-text u)))])
+         (and m (cons (string->symbol (cadr m)) (caddr m))))))
+
+;; Strip the markers, and say which units each declaration covers: a declared
+;; heading owns everything down to the next heading.
+(define (read-declarations units)
+  (define out (make-hash))
+  (let loop ([us units] [current #f])
+    (cond
+      [(null? us) (void)]
+      [else
+       (define u (car us))
+       (define d (declaration-of u))
+       (cond
+         [d (hash-set! out (copy-unit-index u) (car d))
+            (loop (cdr us) (car d))]
+         [(eq? (copy-unit-kind u) 'heading) (loop (cdr us) #f)]
+         [current (hash-set! out (copy-unit-index u) current)
+                  (loop (cdr us) current)]
+         [else (loop (cdr us) #f)])]))
+  out)
+
+(define (strip-declarations units)
+  (for/list ([u (in-list units)])
+    (define d (declaration-of u))
+    (if d (struct-copy copy-unit u [text (cdr d)]) u)))
+
 ;; Divide a parsed copy into preliminaries and text.
 ;;
 ;; `declared' is a hash from unit index to kind, for copy that says what it is
-;; -- a TEI <div type="dedication">, or an explicit instruction on the command
-;; line. Where it is given it is obeyed without argument and without a guess,
-;; because it is evidence and the vocabulary is only an inference.
+;; -- a TEI <div type="dedication">, or a marker on the heading. Where it is
+;; given it is obeyed without argument and without a guess, because it is
+;; evidence and the vocabulary is only an inference.
 (define (divide-copy units
-                     #:declared [declared (hash)]
+                     #:declared [declared #f]
                      #:guess? [guess? #t]
                      #:limit [limit PRELIM-SHARE-LIMIT])
-  (define n (length units))
+  (define found (or declared (read-declarations units)))
+  (define clean (strip-declarations units))
+  (define n (length clean))
   (define ceiling (max PRELIM-UNIT-FLOOR (inexact->exact (floor (* limit n)))))
 
   (cond
-    [(not (hash-empty? declared)) (divide-declared units declared)]
+    [(not (hash-empty? found)) (divide-declared clean found)]
     [(or (not guess?) (zero? n))
-     (division '() units '() #f
+     (division '() clean '() #f
                (list (if guess?
                          "The copy is empty."
                          "No preliminary matter was looked for: the division was not guessed.")))]
-    [else (divide-by-heading units ceiling)]))
+    [else (divide-by-heading clean ceiling)]))
 
-;; Marked-up copy: believe it.
+;; Marked-up copy: believe it -- but believe *where* it is as well as *what*
+;; it is.
+;;
+;; This used to take every declared unit wherever it stood, and that is wrong
+;; in a way a real book shows at once. Aylett's Peace with her Foure Garders
+;; (1622) carries its commendatory verses, "To the Author", at the *end*; the
+;; TCP editors mark them `to the author', which is preliminary matter by kind,
+;; and partitioning on the kind alone hauled them to the front of the book.
+;; Preliminary is a position as well as a description. What is declared and
+;; stands after the text has begun is terminal, and stays where it is.
 (define (divide-declared units declared)
-  (define-values (pre body)
-    (partition (lambda (u) (hash-has-key? declared (copy-unit-index u))) units))
+  (define-values (front rest)
+    (splitf-at units (lambda (u)
+                       (or (eq? (copy-unit-kind u) 'blank)
+                           (hash-has-key? declared (copy-unit-index u))))))
   (define blocks
-    (for/list ([grp (in-list (group-runs pre declared))])
+    (for/list ([grp (in-list (group-runs
+                              (filter (lambda (u)
+                                        (hash-has-key? declared (copy-unit-index u)))
+                                      front)
+                              declared))])
       (prelim-block (car grp) (heading-of (cdr grp)) (cdr grp) 1.0
                     "declared in the copy")))
-  (division blocks body '() #t
-            (list (format "The copy declares its own divisions; ~a ~a taken from the markup, not guessed."
-                          (length blocks)
-                          (if (= 1 (length blocks)) "was" "were")))))
+  ;; What the copy declares as front matter but sets after the text.
+  (define terminal
+    (for/list ([grp (in-list (group-runs
+                              (filter (lambda (u)
+                                        (hash-has-key? declared (copy-unit-index u)))
+                                      rest)
+                              declared))])
+      (prelim-block (car grp) (heading-of (cdr grp)) (cdr grp) 1.0
+                    "declared in the copy, but set after the text")))
+  (division blocks rest terminal #t
+            (append
+             (list (format "The copy declares its own divisions; ~a ~a taken from the markup, not guessed."
+                           (length blocks)
+                           (if (= 1 (length blocks)) "was" "were")))
+             (if (null? terminal)
+                 '()
+                 (list (format "~a ~a declared but stand~a after the text, and ~a left there. Preliminary is a position as well as a description."
+                               (string-join
+                                (for/list ([b (in-list terminal)])
+                                  (prelim-kind-label (prelim-block-kind b)))
+                                " and ")
+                               (if (= 1 (length terminal)) "is" "are")
+                               (if (= 1 (length terminal)) "s" "")
+                               (if (= 1 (length terminal)) "it is" "they are")))))))
 
 (define (heading-of us)
   (or (for/or ([u (in-list us)])
@@ -244,7 +321,7 @@
 ;; weaker of the two to cut the stronger would put half a table among the
 ;; preliminaries and the other half at the head of the text.
 (define (divide-by-heading units ceiling)
-  (let loop ([us units] [blocks '()] [cur #f] [taken 0] [total 0])
+  (let loop ([us units] [blocks '()] [cur #f] [taken 0] [total 0] [seen 0])
     (define (close)
       (if cur (cons (finish cur) blocks) blocks))
     ;; give the unfinished block back to the text, in its original order
@@ -262,8 +339,8 @@
          ;; blank lines belong to whatever they sit in, and lead nowhere
          [(eq? (copy-unit-kind u) 'blank)
           (if cur
-              (loop (cdr us) blocks (add-unit cur u 0) (add1 taken) total)
-              (loop (cdr us) blocks cur taken total))]
+              (loop (cdr us) blocks (add-unit cur u 0) (add1 taken) total seen)
+              (loop (cdr us) blocks cur taken total seen))]
 
          [(>= taken ceiling)
           (assemble (close) us taken ceiling #f)]
@@ -273,20 +350,31 @@
           (cond
             [(and kind (< (+ total w) FRONT-WORD-LIMIT))
              (loop (cdr us) (close) (open-block kind conf (copy-unit-text u) u)
-                   (add1 taken) (+ total w))]
+                   (add1 taken) (+ total w) (add1 seen))]
             [kind (abandon 'front-too-long)]
             ;; a heading the vocabulary does not know: the text has begun
-            [else (assemble (close) us taken ceiling #f)])]
+            [else (assemble (close) us taken ceiling
+                            (if (zero? seen) 'first-heading-unknown #f))])]
 
          [(and cur (>= (+ (fifth cur) w) BLOCK-WORD-LIMIT))
           (abandon 'block-too-long)]
 
          [(>= (+ total w) FRONT-WORD-LIMIT) (abandon 'front-too-long)]
 
-         [cur (loop (cdr us) blocks (add-unit cur u w) (add1 taken) (+ total w))]
+         [cur (loop (cdr us) blocks (add-unit cur u w) (add1 taken) (+ total w) seen)]
 
-         ;; copy with no preliminary heading over it is text
-         [else (assemble (close) us taken ceiling #f)])])))
+         ;; Copy with no preliminary heading over it is text -- and where that
+         ;; happens on the very first unit, the walk has stopped before it ever
+         ;; looked at a heading. That is a different answer from "the headings
+         ;; were checked and none of them matched", and the report has to say
+         ;; which, or a reader cannot tell a vocabulary that failed from a book
+         ;; the vocabulary was never shown.
+         ;;
+         ;; It is not a rare case. Aylett's Peace with her Foure Garders (1622)
+         ;; opens with fourteen lines of dedicatory verse under no heading at
+         ;; all, and no heading vocabulary can see them however good it is.
+         [else (assemble (close) us taken ceiling
+                         (if (zero? seen) 'unheaded-opening #f))])])))
 
 ;; A block under construction: (kind confidence heading reversed-units words)
 (define (open-block kind conf heading u) (list kind conf heading (list u) 0))
@@ -314,7 +402,14 @@
 (define (notes-for blocks taken ceiling [stopped-by #f])
   (define base
     (if (null? blocks)
-        (list "No preliminary matter was identified. The copy declares none, and no heading before the text is in the vocabulary of preliminary matter.")
+        (list
+         (case stopped-by
+           [(unheaded-opening)
+            "No preliminary matter was identified, and the vocabulary was never consulted: the copy opens with matter under no heading at all, and matter with no heading over it is text by this rule. A heading vocabulary cannot see front matter that carries no heading, which is a limit of the method and not a failure of this book."]
+           [(first-heading-unknown)
+            "No preliminary matter was identified. The copy declares none, and the first heading in it is not in the vocabulary of preliminary matter, so the text was taken to begin there."]
+           [else
+            "No preliminary matter was identified. The copy declares none, and no heading before the text is in the vocabulary of preliminary matter."]))
         (list
          (format "~a ~a of preliminary matter identified by ~a heading~a: ~a."
                  (length blocks)
@@ -425,7 +520,32 @@
   (define plain (divide-copy (parse-copy "Now the day is over.\n\nAnd night is here.\n" 'prose)))
   (check-equal? (division-prelims plain) '())
   (check-true (for/or ([n (in-list (division-notes plain))])
-                (string-contains? n "no heading before the text")))
+                (string-contains? n "opens with matter under no heading")))
+
+  ;; And the three ways of finding nothing are told apart, because "the
+  ;; vocabulary was consulted and failed" and "the vocabulary was never
+  ;; consulted" are different answers about a book.
+  (define unheaded
+    (divide-copy (parse-copy "Fourteen lines of verse.
+
+# To the Reader
+
+So.
+" 'prose)))
+  (check-equal? (division-prelims unheaded) '())
+  (check-true (for/or ([n (in-list (division-notes unheaded))])
+                (string-contains? n "vocabulary was never consulted")))
+  (define unknown-head
+    (divide-copy (parse-copy "# THE FIRST BOOKE
+
+Text.
+
+# To the Reader
+
+So.
+" 'prose)))
+  (check-true (for/or ([n (in-list (division-notes unknown-head))])
+                (string-contains? n "first heading in it is not in the vocabulary")))
 
   ;; A heading in the vocabulary with nothing under it was a heading in the
   ;; text, not a preliminary, and must be handed back rather than kept.
@@ -440,6 +560,58 @@
   (check-true (division-declared? dd))
   (check-equal? (map prelim-block-kind (division-prelims dd)) '(dedication))
   (check-equal? (prelim-block-confidence (car (division-prelims dd))) 1.0)
+
+  ;; A heading may declare its own kind, which is how marked-up copy reaches
+  ;; this module at all. Without the marker syntax the declared path was
+  ;; implemented, tested and unreachable from the command line.
+  (define marked
+    (parse-copy (string-append
+                 "# [dedication] Somewhat Else
+
+A dedication in all but name.
+
+"
+                 "# THE TEXT
+
+Body.
+")
+                'prose))
+  (define md (divide-copy marked))
+  (check-true (division-declared? md))
+  (check-equal? (map prelim-block-kind (division-prelims md)) '(dedication))
+  ;; and the marker is stripped, so it is not set in type
+  (check-equal? (prelim-block-heading (car (division-prelims md))) "Somewhat Else")
+  (check-false (for/or ([u (in-list (division-prelim-units md))])
+                 (string-contains? (copy-unit-text u) "["))
+               "the declaration marker does not reach the compositor")
+
+  ;; Declared matter standing after the text is terminal, not preliminary.
+  ;; Aylett's commendatory verses are the real case: the TCP editors mark them
+  ;; "to the author", and taking the kind without the position hauled them from
+  ;; the end of the book to the front.
+  (define tail
+    (parse-copy (string-append
+                 "# [dedication] The Epistle Dedicatorie
+
+To the Right Honourable.
+
+"
+                 "# THE FIRST BOOKE
+
+Now began the day to breake.
+
+"
+                 "# [commendatory] To the Author
+
+Thy booke shall live when thou art dust.
+")
+                'prose))
+  (define td (divide-copy tail))
+  (check-equal? (map prelim-block-kind (division-prelims td)) '(dedication))
+  (check-equal? (map prelim-block-kind (division-terminal td)) '(commendatory))
+  (check-true (for/or ([u (in-list (division-body td))])
+                (string-contains? (copy-unit-text u) "when thou art dust"))
+              "the commendatory verses stay at the end of the book")
 
   ;; With guessing off, nothing is preliminary and the copy comes back whole.
   (define off (divide-copy (parse-copy copy 'prose) #:guess? #f))

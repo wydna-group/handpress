@@ -7,12 +7,13 @@
 (require racket/cmdline racket/file racket/string racket/port racket/list
          racket/system racket/runtime-path
          "book.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
-         "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt")
+         "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt" "import.rkt")
 
 (provide run-handpress apply-xslt)
 
 (define-runtime-path xslt-dir "xslt")
 (define-runtime-path tools-dir "tools")
+(define-runtime-path pdf-helper "tools/pdf-to-copy.py")
 
 ;; Apply an XSLT 1.0 stylesheet. Prefers xsltproc or Saxon if either is on the
 ;; PATH; otherwise falls back to .NET's XslCompiledTransform through
@@ -68,7 +69,8 @@
                        #:printer [printer #f]
                        #:publisher [publisher #f]
                        #:titlepage? [titlepage? #t]
-                       #:find-prelims? [find-prelims? #t]
+                       #:find-prelims? [find-prelims? #f]
+                       #:contents? [contents? #t]
                        #:binding-error [binding-error #f]
                        #:jaggard? [jaggard? #f]
                        #:pages [pages 0]
@@ -93,9 +95,35 @@
                        #:witness [witness "copya"]
                        #:layout [layout "opening"]
                        #:quiet? [quiet? #f])
-  (define copy (file->string input))
+  ;; The document is read through import.rkt rather than slurped as text, so
+  ;; that whatever it says about itself -- its divisions, its title, its author
+  ;; -- reaches the press instead of being thrown away at the door.
+  (define src (read-source input #:pdf-helper (path->string pdf-helper)))
+  (define meta (source-metadata src))
+  (define copy
+    (let* ([body (source-text src)]
+           [toc (and contents?
+                     (not (regexp-match? #px"# \\[contents\\]" body))
+                     (contents-from-headings
+                      (for/list ([m (in-list (regexp-match*
+                                              #px"(?m:^# (?!\\[)(.*)$)" body))])
+                        (substring m 2))))])
+      ;; A table of contents built from the document's own headings is
+      ;; preliminary matter and is set like the rest of it. It goes in front of
+      ;; the copy so that the divider finds it where a table belongs; whether
+      ;; it stays there is settled later, by how much room the last sheet has.
+      (if toc (string-append toc body) body)))
+  (define (from-meta key given)
+    (or given (let ([v (hash-ref meta key #f)])
+                (and v (not (string=? (string-trim v) "")) (string-trim v)))))
+  (define year*
+    (or (let ([d (from-meta 'year #f)]) (and d (string->number d)))
+        (let ([d (from-meta 'date #f)])
+          (and d (let ([m (regexp-match #px"1[4-9][0-9][0-9]|20[0-9][0-9]" d)])
+                   (and m (string->number (car m))))))
+        year))
   (define names (map string-trim (string-split comps ",")))
-  (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t scribal? year))
+  (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t scribal? year*))
   (define h (make-house #:fmt (hash-ref FORMATS fmt-name)
                         #:compositors names
                         #:seed seed
@@ -110,10 +138,10 @@
                         #:prepare-copy? prepare?
                         #:condition condition
                         #:title title
-                        #:book-title book-title
-                        #:author author
+                        #:book-title (from-meta 'title book-title)
+                        #:author (from-meta 'author author)
                         #:printer printer
-                        #:publisher publisher
+                        #:publisher (from-meta 'publisher publisher)
                         #:titlepage? titlepage?
                         #:find-prelims? find-prelims?
                         #:sig-alphabet (if jaggard? JAGGARD-LETTERS SIG-LETTERS)))
@@ -126,7 +154,7 @@
   ;; the reader's spelling instead of the compositor's.
   (show-modernised? modern-spelling?)
   (define facsimile (render-book-text b #:numbers? numbers?))
-  (define report (full-report b r names))
+  (define report (full-report b r names #:source src))
 
   (unless quiet?
     (for ([p (in-list (if (positive? pages)
@@ -217,7 +245,8 @@
   (define printer #f)
   (define publisher #f)
   (define titlepage? #t)
-  (define find-prelims? #t)
+  (define find-prelims? #f)
+  (define contents? #t)
   (define binding-error #f)
   (define jaggard? #f)
   (define pages 0)
@@ -268,8 +297,10 @@
      [("--printer") p "printer named in the imprint" (set! printer p)]
      [("--publisher") p "bookseller named in the imprint" (set! publisher p)]
      [("--no-titlepage") "do not generate a title-page" (set! titlepage? #f)]
-     [("--no-prelims") "do not guess at preliminary matter in unmarked copy"
-      (set! find-prelims? #f)]
+     [("--guess-prelims") "EXPERIMENTAL: where the document declares nothing, guess preliminary matter from a vocabulary of period headings. Off by default, and unreliable on anything but early copy that happens to head its front matter."
+      (set! find-prelims? #t)]
+     [("--no-contents") "do not build a table of contents from the document's headings"
+      (set! contents? #f)]
      [("--binding-error") x "faults per gathering per copy at the folding (no source gives a rate)"
       (set! binding-error (string->number x))]
      [("--jaggard-alphabet") "sign from Jaggard's 20 letters, omitting X, Y and Z"
@@ -307,6 +338,7 @@
                        #:title title #:book-title book-title #:author author
                        #:printer printer #:publisher publisher
                        #:titlepage? titlepage? #:find-prelims? find-prelims?
+                       #:contents? contents?
                        #:binding-error binding-error #:jaggard? jaggard?
                        #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?

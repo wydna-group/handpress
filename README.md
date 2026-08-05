@@ -25,6 +25,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [Installing](#installing)
 - [Command line](#command-line)
 - [What is modelled](#what-is-modelled)
+- [Reading the copy](#reading-the-copy)
 - [The preliminaries](#the-preliminaries)
 - [Gathering, folding and binding](#gathering-folding-and-binding)
 - [The lexicon](#the-lexicon)
@@ -118,7 +119,8 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--author` | author, as named on the title-page |
 | `--printer`, `--publisher` | the names in the imprint |
 | `--no-titlepage` | do not generate one |
-| `--no-prelims` | do not guess at preliminary matter in unmarked copy |
+| `--guess-prelims` | **experimental**: guess preliminary matter from a vocabulary of period headings where the document declares none |
+| `--no-contents` | do not build a table of contents from the document's own headings |
 | `--jaggard-alphabet` | sign from Jaggard's twenty letters, omitting X, Y and Z |
 | `--binding-error` | faults per gathering per copy at the folding — **no source gives a rate** |
 | `--edition` | sheets printed; the Cambridge accounts show 400–820 |
@@ -240,6 +242,55 @@ printing an outsized folio against its stock, and a university press with men
 to keep busy. Type economy can be decisive in one and irrelevant in the other.
 What the table cannot support is either as a general law of the hand press.
 
+### Reading the copy
+
+The input is not slurped as text. It is read through `import.rkt`, which takes
+whatever the document already says about itself and hands that to the press
+along with the words — because a plain-text dump throws away exactly the thing
+this program most needs.
+
+| format | what is taken from it |
+|---|---|
+| **Markdown** | YAML front matter (title, author, publisher, date); ATX headings; Pandoc fenced divs `::: dedication` |
+| **TEI** and EEBO-TCP | `<div type="dedication">` and the rest, declared outright; `<teiHeader>` for title, author, publisher, date |
+| **LaTeX** | `\frontmatter` … `\mainmatter`, which marks the very division this program is trying to recover; `\title`, `\author`, `\date` |
+| **Word** (`.docx`) | paragraph styles — `Title`, `Heading 1`, or a style literally named `Dedication`; `docProps/core.xml` for the document properties |
+| **HTML** | `<meta>` tags, `<h1>`–`<h6>`, and a `class` or `id` naming a division. Also the export target of every one of the above |
+| **PDF** | the Info dictionary and the outline, and nothing else — see below |
+| plain text | nothing. The book gets no preliminary matter |
+
+A file saved under the wrong extension is sniffed, so a TEI document called
+`.txt` is still read as TEI.
+
+Three tiers, in order of what they are worth:
+
+1. **Declared.** The source says what a division is. Obeyed without argument.
+2. **Constructed.** The source gives structure and metadata but no divisions,
+   so the preliminaries are *built* rather than found: the headings make a
+   table of contents, the metadata makes a title-page. Neither is a guess —
+   both are the document's own words rearranged into the matter a printing
+   house would have set from them.
+3. **Nothing.** Plain text with no structure gets no preliminaries.
+
+**PDF is the weakest and says so.** A PDF has thrown its structure away by
+construction: it records where marks go on a page, not what the marks mean.
+Two things survive — the Info dictionary, because it is metadata rather than
+layout, and the outline, because a table of contents has to be clickable.
+Everything else is reconstructed by `tools/pdf-to-copy.py`: lines rejoined into
+paragraphs on the evidence of indentation and terminal punctuation, divided
+words put back together, running heads dropped where the same short line
+recurs on most pages. None of that is reliable in the way a Word style is
+reliable, and the report says which it had.
+
+**The heading vocabulary is experimental and off.** The program used to guess
+the preliminaries from a closed list of period headings — *to the right
+honourable*, *the epistle dedicatorie*. It is still there behind
+`--guess-prelims`, but it is the wrong instrument twice over. It cannot see
+front matter that carries no heading: Aylett's *Peace with her foure Garders*
+(1622) opens with fourteen lines of dedicatory verse under none at all, and the
+vocabulary never gets consulted. And it is period-bound, so it can do nothing
+whatever with the modern copy anyone is actually likely to bring.
+
 ### The preliminaries
 
 The front matter — title-page, dedication, preface, sometimes a table — was
@@ -266,10 +317,12 @@ authorities say so. McKerrow has the case: Tottel's 1575 *Treatise of Moral
 Philosophy* puts its Table among the preliminaries; East reprinting it in 1584
 "found he had room for the Table in the last gathering of the book and placed
 it there" (p. 78). The same matter, in the same words, preliminary in one
-edition and terminal in the next, because of how much room was left. So the
-program guesses from a closed vocabulary of period headings, only before the
-text begins, gives each kind its own confidence, says out loud that it is
-guessing, and can be told not to.
+edition and terminal in the next, because of how much room was left.
+
+So the program does not try to get it from the text. It reads what the
+document says about itself — see [Reading the copy](#reading-the-copy) — and
+where the document says nothing, **the book has no preliminary matter**. That
+is the default and it is the honest answer.
 
 And it reproduces East's decision rather than imitating it. Whether the Table
 goes to the back turns on two questions in McKerrow's order: is there room in

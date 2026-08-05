@@ -32,7 +32,7 @@ program still cannot check itself.
       McKerrow prints two editions of one masque in which the Names are
       preliminary in the first and the head of the text in the second (p. 182).
       Declared copy is obeyed; guessed copy is reported as a guess, with the
-      evidence and East's case beside it. `--no-prelims` refuses to guess.
+      evidence and East's case beside it. It is off by default; `--guess-prelims` turns it on.
 
       Two caps, and the second was a bug found by running it: a block that
       grows past 2,600 words with no further heading to close it is given back
@@ -71,6 +71,42 @@ program still cannot check itself.
       up and in the right order" (Gaskell, p. 79), so an unsigned gathering is
       likelier to go in wrong *and* likelier to survive the warehouse's check,
       because the check is the signatures too.
+
+---
+
+### Reading the copy, instead of guessing at it
+
+- [x] **The heading vocabulary was the wrong instrument, and is now off by
+      default.** Demonstrated rather than argued: run against Aylett's *Peace
+      with her foure Garders* (1622), a real book with a real dedication and a
+      real address to the reader, it found **nothing** — because the book opens
+      with fourteen lines of dedicatory verse under no heading at all, so the
+      walk stopped before it consulted the vocabulary once. And even where it
+      works it is period-bound, so it can do nothing with the modern copy
+      anyone is likely to upload. It survives behind `--guess-prelims`, marked
+      experimental.
+
+- [x] **`import.rkt`: read what the document says about itself.** Markdown
+      with YAML front matter, TEI and EEBO-TCP, LaTeX, Word `.docx`, HTML and
+      PDF. Three tiers — *declared* (a TEI `type`, a LaTeX `\frontmatter`, a
+      Word paragraph style, a Pandoc div), *constructed* (headings become a
+      table of contents, metadata becomes a title-page), and *nothing at all*,
+      which is what plain text gets and is the honest answer. A file saved
+      under the wrong extension is sniffed.
+
+      The payoff is not tidiness. A table of contents built from a document's
+      own headings is genuine preliminary matter, set like the rest of it, and
+      it is *the* matter McKerrow watched change sides between editions — so
+      it goes straight into the migration decision built for East's case.
+
+- [x] **CRLF.** Worth recording because it is the shape of bug this project
+      keeps producing: the LaTeX reader split paragraphs on LF LF, a Windows
+      file has CR LF CR LF, so the first real `.tex` file arrived as a single
+      paragraph, its `\frontmatter` swallowed the whole book, and the run came
+      out empty. Every reader now normalises at the door, and every reader has
+      a CRLF test — including the five that never had the bug.
+      out empty. Every reader now normalises at the door, and every reader has
+      a CRLF test — including the five that never had the bug.
 
 ---
 

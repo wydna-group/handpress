@@ -36,6 +36,7 @@
            (submod "pagination.rkt" test)
            (submod "typecase.rkt" test)
            (submod "copytext.rkt" test)
+           (submod "import.rkt" test)
            (submod "prelims.rkt" test)
            (submod "titlepage.rkt" test)
            (submod "binding.rkt" test)
