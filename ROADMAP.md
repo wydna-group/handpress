@@ -7,34 +7,48 @@ good for.
 
 ---
 
-## 1. Defects, before features
+## 1. Defects — investigated
 
-Small, known, and each one an instance of something that has bitten before.
+Four were listed here. Measuring them found that two were not what they
+looked like, which is the usual result and the reason for measuring first.
 
-- [ ] **Words collide in the tightest lines.** `progenythey`,
-      `vigorouslyproductiue`, `knowthey`. Either the `--fit` calibration
-      between glyph width and modelled type width has drifted, or the
-      compositor is genuinely setting zero-width spaces where he squeezes
-      hardest. Measure it in the browser against the modelled space widths —
-      the CSS comment records how that was done the first time — rather than
-      adjusting `--fit` until it looks right.
+- [x] **Words collide in the tightest lines.** ~~Systematic.~~ Measured on
+      *Areopagitica*: **13 touching pairs in 16,219, or 0.08%**, with the
+      median gap at 6.1px against a true thick space of 5.33px. Not a
+      modelling error but the residue of substituting a real font for a table
+      of widths — a word heavy in long s or capitals renders a shade wider
+      than the model allows and borrows the space from its neighbour. Lowering
+      `--fit` would clear them and would widen every other gap away from the
+      space it is meant to be. Wrong trade. Left as measured, and the CSS
+      comment now records the figures. **My visual impression from one
+      screenshot overstated this by a wide margin.**
 
-- [ ] **Turn-over never fires.** `turned over or under` reads 0.00 in every
-      report. That is the fifth dead mechanism this project has found, and it
-      matters more now: since division began refusing bad breaks, turning a
-      word over is exactly what should happen in their place. Suspect the
-      condition is unreachable, as the omission branch was.
+- [x] **Turn-over never fires.** ~~The fifth dead mechanism.~~ It is not dead.
+      It fires on verse — once in 267 lines of *Hamlet* — and reads zero on
+      prose because **only a verse line can be turned over**; prose that
+      overruns is simply wrapped. Every deviation report I had looked at was
+      prose. The real defect was in the report, which printed a bare `0.00`
+      that could not distinguish *never happened* from *cannot happen here*,
+      and so invited exactly that misreading. It now says which, and rates
+      turn-over against verse lines rather than all lines.
 
-- [ ] **`runne` modernises to `rune`.** The variant grouping assigns an old
-      form to its nearest modern word by edit distance, and `rune` is nearer
-      than `run`. Nothing about the letters separates that from `heere`/`here`,
-      where distance gives the right answer. Probably needs frequency to
-      arbitrate, and needs its error rate measured rather than assumed.
+- [ ] **`runne` modernises to `rune`.** Still open, and now believed
+      unfixable by rule. The grouping assigns an old form to its nearest
+      current word by edit distance: `rune` is one letter from `runne`, `run`
+      is two. Frequency would arbitrate it correctly — `run` is far commoner —
+      but the same change breaks `heere`, which is one letter from `here` and
+      two from the much commoner `her`. The two cases are orthographically
+      identical and lexically opposite. This is precisely why VARD keeps a
+      human in the loop, and the honest next step is to **measure the error
+      rate on a hand-checked sample** rather than to keep adjusting a rule
+      that cannot in principle succeed.
 
-- [ ] **Milton's division rate is unvalidated.** 148 per thousand lines against
-      51 measured from F1. His prose is far more Latinate and some of that is
-      real, but there is no evidence either way. Either find a division rate
-      for a 1640s prose tract or stop quoting the figure.
+- [x] **Milton's division rate is unvalidated.** Nothing to retract: the
+      figure appears in no published document, only in a commit message that
+      already flags it. The caution stands — 148 per thousand lines against 51
+      measured from F1, on a text whose vocabulary is far more Latinate, with
+      no evidence either way — and it should not be quoted until there is a
+      division rate for 1640s prose to check it against.
 
 ---
 
@@ -165,6 +179,11 @@ magnitude, and always in the direction of making the simulation more
 picturesque than the truth. Assume the next one is too.
 
 And: **a parameter no test exercises and no report counts will be dead without
-anyone noticing.** Five so far — `catches-misreading`, the catchword
-bracketing, the omission branch, the crowding devices, and turn-over. Before
-adding a mechanism, decide what will count it.
+anyone noticing.** Four so far — `catches-misreading`, the catchword
+bracketing, the omission branch, and the crowding devices. Turn-over was
+wrongly added to that list and taken off again.
+
+To which the turn-over episode adds a corollary, learned by getting it wrong:
+**a report that prints a bare zero cannot distinguish a thing that did not
+happen from a thing that could not.** Both look like evidence and only one is.
+Where a measurement does not apply, say so.

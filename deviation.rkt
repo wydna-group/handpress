@@ -140,6 +140,13 @@
                            (word-causes w)) 1 0))
    'turned-over (for/sum ([l (in-list lines)])
                   (if (set-line-turned-over? l) 1 0))
+   ;; Only a verse line can be turned over: prose that overruns is simply
+   ;; wrapped. So a book with no verse in it cannot show the device, and a
+   ;; zero here would mean nothing at all -- which is how the author came to
+   ;; record it as a dead mechanism in the roadmap when it was merely
+   ;; inapplicable to every text he had tried.
+   'verse-lines (for/sum ([l (in-list lines)])
+                  (if (eq? (set-line-kind l) 'verse) 1 0))
    'quadded     (for/sum ([l (in-list lines)]) (if (set-line-quadded? l) 1 0))
    ;; Lines on which the compositor had to do something to the words to make
    ;; the measure come out -- not merely lines that were spaced. Every line in
@@ -239,7 +246,14 @@
      (row "needing an expedient to come out" (g 'expedient) (g 'lines)
           "per 1000 lines")
      (row "a word divided at the end" (g 'divided) (g 'lines) "per 1000 lines")
-     (row "turned over or under" (g 'turned-over) (g 'lines) "per 1000 lines")
+     (if (zero? (g 'verse-lines))
+         (format "    ~a ~a ~a  ~a"
+                 (~a "turned over or under" #:min-width 34)
+                 (~a "—" #:min-width 7 #:align 'right)
+                 (~a "—" #:min-width 8 #:align 'right)
+                 "no verse in this book; only a verse line turns over")
+         (row "turned over or under" (g 'turned-over) (g 'verse-lines)
+              "per 1000 verse lines"))
      (row "quadded out" (g 'quadded) (g 'lines) "per 1000 lines")
      ""
      "    WHAT WAS DONE TO PAGES"

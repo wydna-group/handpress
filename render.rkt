@@ -218,7 +218,16 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    page: at --fit 1.00 the median word occupies its modelled width to within
    1%, and the median gap between words comes out at 5.4px against a true
    thick space of 5.33px. That is the point -- the white you see between two
-   words is the space the compositor actually put there. */
+   words is the space the compositor actually put there.
+
+   Measured again on Areopagitica, 16,219 adjacent pairs: median gap 6.1px,
+   and 13 pairs (0.08%) touching. Those are not a modelling error but the
+   residue of substituting a real font for a table of widths -- a word heavy
+   in long s or capitals renders a shade wider than the model allows, and the
+   space it borrows comes from its neighbour. Lowering --fit would clear them
+   and would also widen every other gap away from the thick space it is meant
+   to be, which is the wrong trade: the collisions are one pair in 1,250 and
+   the spacing is the whole point of the exercise. Left as measured. */
 .plate { --grid: 16px; --fit: 1.00; --lead: 1.44; font-size: var(--grid); }
 
 /* Every leaf is the same size, because every leaf of a book is. The width is
