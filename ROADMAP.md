@@ -12,15 +12,72 @@ good for.
 Four things asked for, in the order I would build them. The first three are
 one piece of work in disguise, which is the interesting part.
 
-- [ ] **Preliminary signatures.** `*`, `¶`, `a`–`z` before `A`, instead of
-      continuing the sequence. Not decoration: McKerrow explains *why* they
-      exist. A printer who ends a book with spare leaves in the final sheet
-      and has preliminary matter to print "will as a matter of course" set the
-      preliminaries there — so they are printed **last**, on paper already on
-      the press, and must be "considered last and in close conjunction with
-      the final sheet of the book, as the printer necessarily considered
-      them." A separate signature series is the consequence of that, not a
-      convention on its own.
+- [ ] **Preliminary signatures.** Mined from Gaskell and McKerrow before
+      building, because the hard part turns out not to be the signing.
+
+      *Why they exist.* "The preliminaries were not included in the main
+      signature series of new books **because it was usual to print them
+      last**; reprints, however, sometimes began the main signature series at
+      the beginning of the preliminaries" (Gaskell 8). McKerrow on the shop
+      floor: "in composing a new book from MS the normal course was to begin at
+      the beginning of the text and proceed straight on to the end, **setting
+      up the title-page and preliminaries last**" (p. 128). So the separate
+      series is a consequence of the printing order, and reprints — where the
+      extent is already known — are the exception that proves it.
+
+      *The forms, in Gaskell's order of frequency* (p. 52):
+      - `*  **  ***` — "even commoner" than letters
+      - `*  †  ‡  §` — symbols "without logical order"
+      - main series `A-`, preliminaries `a-` — "always quite common"
+      - main series from **B**, preliminaries `A a b c` — "a characteristically
+        English habit … to allow for a sheet of preliminaries signed A"
+      - `π` for *unsigned* preliminary leaves — McKerrow's own convention
+        (p. 156), "easily recalled by the p of 'preliminary'", adopted by Madan
+        and Greg. Belongs in the collation formula in `description.rkt`.
+
+      Also Gaskell n. 33a, which the program should be able to reproduce: "A
+      rare variant used at the **Jaggard** house in early seventeenth-century
+      London was a 20-letter signature alphabet, omitting X, Y, and Z."
+      `SIG-LETTERS` is currently 23 letters for everyone.
+
+- [ ] **Telling what the preliminary matter *is*.** The real problem, and the
+      sources say it cannot be solved from the text alone.
+
+      What counts is a short, closed list. McKerrow: "the title, dedication,
+      preface, and, if there is one, list of contents" (p. 25). Gaskell:
+      "the title-page (which may be preceded by a half-title), dedication,
+      preface, table of contents" and, later, "essentially of the title-page,
+      the author's or publisher's prefatory matter and, sometimes, a table of
+      contents."
+
+      But **the boundary is a printer's decision, not a property of the text**,
+      and McKerrow has the case that proves it. Tottel's 1575 *Treatise of
+      Moral Philosophy* put the Table among the preliminaries. East reprinted
+      it in 1584, started the text at C1 following Tottel — "he then found he
+      had room for the Table in the last gathering of the book and placed it
+      there, with the result that his preliminaries now only" filled half a
+      gathering, and the first eight leaves came out signed A1–4 and B1–4 with
+      the sewing after A4 (p. 78). Same matter, same words, preliminary in one
+      edition and terminal in the next, *because of how much room was left*.
+
+      So the design follows from the evidence rather than from convenience:
+      1. **Marked-up copy declares it.** TEI `<div type="dedication">`,
+         `type="preface"`, `type="contents"`, `type="title_page"`.
+      2. **Plain copy is guessed**, from a heading vocabulary — *to the
+         reader*, *to the right honourable*, *the epistle dedicatory*,
+         *dedication*, *preface*, *the argument*, *contents*, *advertisement*,
+         *commendatory verses* — and only where it stands before the text
+         begins. `copytext.rkt` already emits `'heading` units, so the hook
+         exists.
+      3. **The guess is overridable and is reported as a guess**, because the
+         two authorities agree the division was decided in the shop. A program
+         that inferred it silently would be claiming to recover a decision
+         from its outcome.
+
+      And the interesting consequence to build for: when the preliminaries are
+      set last, *how much room is left in the final sheet* decides how they are
+      signed and whether some of them migrate to the end — which is East's
+      case exactly, and is where this meets binding.
 
 - [ ] **Binding.** Sheets folded, gathered and sewn — and got wrong. Sheets
       bound out of order, inverted, duplicated, omitted. This is the one stage
