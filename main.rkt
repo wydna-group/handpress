@@ -68,6 +68,12 @@
                        #:long-s? [long-s? #t]
                        #:modern-uv? [modern-uv? #f]
                        #:modern-spelling? [modern-spelling? #f]
+                       ;; The scribal signs -- the stroke for a nasal, y-e for
+                       ;; the, w-ch for which -- inherited from the manuscript
+                       ;; hand. On by default because they are the most
+                       ;; visibly period thing a page can do; see --no-scribal
+                       ;; and the note in the report for what the evidence says.
+                       #:scribal? [scribal? #t]
                        #:html? [html? #f]
                        #:tei? [tei? #f]
                        #:xslt? [xslt? #f]
@@ -76,7 +82,7 @@
                        #:quiet? [quiet? #f])
   (define copy (file->string input))
   (define names (map string-trim (string-split comps ",")))
-  (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t))
+  (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t scribal?))
   (define h (make-house #:fmt (hash-ref FORMATS fmt-name)
                         #:compositors names
                         #:seed seed
@@ -181,6 +187,7 @@
   (define long-s? #t)
   (define modern-uv? #f)
   (define modern-spelling? #f)
+  (define scribal? #t)
   (define html? #f)
   (define tei? #f)
   (define xslt? #f)
@@ -224,6 +231,7 @@
      [("--numbers") "number every fifth line of type" (set! numbers? #t)]
      [("--no-long-s") "set short s throughout" (set! long-s? #f)]
      [("--modern-uv") "keep modern u/v and i/j" (set! modern-uv? #t)]
+     [("--no-scribal") "set no scribal abbreviations at all" (set! scribal? #f)]
      [("--modern-spelling") "show the same setting in modern spelling"
       (set! modern-spelling? #t)]
      [("--html") "also write an HTML facsimile, direct from the type" (set! html? #t)]
@@ -246,7 +254,7 @@
                        #:edition edition #:condition condition
                        #:title title #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
-                       #:modern-spelling? modern-spelling?
+                       #:modern-spelling? modern-spelling? #:scribal? scribal?
                        #:html? html? #:tei? tei? #:xslt? xslt?
                        #:witness witness #:layout layout #:quiet? quiet?)))
 

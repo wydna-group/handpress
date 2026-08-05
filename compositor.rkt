@@ -808,7 +808,7 @@
 (module+ test
   (require rackunit)
 
-  (define cv (conventions #t #t #t #t))
+  (define cv (conventions #t #t #t #t #t))
   (define (fresh [name "B"] [seed 1623])
     (make-comp (hash-ref PROFILES name)
                (make-type-case #:rng (make-rng seed))

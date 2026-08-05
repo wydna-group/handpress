@@ -351,10 +351,17 @@
   (define-values (core tail) (split-point word))
   (define base (w word))
   (define lcore (string-downcase core))
+  ;; Whatever a device builds, it wears the case of the word it came from.
+  ;; The devices that *append* letters -- a terminal e, a doubled consonant --
+  ;; assembled them from `core' directly and always in lower case, so HONOUR
+  ;; came back HONOURe. Passing every produced form through match-case fixes
+  ;; all of them at once rather than one device at a time.
   (define (add form device)
-    (define-values (fcore _t) (split-point form))
-    (and (warranted? fcore core)
-         (variant form (- (w form) base) device)))
+    (define-values (fcore ftail) (split-point form))
+    (define cased (string-append (match-case core fcore) ftail))
+    (define-values (ccore _t) (split-point cased))
+    (and (warranted? ccore core)
+         (variant cased (- (w cased) base) device)))
   (sort
    (filter values
     (list
@@ -440,10 +447,17 @@
   (define base (w word))
   (define lcore (string-downcase core))
   (define len (string-length lcore))
+  ;; Whatever a device builds, it wears the case of the word it came from.
+  ;; The devices that *append* letters -- a terminal e, a doubled consonant --
+  ;; assembled them from `core' directly and always in lower case, so HONOUR
+  ;; came back HONOURe. Passing every produced form through match-case fixes
+  ;; all of them at once rather than one device at a time.
   (define (add form device)
-    (define-values (fcore _t) (split-point form))
-    (and (warranted? fcore core)
-         (variant form (- (w form) base) device)))
+    (define-values (fcore ftail) (split-point form))
+    (define cased (string-append (match-case core fcore) ftail))
+    (define-values (ccore _t) (split-point cased))
+    (and (warranted? ccore core)
+         (variant cased (- (w cased) base) device)))
   (sort
    (filter values
     (list
@@ -536,8 +550,7 @@
 ;; Folio has fourteen. So the trade did contract, but by the ampersand and by
 ;; the fuller-or-shorter spelling, not by the scribal signs, which had gone
 ;; out of English printing well before Jaggard.
-(struct conventions (long-s? uv? ij? ligatures? [scribal? #:auto])
-  #:transparent #:auto-value #f)
+(struct conventions (long-s? uv? ij? ligatures? scribal?) #:transparent)
 
 ;; ---------------------------------------------------------------------------
 ;; Reading the setting the other way
