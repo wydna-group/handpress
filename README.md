@@ -22,7 +22,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 ## Contents
 
 - [What it produces](#what-it-produces)
-- [Installing](#installing)
+- [Quick start](#quick-start)
 - [Command line](#command-line)
 - [What is modelled](#what-is-modelled)
 - [Reading the copy](#reading-the-copy)
@@ -55,56 +55,148 @@ the press variants sorted by forme and state — and goes on to the analysis:
 what the spelling tests say about who set which page, what the running titles
 say about the skeletons, where the casting off went wrong, how the case fared.
 
-## Installing
+## Quick start
 
-Requires [Racket](https://racket-lang.org/) 8.0 or later. Nothing else.
+### 1. Install Racket
+
+The only thing you need. Racket is a programming language; handpress is written
+in it, and nothing else has to be installed.
+
+Download it from **[racket-lang.org/download](https://racket-lang.org/download/)**
+and run the installer. Version 8.0 or later. The default options are right.
+
+- **Windows** — run the `.exe`. When asked, let it add Racket to your PATH.
+- **macOS** — open the `.dmg` and drag Racket to Applications. Then add it to
+  your PATH by running this once in Terminal:
+  ```sh
+  echo 'export PATH="/Applications/Racket v8.12/bin:$PATH"' >> ~/.zshrc
+  ```
+  changing `v8.12` to whatever version you installed, then open a new Terminal.
+- **Linux** — `sudo apt install racket` on Debian or Ubuntu, or use the
+  installer from the site, which is usually newer.
+
+**Check it worked.** Open a new terminal — a new one, so it picks up the
+changed PATH — and type:
 
 ```sh
-git clone https://github.com/USER/handpress.git
+racket --version
+```
+
+You should see something like `Welcome to Racket v8.12`. If instead you get
+"command not found" or "not recognized as an internal or external command",
+Racket is installed but your PATH does not know where it is. On Windows, search
+the Start menu for "Edit the system environment variables" → *Environment
+Variables* → select **Path** → *Edit* → *New*, and add the `bin` folder inside
+where Racket installed itself, usually `C:\Program Files\Racket`. Then open a
+new terminal and try again.
+
+### 2. Get handpress
+
+**With git**, if you have it:
+
+```sh
+git clone https://github.com/wydna-group/handpress.git
 cd handpress
+```
+
+**Without git**, which is fine — you do not need it to run this. Go to
+[github.com/wydna-group/handpress](https://github.com/wydna-group/handpress),
+click the green **Code** button, choose **Download ZIP**, and unzip it
+wherever you like. Then open a terminal in that folder. (On Windows: open the
+unzipped folder, click in the address bar, type `cmd`, and press Enter.)
+
+### 3. Run it
+
+```sh
+racket main.rkt --html --out out samples/hamlet.txt
+```
+
+That sets the sample through a simulated 1600s printing house and writes into a
+new `out` folder. Then **open `out/hamlet.html` in your browser** — double-click
+it, or drag it onto a browser window. That is the type-facsimile: every word
+sits where the simulated compositor computed it should.
+
+Alongside it you will find:
+
+| file | what it is |
+|---|---|
+| `hamlet.html` | the facsimile — start here |
+| `hamlet.report.txt` | the analysis, which is the point of the exercise |
+| `hamlet.tei.xml` | the TEI record everything else is built from |
+| `hamlet.copy-a.txt` … | one file per made-up copy, for collating |
+
+Nothing is installed on your system and nothing is written outside the folder
+you chose.
+
+### 4. Run it on your own book
+
+handpress reads what your document already says about itself, so give it the
+richest format you have:
+
+| you have | extension | what handpress takes from it |
+|---|---|---|
+| a Markdown file | `.md` | YAML title/author/publisher/date; headings; `::: dedication` |
+| a Word document | `.docx` | document properties; paragraph styles including `Title` and `Heading 1` |
+| a web page or export | `.html` | `<meta>` tags, `<h1>`–`<h6>`, `class="dedication"` |
+| a TEI or EEBO-TCP file | `.xml` | `<div type="dedication">` and the `<teiHeader>` |
+| a LaTeX source | `.tex` | `\title`, `\author`, and `\frontmatter` |
+| a PDF | `.pdf` | the title and author it was saved with, and its outline |
+| a plain text file | `.txt` | the words, and nothing else |
+
+```sh
+racket main.rkt --html --out out --format quarto --year 1610 mybook.docx
+```
+
+A file saved under the wrong extension is sniffed, so a TEI document named
+`.txt` is still read as TEI. Plain text works perfectly well — you simply get a
+book with no preliminary matter, because a text file cannot say that a
+paragraph is a dedication. See [Reading the copy](#reading-the-copy).
+
+There is a worked example in **[`review/`](review/README.md)**: one 1600 book
+put through all seven formats, so you can see what each one buys.
+
+### Optional
+
+Register the collection, so the modules can be required as
+`handpress/compositor` and the manual builds into your local Racket docs:
+
+```sh
 raco pkg install --link .
+```
+
+You can skip this and run `main.rkt` in place, as above.
+
+Run the tests:
+
+```sh
 raco test test-all.rkt
 ```
 
-`raco pkg install --link` registers the collection so the modules can be
-required as `handpress/compositor` and so the Scribble docs build into the
-local documentation index. You can skip it and just run `main.rkt` in place.
+About fifteen seconds for all 991 checks. `raco test .` runs the same checks in
+about three and a half minutes, because it gives each module a fresh process
+and thirteen of them load the 9.8 MB lexicon on the way up. Use `test-all.rkt`
+while working; use `raco test .` in CI, where the isolation is worth the wait.
 
-**On the output.** The `.tei.xml` is the record, and everything else is
-derived from it. `--html` writes the type-facsimile by reading that file back
-off disk — not by rendering the book a second time — so anything the TEI does
-not carry cannot appear on the page. That is deliberate: it is what keeps the
-encoding honest, and it immediately turned up two things the TEI had never
-recorded. `--xslt` additionally runs `xslt/tei-to-html.xsl`, which gives a
-plain reading text for anyone who wants to consume the file without Racket. It
-is not a second facsimile and does not try to be.
-
-**On the TEI.** The `.tei.xml` is the record and everything else is derived
-from it, including the facsimile, which is built by reading that file back off
-disk rather than by rendering the book a second time. That is deliberate: it is
-what keeps the encoding honest, since anything the TEI does not carry cannot
-appear on the page. It has already caught four things the file was quietly
-missing — the identity of the damaged sorts, the statistics, the account of
-what happened to each word, and the space-metal.
-
-**On the tests.** `raco test test-all.rkt` runs all 527 checks in about ten
-seconds. `raco test .` runs the same checks in about three and a half minutes,
-because it gives each module a fresh process and thirteen of them load the
-9.8 MB lexicon on the way up — some four seconds apiece, spent reading the same
-file. Use `test-all.rkt` while working; use `raco test .` in CI, where the
-isolation is worth the wait and a module that only loads because something else
-loaded its dependency first ought to be caught.
-
-Build the manual with:
+Build the manual:
 
 ```sh
 raco scribble --html --dest doc scribblings/handpress.scrbl
 ```
 
-The XSLT step (`--xslt`) shells out to a transform driver in `tools/`. On
-Windows it uses the .NET `XslCompiledTransform`, which is XSLT 1.0 — the
-stylesheet in `xslt/tei-to-html.xsl` is written to that limit and groups by
-the sibling axis rather than with `xsl:for-each-group`.
+### On the TEI
+
+The `.tei.xml` is the record, and everything else is derived from it —
+including the facsimile, which is built by reading that file back off disk
+rather than by rendering the book a second time. That is deliberate: it is what
+keeps the encoding honest, since **anything the TEI does not carry cannot
+appear on the page**. It has already caught six things the file was quietly
+missing.
+
+`--xslt` additionally runs `xslt/tei-to-html.xsl` to give a plain reading text
+for anyone consuming the file without Racket. It is not a second facsimile and
+does not try to be. The step shells out to a transform driver in `tools/`; on
+Windows it uses .NET's `XslCompiledTransform`, which is XSLT 1.0, and the
+stylesheet is written to that limit.
 
 ## Command line
 
