@@ -47,15 +47,38 @@ one piece of work in disguise, which is the interesting part.
       compositor whole, and discarding the modern edition's apparatus, which
       would otherwise be cast off and set as though the author had written it.
 
-- [ ] **Scribal frequency.** They are on by default now and fire too often.
-      The target is measurable: the 1600 quarto has four tilde vowels in
-      12,000 words and F1623 none, while F1 has fourteen ampersands. So about
-      one scribal sign per 3,000 words for a printed English book of this
-      period, with the ampersand an order of magnitude commoner. Note that the
-      lexicon cannot help here and should not: a wordlist cannot vouch for
-      `yᵗ`, which is a mark rather than a spelling, so these are exempt from
-      the gate by design and their rate is governed only by the compositor's
-      `contracts` weight.
+- [x] **Scribal frequency.** Done, and the target I set here was wrong in both
+      directions at once. I proposed one sign per 3,000 words from two data
+      points — four tilde vowels in a quarto of 1600, none in F1623. Counting
+      them properly in the 5,287 EEBO-TCP books already on disk shows why two
+      points could not work: **the practice has a slope.** Tildes per thousand
+      words, median English book of the decade, from 32.4M words:
+
+      | | 1580s | 1590s | 1600s | 1610s | 1620s | 1630s |
+      |---|---|---|---|---|---|---|
+      | tilde | 2.99 | 1.34 | 1.01 | 0.54 | 0.21 | 0.19 |
+      | ampersand | 5.45 | 3.11 | 3.18 | 2.36 | 1.92 | 1.47 |
+
+      So my target was three times too low for 1600 and about right for 1635,
+      and F1623 having none is unremarkable rather than evidence: the 1620s
+      median is 0.21 and an eighth of English books have none at all. The
+      conventions now carry a **year**, and `--year` sets it.
+
+      The three things lumped together as "scribal" turned out to have three
+      different histories. The **ampersand** crossed over from the hand
+      completely and is ordinary printing — left ungated. The **tilde** crossed
+      over and stayed productive (4,922 distinct marked forms, from `thē` and
+      `frō` down a long tail to `iudgemēt` and `strēgth`) but its frequency
+      collapsed; the rule was right and ran ten times too fast. The
+      **superscript brevigraphs** did not cross over at all: `yᵗ` occurs 5.5
+      times per million words of printed English, `wᵗʰ` 0.2, against the
+      program's 6,600. Roughly nine hundred times too many.
+
+      I was also wrong about the lexicon, though not in a way that changes the
+      design. A wordlist cannot vouch for `yᵗ` and still cannot — but the
+      *corpus behind it* can, because TCP renders the flattened forms as text
+      rather than silently expanding them. The corpus could have answered this
+      at any point in the last several sessions and I never asked it.
 
 ---
 
@@ -343,9 +366,16 @@ failure visible rather than arguing about it.
 
 **Fitting the parameters to the sample.** Several rates now sit close to their
 measured targets. It would be easy to close the remaining gaps by adjusting
-until they matched, and the result would be worthless. Where a figure is off —
-the ampersand at roughly twice the observed rate — it is left off, and said to
-be off.
+until they matched, and the result would be worthless. Where a figure is off it
+is left off, and said to be off: the tilde runs about 1.5× the median for 1605
+(inside the interquartile range, so unremarkable), and the ampersand runs at
+twice the 1630s median, between that median and its 75th percentile.
+
+The note that used to stand here — "the ampersand at roughly twice the observed
+rate" — was measured against the Folio's fourteen in twelve thousand words, and
+the corpus says the Folio is unusually sparing. Against the median book of its
+decade the program's ampersand was about right all along. A figure said to be
+off can be as wrong as one said to be right.
 
 ---
 
@@ -363,6 +393,14 @@ differ by convention, and it began reporting 1,048 accidents where there were
 7. Nothing failed; the number was simply wrong, and only a reader who knew the
 expected rate would have caught it. Which is the argument for keeping the
 measured rates written down beside the code.
+
+And the one that should have been obvious: **the corpus can answer questions
+about marks, not only about words.** The scribal rates were guessed from two
+books for several sessions while 5,287 sat on disk, because `lexicon.rkt` reads
+that corpus as a list of *spellings* and a spelling test cannot vouch for `yᵗ`.
+That is true of the lexicon and irrelevant to the corpus, which is text, and in
+which every tilde and brevigraph is countable. The tool was built for one
+question and I stopped asking it others.
 
 And a fourth, from the fount size: **a parameter anchored on one example is
 anchored on that example's end of the range.** 60,000 sorts was not a guess; it

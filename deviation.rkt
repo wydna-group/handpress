@@ -331,10 +331,31 @@
                  0.001)
               "the fitting rate is a property of the run, not a constant")
 
-  ;; A narrower measure divides more words.
+  ;; A narrower measure divides more words -- but not measurably on *this*
+  ;; sample, and the assertion that it did was false before it was brittle.
+  ;;
+  ;; Averaged over four seeds this text gives the quarto 0.063 divisions per
+  ;; line against the octavo's 0.056: the wrong way round. The test passed only
+  ;; because seed 5 happened to land 0.0704 against 0.0711, a margin of one
+  ;; per cent, and seed 6 reversed it by a factor of two. Gating the scribal
+  ;; signs moved the random stream and it fell over, which is how it came to
+  ;; light.
+  ;;
+  ;; The physical claim is sound; the sample cannot show it. _Much Ado_ is
+  ;; drama, and dividing needs a long word meeting a line-end -- but a page of
+  ;; dialogue is mostly short speeches, so most of its line-ends are the ends of
+  ;; speeches, where there is nothing to divide. On continuous prose the effect
+  ;; is plain and survives every seed: _Areopagitica_ gives 0.19 divisions per
+  ;; line in octavo against 0.13 in quarto.
+  ;;
+  ;; So what is asserted here is what this sample can support -- that division
+  ;; happens at all, at a rate near the 5.1 per hundred lines measured from the
+  ;; Folio -- and the format comparison waits for a prose sample in the
+  ;; repository to test it against.
   (define (div h) (/ (exact->inexact (hash-ref h 'divided)) (hash-ref h 'lines)))
-  (check-true (> (div o) (div q))
-              "the 16-em octavo divides oftener than the 21-em quarto")
+  (check-true (< 0.02 (div q) 0.12)
+              "the quarto divides at something near the Folio's 5 per 100 lines")
+  (check-true (< 0.02 (div o) 0.12) "and so does the octavo")
 
   ;; Most of the difference between print and copy is neither error nor
   ;; choice but the house's conventions, and a report that did not say so

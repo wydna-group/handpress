@@ -71,7 +71,7 @@
                     #:compositors [names '("A" "B")]
                     #:seed [seed 1623]
                     #:by-formes? [by-formes? #t]
-                    #:conventions [cv (conventions #t #t #t #t #t)]
+                    #:conventions [cv (conventions #t #t #t #t #t 1600)]
                     #:case-scale [case-scale 1.0]
                     #:cast-off-accuracy [acc 0.93]
                     #:skeletons [nsk 2]

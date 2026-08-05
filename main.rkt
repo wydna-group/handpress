@@ -74,6 +74,11 @@
                        ;; visibly period thing a page can do; see --no-scribal
                        ;; and the note in the report for what the evidence says.
                        #:scribal? [scribal? #t]
+                       ;; The year of the impression. Not decoration: the
+                       ;; scribal signs fall away by a factor of fifteen across
+                       ;; the period this program covers, so a rate that is
+                       ;; right for 1585 is fifteen times wrong for 1635.
+                       #:year [year 1600]
                        #:html? [html? #f]
                        #:tei? [tei? #f]
                        #:xslt? [xslt? #f]
@@ -82,7 +87,7 @@
                        #:quiet? [quiet? #f])
   (define copy (file->string input))
   (define names (map string-trim (string-split comps ",")))
-  (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t scribal?))
+  (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t scribal? year))
   (define h (make-house #:fmt (hash-ref FORMATS fmt-name)
                         #:compositors names
                         #:seed seed
@@ -188,6 +193,7 @@
   (define modern-uv? #f)
   (define modern-spelling? #f)
   (define scribal? #t)
+  (define year 1600)
   (define html? #f)
   (define tei? #f)
   (define xslt? #f)
@@ -232,6 +238,8 @@
      [("--no-long-s") "set short s throughout" (set! long-s? #f)]
      [("--modern-uv") "keep modern u/v and i/j" (set! modern-uv? #t)]
      [("--no-scribal") "set no scribal abbreviations at all" (set! scribal? #f)]
+     [("--year") y "year of the impression; scribal signs are dated (default 1600)"
+                 (set! year (string->number y))]
      [("--modern-spelling") "show the same setting in modern spelling"
       (set! modern-spelling? #t)]
      [("--html") "also write an HTML facsimile, direct from the type" (set! html? #t)]
@@ -254,7 +262,7 @@
                        #:edition edition #:condition condition
                        #:title title #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
-                       #:modern-spelling? modern-spelling? #:scribal? scribal?
+                       #:modern-spelling? modern-spelling? #:scribal? scribal? #:year year
                        #:html? html? #:tei? tei? #:xslt? xslt?
                        #:witness witness #:layout layout #:quiet? quiet?)))
 

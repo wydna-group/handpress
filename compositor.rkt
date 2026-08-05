@@ -253,11 +253,22 @@
                [causes (append (word-causes wd) (list cause))]))
 
 ;; Alternative forms, with their true widths after the conventions.
-(define (word-variants cv wd widen?)
+;; `g' is the compositor's own randomness, and it is here for one reason: the
+;; scribal signs are offered only sometimes. Counting them in 5,287 EEBO books
+;; showed the program setting tildes about ten times, and superscript
+;; brevigraphs about nine hundred times, oftener than a real printed book of the
+;; period. Neither is a rate that can be set directly -- a compositor abbreviates
+;; when a line will not come out, not to a quota -- so what is gated is whether
+;; the sign is in his repertoire at this moment at all. When it is not, he must
+;; find another way to close the line, which is what the corpus says he did.
+(define (word-variants cv wd widen? g)
+  (define year (conventions-year cv))
+  (define p (if (conventions-scribal? cv) (tilde-chance year) 0.0))
   (define raw (if widen?
                   (expansions (word-final wd))
                   (contractions (word-final wd)
-                                #:scribal? (conventions-scribal? cv))))
+                                #:tilde? (< (rnd g) p)
+                                #:brevigraph? (< (rnd g) (* p BREVIGRAPH-SHARE)))))
   (define out
     (for/list ([v (in-list raw)])
       (list (variant-form v)
@@ -295,11 +306,11 @@
 (define (already-altered? wd)
   (for/or ([c (in-list (word-causes wd))]) (string-prefix? c "justification")))
 
-(define (adjust cv ws need widen?)
+(define (adjust cv ws need widen? g)
   (define candidates
     (for*/list ([(wd i) (in-indexed (in-list ws))]
                 #:unless (already-altered? wd)
-                [v (in-list (word-variants cv wd widen?))]
+                [v (in-list (word-variants cv wd widen? g))]
                 #:when (let ([d (- (cadr v) (word-width wd))])
                          (if widen? (> d 0) (< d 0))))
       (define gain (abs (- (cadr v) (word-width wd))))
@@ -322,8 +333,8 @@
              (format "~a (~a ~a em)" device (if widen? "gaining" "saving")
                      (real->decimal-string (ems gain) 2)))]))
 
-(define (squeeze cv ws [need 0]) (adjust cv ws need #f))
-(define (stretch cv ws [need 0]) (adjust cv ws need #t))
+(define (squeeze cv ws g [need 0]) (adjust cv ws need #f g))
+(define (stretch cv ws g [need 0]) (adjust cv ws need #t g))
 
 ;; ---------------------------------------------------------------------------
 ;; Justification
@@ -349,7 +360,7 @@
 ;; Space out a full line of prose so that it exactly fills the stick.
 ;; Returns a line, or #f if the words will not go into the measure at all --
 ;; in which case the caller puts one back and tries again.
-(define (justify cv ws measure indent pressure)
+(define (justify cv ws measure indent pressure g)
   (define n (length ws))
   (cond
     [(zero? n) #f]
@@ -367,7 +378,7 @@
            [(or (>= (per ws) HAIR) (>= rounds 8)) (values ws notes)]
            [else
             (define need (exact-ceiling (* (- HAIR (per ws)) gaps)))
-            (define-values (new note) (squeeze cv ws need))
+            (define-values (new note) (squeeze cv ws g need))
             (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
 
      (cond
@@ -384,7 +395,7 @@
               [(or (<= (per ws) loose-limit) (>= rounds 3)) (values ws notes)]
               [else
                (define need (exact-floor (* (- (per ws) loose-limit) gaps)))
-               (define-values (new note) (stretch cv ws need))
+               (define-values (new note) (stretch cv ws g need))
                (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
 
         (define white (- measure indent (content-width final-ws)))
@@ -614,11 +625,11 @@
        (cond
          [split
           (define line (justify cv (append span (list (car split)))
-                                measure indent pressure))
+                                measure indent pressure (comp-rng c)))
           (if line
               (loop (cons (cdr split) (cdr remaining)) 0 (cons line out))
               (loop remaining 0
-                    (cons (or (justify cv span measure indent pressure)
+                    (cons (or (justify cv span measure indent pressure (comp-rng c))
                               (quad-out span measure indent 'prose))
                           out)))]
 
@@ -626,7 +637,7 @@
          [(and (not last?)
                (< (rnd g) (min 0.95 (+ (profile-contracts prof) (* pressure 0.4))))
                (justify cv (append span (list (car remaining)))
-                        measure indent pressure))
+                        measure indent pressure (comp-rng c)))
           => (lambda (line) (loop (cdr remaining) 0 (cons line out)))]
 
          [last?
@@ -636,7 +647,7 @@
           ;; drop a word at a time until the line justifies. The greedy fill
           ;; makes this succeed at once in all but pathological cases.
           (let retry ([span span] [back '()])
-            (define line (justify cv span measure indent pressure))
+            (define line (justify cv span measure indent pressure (comp-rng c)))
             (cond
               [line (loop (append back remaining) 0 (cons line out))]
               [(> (length span) 1)
@@ -668,7 +679,7 @@
       (cond
         [(or (<= needed room) (>= rounds 10)) (values ws notes)]
         [else
-         (define-values (new note) (squeeze cv ws (- needed room)))
+         (define-values (new note) (squeeze cv ws (comp-rng c) (- needed room)))
          (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
 
   (define needed (+ (content-width made) (* HAIR gaps)))
@@ -825,7 +836,7 @@
 (module+ test
   (require rackunit)
 
-  (define cv (conventions #t #t #t #t #t))
+  (define cv (conventions #t #t #t #t #t 1600))
   (define (fresh [name "B"] [seed 1623])
     (make-comp (hash-ref PROFILES name)
                (make-type-case #:rng (make-rng seed))
@@ -877,14 +888,30 @@
 
   ;; Squeezing returns a new list and does not touch the old one.
   (define ws (list (make-word c3 "and") (make-word c3 "the") (make-word c3 "cannot")))
-  (define-values (ws2 note) (squeeze cv ws 1))
+  (define-values (ws2 note) (squeeze cv ws (comp-rng c3) 1))
   (check-not-false ws2)
   (check-equal? (map word-final ws) '("and" "the" "cannot"))
   (check-false (equal? (map word-final ws) (map word-final ws2)))
 
-  ;; A speech prefix is cut after a consonant.
-  (check-equal? (word-final (speech-prefix c3 "Queen" 0.0)) "Qu.")
-  (check-equal? (word-final (speech-prefix c3 "Rosencrantz" 0.5)) "Ros.")
+  ;; A speech prefix is cut after a consonant -- asserted as the property, not
+  ;; as one string. The cut length has a deliberate 18% long branch, so testing
+  ;; a single draw against "Qu." was testing the seed: it broke the moment
+  ;; anything upstream touched the random stream, and the value it then gave
+  ;; ("Queen.") was perfectly correct behaviour.
+  (for ([name (in-list '("Queen" "Rosencrantz" "Horatio" "Ophelia" "Laertes"))])
+    (for ([i (in-range 12)])
+      (define p (word-final (speech-prefix c3 name (* 0.1 i))))
+      (check-true (string-suffix? p ".") "a prefix ends in a point")
+      (define stem (substring p 0 (sub1 (string-length p))))
+      (check-true (string-prefix? name stem) "and is a cut of the name")
+      ;; ... unless cutting to a consonant would leave fewer than two letters,
+      ;; which is the floor the trimming loop enforces. `Queen' cuts to `Que',
+      ;; loses the e, and stops at `Qu' rather than going on to `Q'.
+      (when (and (< (string-length stem) (string-length name))
+                 (> (string-length stem) 2))
+        (check-false (memv (char-downcase (string-ref stem (sub1 (string-length stem))))
+                           '(#\a #\e #\i #\o #\u))
+                     "a shortened prefix is cut after a consonant"))))
 
   ;; A head too wide for the measure is broken, not overhung.
   (define heads (set-heading c3 "The Tragedie of Hamlet Prince of Denmarke" spec))

@@ -77,6 +77,7 @@
          SPELLING-TESTS SPELLING-PATTERNS
          head-form preferred pattern-form pattern-witness
          contractions expansions
+         SCRIBAL-RATES scribal-rate tilde-chance BREVIGRAPH-SHARE
          apply-conventions strip-conventions modernise modernise-word
          apply-uv apply-ij apply-long-s apply-ligatures
          split-point match-case)
@@ -316,6 +317,79 @@
 ;; An alternative form, with what it costs or saves.
 (struct variant (form delta device) #:transparent)
 
+;; ---------------------------------------------------------------------------
+;; How often the scribal signs were actually set
+;; ---------------------------------------------------------------------------
+;; These were guessed from two data points -- four tilde vowels in a quarto of
+;; 1600, none in F1623 -- and the guess was wrong in both directions at once.
+;; Counting them properly in the 5,287 EEBO-TCP books of `corpus/texts' gives
+;; the rates below, per 1,000 words, as the median English book of its decade.
+;; The median and not the mean: the distribution is fiercely skewed, 13% of
+;; English books carry no tilde at all and 11% carry more than five per
+;; thousand, so a pooled average describes almost no actual book.
+;;
+;;     decade    tilde   ampersand        (medians, 32.4M words, 573 books)
+;;     1580s      2.99      5.45
+;;     1590s      1.34      3.11
+;;     1600s      1.01      3.18
+;;     1610s      0.54      2.36
+;;     1620s      0.21      1.92
+;;     1630s      0.19      1.47
+;;
+;; So the practice dies away across exactly the period this program covers,
+;; which is why no single rate was ever going to be right, and why F1623 having
+;; none is unremarkable rather than evidence: the 1620s median is 0.21 and an
+;; eighth of books have none.
+;;
+;; The three things lumped together here as `scribal' turn out to have three
+;; different histories:
+;;
+;;   * The ampersand crossed over from the hand completely and is ordinary
+;;     printing. No gate: the corpus rate and the program's are within a factor
+;;     of two, which for this project counts as agreement.
+;;   * The tilde crossed over and stayed productive -- 4,922 distinct marked
+;;     forms in 365 books, from `thē' and `frō' down a very long tail to
+;;     `iudgemēt' and `strēgth' -- but its frequency collapsed. It is a rule,
+;;     correctly modelled, running about ten times too fast.
+;;   * The superscript brevigraphs did NOT cross over. `yᵗ', `wᶜʰ', `yᵉ' and
+;;     their fellows are a habit of the manuscript hand which the printing
+;;     house very nearly refused. Measured across 6.4M words of English: `yt'
+;;     5.5 per million words, `wth' 0.2, `yor' 0.3, and the true þᵗ ligature
+;;     (which TCP writes `{that}') 0.8 per million. The program was setting
+;;     them at 6.6 per thousand -- something like nine hundred times the rate
+;;     of a real printed book.
+;;
+;; (TCP does render the flattened forms rather than silently expanding them,
+;; which is what makes the near-zero count evidence rather than an artefact --
+;; `ye', `yt', `wth' and `yor' all appear as text. `ye' is excluded from the
+;; figures above because it is far commoner as the pronoun.)
+;; Tildes per thousand words, median English book of the decade.
+(define SCRIBAL-RATES
+  (hash 1580 2.99 1590 1.34 1600 1.01 1610 0.54 1620 0.21 1630 0.19))
+
+(define (scribal-rate year)
+  (hash-ref SCRIBAL-RATES (max 1580 (min 1630 (* 10 (quotient year 10)))) 0.19))
+
+;; With the device offered at every opportunity -- which is how it stood -- the
+;; program set 6.09 tildes per thousand words of _Areopagitica_. That is the
+;; ungated rate, and the ratio of the wanted rate to it is how often the
+;; compositor may reach for the sign at all.
+;;
+;; This is a calibration, not a derivation, and it is worth being plain about
+;; why it has to be. The design principle here is that a compositor "does not
+;; decide to abbreviate so many words in a thousand; he abbreviates when a line
+;; will not come out" -- so the rate is an outcome, and there is no rate to set.
+;; What can be set is whether the sign is in his repertoire at all, and the
+;; corpus fixes that by working backwards from the outcome it must produce.
+(define UNGATED-TILDE-RATE 6.09)
+
+(define (tilde-chance year) (min 1.0 (/ (scribal-rate year) UNGATED-TILDE-RATE)))
+
+;; A superscript brevigraph against a tilde: about 0.007 per thousand words
+;; against 1.4, averaged over the period. This keeps `yᵗ' the rarity it was
+;; rather than a house style.
+(define BREVIGRAPH-SHARE 0.005)
+
 (define scribal
   (hash "the" "yᵉ" "that" "yᵗ" "which" "wᶜʰ" "with" "wᵗʰ"
         "your" "yᵒʳ" "our" "oᵘʳ" "sir" "ſʳ"))
@@ -378,7 +452,7 @@
 (define (w s) (width-of-word s))
 
 ;; Every way of making this word narrower.
-(define (contractions word #:scribal? [scribal? #f])
+(define (contractions word #:tilde? [tilde? #f] #:brevigraph? [brev? #f])
   (define-values (core tail) (split-point word))
   (define base (w word))
   (define lcore (string-downcase core))
@@ -398,7 +472,7 @@
     (list
      ;; 1. the scribal abbreviations, inherited from the manuscript hand.
      ;;    Off unless the house is one that used them; see `conventions'.
-     (and scribal? (hash-has-key? scribal lcore)
+     (and brev? (hash-has-key? scribal lcore)
           (add (string-append (match-case core (hash-ref scribal lcore)) tail)
                (format "~a contracted to ~a" core (hash-ref scribal lcore))))
      ;; 2. the ampersand
@@ -448,7 +522,7 @@
      ;; 7. the tilde: a stroke over the vowel standing for a following nasal.
      ;;    Never over the first letter, and not before g or k where n belongs
      ;;    to a digraph and the abbreviation would be unreadable.
-     (and scribal? (tilde-contraction core tail add))))
+     (and tilde? (tilde-contraction core tail add))))
    < #:key variant-delta))
 
 (define (tilde-contraction core tail add)
@@ -581,7 +655,12 @@
 ;; Folio has fourteen. So the trade did contract, but by the ampersand and by
 ;; the fuller-or-shorter spelling, not by the scribal signs, which had gone
 ;; out of English printing well before Jaggard.
-(struct conventions (long-s? uv? ij? ligatures? scribal?) #:transparent)
+;; `year' is the date of the impression. It is here because three of the
+;; conventions are not fixed points but slopes: the tilde dies away across the
+;; period (see SCRIBAL-RATES), and u/v and i/j "had largely given way to the
+;; modern practice by 1640" (Blayney, i. 145). A convention without a date is a
+;; convention asserted to be timeless, and none of these is.
+(struct conventions (long-s? uv? ij? ligatures? scribal? year) #:transparent)
 
 ;; ---------------------------------------------------------------------------
 ;; Reading the setting the other way
@@ -688,13 +767,13 @@
                  (regexp-match? #px"yᵉ" (variant-form v)))
                "no y-e unless asked for")
   ;; With them enabled, the rules still hold: never on the first letter ...
-  (check-false (for/or ([v (in-list (contractions "Enter" #:scribal? #t))])
+  (check-false (for/or ([v (in-list (contractions "Enter" #:tilde? #t #:brevigraph? #t))])
                  (regexp-match? #px"^[ĀĒĪŌŪ]" (variant-form v))))
   ;; ... and not before g, where n belongs to a digraph ...
-  (check-false (for/or ([v (in-list (contractions "King" #:scribal? #t))])
+  (check-false (for/or ([v (in-list (contractions "King" #:tilde? #t #:brevigraph? #t))])
                  (regexp-match? #px"ī" (variant-form v))))
   ;; ... but it does apply to a final nasal.
-  (check-not-false (for/or ([v (in-list (contractions "them" #:scribal? #t))])
+  (check-not-false (for/or ([v (in-list (contractions "them" #:tilde? #t #:brevigraph? #t))])
                      (string=? (variant-form v) "thē")))
   ;; The gate. A device may only produce a spelling somebody actually used or
   ;; the period approved; the nine forms below are neither, and were invented
@@ -709,7 +788,7 @@
 
   ;; But signs are not spellings, and no word list can vouch for them. The
   ;; ampersand and the stroke standing for a nasal must survive the gate.
-  (check-not-false (for/or ([v (in-list (contractions "them" #:scribal? #t))])
+  (check-not-false (for/or ([v (in-list (contractions "them" #:tilde? #t #:brevigraph? #t))])
                      (string=? (variant-form v) "thē"))
                    "the nasal stroke is a sign, not a spelling")
 
@@ -734,4 +813,35 @@
   (let-values ([(rule who) (pattern-witness "beautie" '("OkesC" "OkesB"))])
     (check-equal? who "OkesC"))
   (let-values ([(rule who) (pattern-witness "my")])
-    (check-false who "too short to be evidence")))
+    (check-false who "too short to be evidence"))
+
+  ;; The dated scribal rates, measured from 5,287 EEBO-TCP books. What matters
+  ;; is not the individual figures but that the thing has a slope at all: the
+  ;; practice falls away by a factor of fifteen across the period the program
+  ;; covers, so no single rate could ever have been right.
+  (check-true (> (scribal-rate 1585) (scribal-rate 1605) (scribal-rate 1635))
+              "the tilde dies away across the period")
+  (check-= (scribal-rate 1585) 2.99 0.001)
+  (check-= (scribal-rate 1635) 0.19 0.001)
+  (check-equal? (scribal-rate 1500) (scribal-rate 1580) "flat below the range")
+  (check-equal? (scribal-rate 1700) (scribal-rate 1630) "and flat above it")
+
+  ;; The gate is a probability, so it must stay one.
+  (check-true (< 0 (tilde-chance 1585) 1.0))
+  (check-true (< (tilde-chance 1635) (tilde-chance 1585)))
+
+  ;; The two devices are gated apart, because they had different fates. The
+  ;; tilde crossed over from the hand into print; `y-t' and `w-ch' did not.
+  (check-true (< BREVIGRAPH-SHARE 0.05)
+              "a brevigraph is a small fraction of an already rare thing")
+  (check-not-false (for/or ([v (in-list (contractions "them" #:tilde? #t))])
+                     (regexp-match? #rx"[āēīōū]" (variant-form v)))
+                   "the tilde is offered when allowed")
+  (check-false (for/or ([v (in-list (contractions "them" #:tilde? #f))])
+                 (regexp-match? #rx"[āēīōū]" (variant-form v)))
+               "and withheld when not")
+  (check-not-false (for/or ([v (in-list (contractions "that" #:brevigraph? #t))])
+                     (string=? (variant-form v) "yᵗ"))
+                   "the brevigraph likewise")
+  (check-false (for/or ([v (in-list (contractions "that" #:brevigraph? #f))])
+                 (string=? (variant-form v) "yᵗ"))))
