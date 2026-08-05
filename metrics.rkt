@@ -17,7 +17,7 @@
 (provide UNITS-PER-EM
          EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR
          SPACE-LADDER NORMAL-SPACE
-         width-of width-of-word ems describe-space
+         width-of width-of-word ems describe-space space-bodies
          AVERAGE-LOWERCASE measure-in-characters)
 
 (define UNITS-PER-EM 120)
@@ -35,6 +35,17 @@
 ;; Coarsest to finest; the compositor works down this list when a line will
 ;; not justify.
 (define SPACE-LADDER (list EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
+
+;; The pieces of metal that make up a gap of this width, largest first. There
+;; is no space narrower than a hair, so a width the ladder cannot reach leaves
+;; a remainder -- under a tenth of an em, taken up by the pressure of the
+;; lock-up as it was in the chase.
+(define (space-bodies units)
+  (let loop ([left units] [bs SPACE-LADDER] [out '()])
+    (cond
+      [(or (<= left 0) (null? bs)) (reverse out)]
+      [(> (car bs) left) (loop left (cdr bs) out)]
+      [else (loop (- left (car bs)) bs (cons (car bs) out))])))
 
 (define space-names
   (hash EM-QUAD "em quad"

@@ -367,17 +367,41 @@
 ;; compositor cannot cut a space in half; he makes up the difference from the
 ;; finer spaces in the box, which is why justified hand-set prose has slightly
 ;; unequal word spacing even when it is well done.
+;; Divide the white between the gaps -- in pieces of metal, which is the whole
+;; difficulty.
+;;
+;; This used to hand out single units of 1/120 em until the arithmetic came
+;; out, and there is no such thing as a 1/120-em space. Measured on
+;; _Areopagitica_, 86% of the gaps it produced were widths no combination of
+;; bodies could make: 43/120 of an em, 41, 47. The line filled the measure
+;; exactly and could not have been set.
+;;
+;; What a compositor actually does is Moxon's account, and it is quantised: he
+;; sets with one space between words, and if the line will not fill he "puts a
+;; Space more between every Word", and if still not, another. So every gap gets
+;; a body, and then some gaps get a second piece. Which gaps is his choice; the
+;; sizes are not.
+;;
+;; The line therefore fills to within less than a hair -- under a tenth of an
+;; em -- rather than exactly, and that residual is real. It is taken up by the
+;; pressure of the lock-up, as it was in a chase.
 (define (apportion white gaps)
   (cond
     [(<= gaps 0) '()]
     [else
-     (define base (max HAIR (quotient white gaps)))
+     (define ladder (list EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
+     (define target (quotient white gaps))
+     ;; the largest single body that will not overshoot the average gap
+     (define base
+       (or (for/or ([b (in-list ladder)]) (and (<= b target) b)) HAIR))
      (define v (make-vector gaps base))
-     (let loop ([left (- white (* base gaps))] [i 0])
-       (when (and (> left 0) (< i (* gaps 4)))
+     ;; then the surplus, in whole pieces, spread over successive gaps
+     (let loop ([left (- white (* base gaps))] [i 0] [guard 0])
+       (define piece (for/or ([b (in-list ladder)]) (and (<= b left) b)))
+       (when (and piece (< guard (* gaps 8)))
          (define j (modulo i gaps))
-         (vector-set! v j (add1 (vector-ref v j)))
-         (loop (sub1 left) (add1 i))))
+         (vector-set! v j (+ (vector-ref v j) piece))
+         (loop (- left piece) (add1 i) (add1 guard))))
      (vector->list v)]))
 
 ;; Space out a full line of prose so that it exactly fills the stick.
@@ -918,10 +942,21 @@
     (check-true (<= (line-set-width l) (page-spec-measure spec))
                 (format "line overhangs: ~s" (line-text l))))
 
-  ;; Every justified line but the last fills the measure exactly.
+  ;; Every justified line but the last fills the measure to within a hair.
+  ;;
+  ;; Not exactly, and the difference is the point. Exact filling needs spaces
+  ;; of arbitrary width, and this test passed for as long as `apportion' handed
+  ;; out single units of 1/120 em -- a body no founder ever cast. Once the
+  ;; white had to be made of real pieces, 86% of the gaps it had been producing
+  ;; turned out to be widths no combination of em, en, thick, middle, thin and
+  ;; hair could make. The line now fills to within less than the finest body in
+  ;; the case, which is as exactly as a line can be filled, and the residue is
+  ;; taken up by the pressure of the lock-up as it was in a chase.
   (for ([l (in-list (drop-right prose 1))])
-    (check-equal? (line-set-width l) (page-spec-measure spec)
-                  (format "line does not fill the measure: ~s" (line-text l))))
+    (define short (- (page-spec-measure spec) (line-set-width l)))
+    (check-true (and (>= short 0) (< short HAIR))
+                (format "line off the measure by ~a of 1/120 em: ~s"
+                        short (line-text l))))
 
   ;; Verse turned over rather than overhanging.
   (define c2 (fresh "A"))

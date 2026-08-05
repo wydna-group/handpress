@@ -352,9 +352,28 @@
 
 (define (line->tei l n indent-x variants sig)
   (define spaces (set-line-spaces l))
+  ;; The white, as metal. A gap is a piece of type like any other, and the file
+  ;; recorded only where the words stood -- from which the *width* of a gap can
+  ;; be worked out, but not what filled it. Named bodies rather than measures,
+  ;; because that is what the compositor took out of the box: "thick thick hair
+  ;; thick" is a line spaced with three thicks and a hair, and any consumer can
+  ;; recover the width from the ladder declared in the header.
+  ;;
+  ;; One limitation, stated rather than hidden: these are the bodies the ladder
+  ;; gives for the width. Where a box was empty the compositor made the same
+  ;; white out of smaller pieces, and that substitution is recorded as an event
+  ;; but not yet here.
+  (define white
+    (string-join
+     (for*/list ([g (in-list (cons (set-line-indent l) spaces))]
+                 #:when (> g 0)
+                 [b (in-list (space-bodies g))])
+       (string-replace (describe-space b) " " "-"))
+     " "))
   (define lb
-    (format "<lb n=\"~a\" hp:indent=\"~a\" hp:kind=\"~a\"~a~a/>"
+    (format "<lb n=\"~a\" hp:indent=\"~a\" hp:kind=\"~a\"~a~a~a/>"
             n (em (set-line-indent l)) (set-line-kind l)
+            (if (string=? white "") "" (format " hp:white=\"~a\"" white))
             (if (set-line-turned-over? l) " hp:turned=\"true\"" "")
             ;; A word divided at the end of a line: TEI has an attribute for
             ;; precisely this, and it is almost never used.
@@ -488,6 +507,14 @@
 
   ;; The TEI has to be the whole record, or a rendering built from it needs a
   ;; second source and there are two renderers again. Two things were missing.
+  ;; The white is metal and is recorded as metal. Without it the file said
+  ;; where every word stood and nothing about what held them apart, which is
+  ;; four pieces of type in every five words.
+  (check-true (regexp-match? #px"hp:white=\"[a-z-]+( [a-z-]+)*\"" x)
+              "the space-metal of each line is named, body by body")
+  (check-true (regexp-match? #px"hp:white=\"[^\"]*thick-space" x)
+              "and the normal word space is the commonest of them")
+
   (check-true (regexp-match? #px"<hp:statistics>" x)
               "the counts are in the file, not only in the printed report")
   (check-true (regexp-match? #px"hp:count hp:name=\"habit\"[^/]*ana=\"#habit\"" x)

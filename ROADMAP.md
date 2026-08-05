@@ -176,6 +176,32 @@ opened four. These are ordered by how much they would change.
       short speech line is quadded out to the measure. That is Blayney's
       asymmetry, reproduced rather than fitted.
 
+      **The spacing was not quantised, and could not have been set.**
+      `apportion` handed out single units of 1/120 em until the arithmetic came
+      out — a body no founder ever cast. Measured, **86% of the gaps were
+      widths no combination of em, en, thick, middle, thin and hair could
+      make**: 43/120 of an em, 41, 47. The lines filled the measure exactly and
+      were unsettable. Now every gap is whole pieces, which is Moxon's account
+      and is quantised — he sets one space between words, and if the line will
+      not fill he "puts a Space more between every Word", and if still not,
+      another. The commonest widths are now the ladder itself: thick 7,239,
+      hair 2,546, middle 1,869, thin 1,226, en 1,105. A line fills to within
+      less than a hair — median 4/120 em — rather than exactly, and that
+      residue is real: it was taken up by the pressure of the lock-up.
+
+      The white is in the TEI, named body by body on each `<lb/>`
+      (`hp:white="thick-space thick-space hair-space"`), because the file had
+      recorded where every word stood and nothing about what held them apart —
+      four pieces of type in every five words. One limitation stated rather
+      than hidden: those are the bodies the ladder gives for the width, and
+      where a box was empty the compositor made the same white out of smaller
+      pieces. That substitution is recorded as an event but not yet there.
+
+      On screen the *positions* are exact and the visible gaps are not quite,
+      because a real font's glyphs are not the modelled widths — the `--fit`
+      problem the stylesheet already documents. The model and the file are
+      right; the rendering absorbs the font error into the white.
+
       Still to do, and both from the same page of Blayney: space-metal was
       shared between founts of the same body ("pica spaces are pica spaces,
       irrespective of fount"), like the points — so it belongs to the house and
