@@ -30,7 +30,7 @@
 ;;; escape hatch, and a consumer who wants clean TEI can strip one namespace
 ;;; and lose nothing textual.
 
-(require racket/list racket/string racket/math racket/format
+(require racket/list racket/string racket/math racket/format racket/set
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
          "press.rkt" "binding.rkt" "cancels.rkt" "corrector.rkt" "description.rkt"
          "pagination.rkt"
@@ -569,14 +569,27 @@
    (apply string-append
           (let ([folios (for/hash ([f (in-list (book-paging b))])
                           (values (folio-number-sig f) f))])
-            (define roles
-              (for/hash ([q (in-list (book-plans b))])
-                (values (gathering-plan-place q)
-                        (format "~a" (gathering-plan-role q)))))
+            ;; A leaf's role follows the series that signs it, not the
+            ;; gathering it was printed in.
+            ;;
+            ;; Keying on the gathering was wrong for the one case the last
+            ;; commit was about: preliminaries printed in the white leaves of
+            ;; the last sheet and cut out belong, physically, to a text
+            ;; gathering, so every one of them was marked hp:role="text" and
+            ;; the facsimile showed a book with no front matter at all. What
+            ;; makes a leaf preliminary is the series in its direction line,
+            ;; which the per-leaf overrides already put there.
+            (define prelim-series
+              (for/set ([q (in-list (book-plans b))]
+                        #:when (eq? (gathering-plan-role q) 'prelim))
+                (sig-series-name (gathering-plan-series q))))
             (for/list ([p (in-list (book-pages b))])
               (page->tei p (book-fmt b) variants
                          (hash-ref folios (page-sig p) #f)
-                         (hash-ref roles (page-ref-gathering (page-pref p)) "text")))))
+                         (if (set-member? prelim-series
+                                          (sig-series-name
+                                           (page-ref-series (page-pref p))))
+                             "prelim" "text")))))
    "    </body>\n  </text>\n</TEI>\n"))
 
 (module+ test

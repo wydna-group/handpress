@@ -19,3 +19,7 @@ out-chk/
 # project and its evidence sit together on disk.
 sources/
 *.pdf
+
+# Generated review outputs: regenerate rather than commit
+review/*/
+review/floyd.*
