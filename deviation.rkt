@@ -40,6 +40,7 @@
 
 (require racket/list racket/string racket/format racket/math
          "compositor.rkt" "book.rkt" "press.rkt" "imposition.rkt"
+         "vocabulary.rkt"
          (only-in "typecase.rkt" substitution-only? substitution-phrase placeholder?)
          (only-in "orthography.rkt" strip-conventions))
 
@@ -230,27 +231,52 @@
       "the conventions of the case"
       (string-append "the conventions of the case: " (string-join parts ", "))))
 
-;; Which of the stages to colour it by, for the page itself.
-(define (deviation-class w)
+;; What kind of thing happened to this word: the one place the question is
+;; answered.
+;;
+;; There were two of these, and they had drifted. The TEI's cond knew about
+;; forced substitutions, places held for the proof and press variants; the one
+;; that chose a colour for the page knew none of them, and tested divided-ness
+;; before misreading where the other tested it after. So the same book came out
+;; marked differently depending on which renderer drew it, and every category
+;; added since had been added to one of them.
+;;
+;; `variant?' is whether the copies disagree here, which only a caller holding
+;; the whole press run can know; a renderer working from a single made-up copy
+;; passes #f and simply never sees that category.
+;;
+;; The order is the order of certainty. A hole left for the proof is the
+;; plainest fact about a word and outranks everything, including the apparatus,
+;; because such a word is corrected during the run by construction and would
+;; otherwise be labelled by the correction rather than by the hole. Then the
+;; errors of the case, then the facts about the line, then the compositor's own
+;; choices, and last the bare disagreement between copies, which is not a cause
+;; at all and is only what remains when no cause answers.
+(define (classify w [variant? #f])
+  (define set-form (word-printed w))
+  (define composed (word-composed w))
+  (define (differ? a b) (and a b (not (string=? a b))))
+  (define wanting? (placeholder? set-form))
+  (define shifted?
+    (and (not wanting?) (differ? composed set-form)
+         (substitution-only? composed set-form)))
   (cond
-    ;; division first, or a hyphenated word is coloured as a corruption
-    [(divided? w) "dev-divided"]
-    [(and (word-copy w) (word-read w)
-          (not (string=? (word-copy w) (word-read w)))) "dev-misread"]
-    ;; but a box that was empty is not a box that was foul, so the page must
-    ;; not ring it in the colour it uses for the compositor's errors
-    [(and (word-composed w) (word-printed w)
-          (not (string=? (word-composed w) (word-printed w)))
-          (not (substitution-only? (word-composed w) (word-printed w))))
-     "dev-accident"]
-    ;; and stages that cancel leave nothing to colour: the word on the page is
-    ;; the word he read
-    [(stages-cancel? w) ""]
-    [(and (word-habit w) (word-final w)
-          (not (string=? (word-habit w) (word-final w)))) "dev-fit"]
-    [(and (word-read w) (word-habit w)
-          (not (string=? (word-read w) (word-habit w)))) "dev-habit"]
-    [else ""]))
+    [wanting? "sort-wanting"]
+    [(and (differ? composed set-form) (not shifted?)) "foul-case"]
+    [shifted? "substitution"]
+    [(divided? w) "division"]
+    [(for/or ([c (in-list (word-causes w))]) (string-prefix? c "justification"))
+     (if (stages-cancel? w) (if variant? "press-variant" "copy") "justification")]
+    [(differ? (word-copy w) (word-read w)) "misreading"]
+    [(stages-cancel? w) (if variant? "press-variant" "copy")]
+    [(differ? (word-read w) (word-habit w)) "habit"]
+    [variant? "press-variant"]
+    [else "copy"]))
+
+(provide classify)
+
+;; Which of the stages to colour it by, for the page itself.
+(define (deviation-class w) (kind-class (classify w)))
 
 (provide deviation-class)
 

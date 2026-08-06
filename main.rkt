@@ -12,6 +12,17 @@
 (provide run-handpress apply-xslt)
 
 (define-runtime-path xslt-dir "xslt")
+
+;; The stylesheet that travels with a linked rendering is not the file on disk:
+;; the departure marks are generated from the vocabulary and appended to it, so
+;; copying xslt/facsimile.css would put out a page on which nothing the
+;; simulation found is marked at all. Both assets come from tei-html.rkt, which
+;; is where the composing is done for the inlined rendering too.
+(define (write-assets! out-dir)
+  (call-with-output-file (build-path out-dir "facsimile.css") #:exists 'truncate
+    (lambda (o) (display (facsimile-stylesheet) o)))
+  (call-with-output-file (build-path out-dir "facsimile.js") #:exists 'truncate
+    (lambda (o) (display (facsimile-script) o))))
 (define-runtime-path tools-dir "tools")
 (define-runtime-path pdf-helper "tools/pdf-to-copy.py")
 
@@ -201,10 +212,7 @@
       (define xsl (build-path xslt-dir "tei-to-html.xsl"))
       ;; The stylesheet is shared with the direct rendering and linked rather
       ;; than inlined, so it has to travel with the output.
-      (for ([asset (in-list '("facsimile.css" "facsimile.js"))])
-        (copy-file (build-path xslt-dir asset)
-                   (build-path out-dir asset)
-                   #t))
+      (write-assets! out-dir)
       (define out (build-path out-dir (string-append stem ".tei.html")))
       (unless (apply-xslt xml xsl out #:witness witness #:layout layout)
         (eprintf "could not run an XSLT processor; ~a not written\n"
@@ -219,8 +227,7 @@
       ;; book that had not been printed.
       (define xml (build-path out-dir (string-append stem ".tei.xml")))
       (write! ".tei.xml" (book->tei b r names))
-      (for ([asset (in-list '("facsimile.css" "facsimile.js"))])
-        (copy-file (build-path xslt-dir asset) (build-path out-dir asset) #t))
+      (write-assets! out-dir)
       (write! ".html"
               (tei-file->html
                xml

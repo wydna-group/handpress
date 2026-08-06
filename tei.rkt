@@ -34,9 +34,11 @@
          "metrics.rkt" "compositor.rkt" "book.rkt" "imposition.rkt"
          "press.rkt" "binding.rkt" "cancels.rkt" "corrector.rkt" "description.rkt"
          "pagination.rkt"
+         "vocabulary.rkt"
          (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary
                   substitution-only? placeholder?)
-         (only-in "deviation.rkt" deviation-counts word-deviation stages-cancel?)
+         (only-in "deviation.rkt" deviation-counts word-deviation stages-cancel?
+                  classify)
          (only-in "orthography.rkt" strip-conventions))
 
 (provide book->tei HP-NS TEI-NS)
@@ -122,16 +124,9 @@
           "    <encodingDesc>"
           "      <classDecl>"
           "        <taxonomy xml:id=\"hp.causes\">"
-          "          <category xml:id=\"copy\"><catDesc>Follows the copy the compositor received.</catDesc></category>"
-          "          <category xml:id=\"habit\"><catDesc>The compositor's own spelling, against his copy.</catDesc></category>"
-          "          <category xml:id=\"justification\"><catDesc>Altered so that the line would fill the measure exactly.</catDesc></category>"
-          "          <category xml:id=\"misreading\"><catDesc>Misread from the copy: minims, secretary-hand confusions, memory.</catDesc></category>"
-          "          <category xml:id=\"foul-case\"><catDesc>A sort taken from an adjoining box of the case.</catDesc></category>"
-          "          <category xml:id=\"substitution\"><catDesc>A different sort of the same letters, taken because the box wanted was empty: f + fi for the ffi ligature, a round s for a long. The reading is unaffected; the shop's supply is not.</catDesc></category>"
-          "          <category xml:id=\"sort-wanting\"><catDesc>A type laid face down to hold a place, printing as a black rectangle, because the sort was not in the house at all. To be put right at proof: the forme cannot go to press as it stands.</catDesc></category>"
-          "          <category xml:id=\"press-variant\"><catDesc>The copies do not agree here, the forme having been altered while the run went on, and no other cause accounts for the word. What the copies read is in the apparatus.</catDesc></category>"
-          "          <category xml:id=\"division\"><catDesc>Half of a word broken at the end of a line. Not a corruption: the reading is the whole word, and the hyphen is a fact about the line.</catDesc></category>"
-          "          <category xml:id=\"house-style\"><catDesc>Imposed on the copy by the corrector before setting.</catDesc></category>"
+          ;; Generated from DEVIATION-KINDS, so that what the header declares and
+          ;; what the words point at cannot come apart.
+          (taxonomy-categories)
           "        </taxonomy>"
           "        <taxonomy xml:id=\"hp.damage\">"
           (string-join
@@ -309,34 +304,8 @@
   ;; latter left every first half classified as a misreading.
   (define divided? (for/or ([c (in-list (word-causes w))])
                      (regexp-match? #rx"divid" c)))
-  (define ana
-    ;; This taxonomy is of *causes*, and being a press variant is not one. It
-    ;; says that the readings differ between copies -- which the <app> below
-    ;; already records -- and says nothing about what moved the word. Tested
-    ;; first, as it was, it swallowed every other classification: words whose
-    ;; own note read "habit: Democratie -> Democraty" or "division: first half
-    ;; of consuls," or simply "the long s" came out labelled foul case, 38 of
-    ;; them in one book and 24 in another. So the causes are asked first and
-    ;; the variant is what is left when none of them answers.
-    (cond [wanting? "#sort-wanting"]
-          [accident? "#foul-case"]
-          ;; After the errors: a shift is a fact about the case, and the word is
-          ;; otherwise faithful.
-          [shifted? "#substitution"]
-          ;; Division before misreading, and before justification. Both halves
-          ;; of a divided word carry the whole word as their copy reading, so
-          ;; every comparison against it reports a change that never happened,
-          ;; and this used to classify every hyphen in the book as a
-          ;; misreading. The reading is not corrupt; the line is short.
-          [divided? "#division"]
-          [just? "#justification"]
-          [(not (string=? (word-read w) (word-copy w))) "#misreading"]
-          ;; Stages that cancel are not a departure: the form set is the form
-          ;; read, so the word follows copy however it got there.
-          [(stages-cancel? w) (if app "#press-variant" "#copy")]
-          [(not (string=? (word-habit w) (word-read w))) "#habit"]
-          [app "#press-variant"]
-          [else "#copy"]))
+  ;; One classifier, shared with every other renderer. See `classify'.
+  (define ana (string-append "#" (classify w (and app #t))))
   (define inner
     (cond
       ;; A press variant: the readings actually differ between copies, which

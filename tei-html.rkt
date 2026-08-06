@@ -28,7 +28,8 @@
 ;;; which language does the walking.
 
 (require racket/list racket/string racket/format racket/math xml
-         racket/runtime-path racket/file)
+         racket/runtime-path racket/file
+         "vocabulary.rkt")
 
 (provide tei->html tei-file->html)
 
@@ -103,11 +104,9 @@
 ;; ana="#habit" -> the class the stylesheet knows. Division is not a
 ;; corruption and gets its own colour; copy and house-style are not departures
 ;; from the copy at all and get none.
-(define ANA-CLASS
-  (hash "#division" "dev-divided" "#misreading" "dev-misread"
-        "#foul-case" "dev-accident" "#justification" "dev-fit"
-        "#habit" "dev-habit" "#substitution" "dev-shift"
-        "#sort-wanting" "dev-wanting" "#press-variant" "dev-variant"))
+;; Built from the one table, so a category cannot exist in the file and be
+;; unknown to the page that renders it -- which is how the last four were added.
+(define ANA-CLASS (ana->class-table))
 
 ;; ---------------------------------------------------------------------------
 ;; One word
@@ -523,7 +522,7 @@
   (string-append
    "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n"
    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
-   "<title>" (esc title) "</title><style>" (file->string facsimile-css)
+   "<title>" (esc title) "</title><style>" (facsimile-stylesheet)
    "</style></head>\n<body><div class=\"wrap\">\n"
    "<h1>" (esc title) "</h1>\n"
    (if (string=? lede "") "" (format "<p class=\"lede\">~a</p>\n" (esc lede)))
@@ -537,6 +536,17 @@
 
 (define (tei-file->html path #:lede [lede ""])
   (tei->html (read-xml (open-input-string (file->string path))) #:lede lede))
+
+;; The stylesheet as it is actually served: the hand-written layout, plus the
+;; departure marks generated from the vocabulary. Both renderings use this, and
+;; the XSLT path writes it out beside its HTML rather than copying the raw file
+;; -- which would leave every departure on that page unmarked.
+(define (facsimile-stylesheet)
+  (string-append (file->string facsimile-css) "\n\n" (deviation-css) "\n"))
+
+(define (facsimile-script) (file->string facsimile-js))
+
+(provide facsimile-stylesheet facsimile-script)
 
 (module+ test
   (require rackunit racket/runtime-path "book.rkt" "tei.rkt" "imposition.rkt")

@@ -118,25 +118,15 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    It printed, so it is shown; it was wrong, so it is marked. */
 .acc { border-bottom: 1px solid rgba(140,47,22,.5); cursor: help; }
 
-/* Words that depart from the copy, coloured by the stage that moved them.
-   Faint by design: the page should read as a page first, and give up its
-   apparatus to attention rather than force it on the eye. */
+/* Words that depart from the copy are marked by the stage that moved them, and
+   those rules are NOT here: they are generated from DEVIATION-KINDS in
+   vocabulary.rkt and appended to this file wherever it is served, so that a
+   category cannot be given a name in the TEI, a class by the renderer and no
+   colour by the stylesheet. It had happened: .dev-divided sat a hundred and
+   fifty lines below its siblings and shared a colour with .dev-shift by
+   accident, and three categories added in one afternoon each needed a hand
+   edit here to become visible. */
 .w[title] { cursor: help; }
-.dev-misread  { box-shadow: inset 0 -0.10em 0 rgba(140,47,22,.30); }
-.dev-accident { box-shadow: inset 0 -0.10em 0 rgba(176,110,20,.30); }
-.dev-fit      { box-shadow: inset 0 -0.10em 0 rgba(29,85,96,.26); }
-.dev-habit    { box-shadow: inset 0 -0.10em 0 rgba(70,100,50,.26); }
-/* A box that was empty, not a box that was foul: dotted, because nothing is
-   wrong with the reading and the mark is about the shop's supply. */
-.dev-shift    { box-shadow: inset 0 -0.09em 0 rgba(120,110,95,.34); }
-/* A hole left for the proof: the forme cannot go to press like this, so it is
-   marked more strongly than anything else on the page. */
-.dev-wanting  { box-shadow: inset 0 -0.12em 0 rgba(90,20,90,.40); }
-/* The copies disagree here and nothing else explains it. */
-.dev-variant  { box-shadow: inset 0 -0.10em 0 rgba(150,120,20,.34); }
-body.plain .dev-misread, body.plain .dev-accident, body.plain .dev-shift,
-body.plain .dev-wanting, body.plain .dev-variant,
-body.plain .dev-fit, body.plain .dev-habit { box-shadow: none; }
 body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
 
 .key { display: flex; flex-wrap: wrap; gap: .35rem 1.4rem; font-size: .78rem;
@@ -282,10 +272,9 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
                letter-spacing:0; }
 
 /* A divided word is not a corrupt one: the hyphen is a fact about the line,
-   not about the reading. It gets a mark of its own so it is not read as
-   damage. */
-.dev-divided { box-shadow: inset 0 -0.10em 0 rgba(120,110,95,.35); }
-body.plain .dev-divided { box-shadow: none; }
+   not about the reading. Its mark, like the other departure marks, is
+   generated from DEVIATION-KINDS -- it used to be written out here, far from
+   its siblings, which is how it came to share their colour by accident. */
 .key .u4 { background: rgba(120,110,95,.5); }
 
 /* A blank leaf. A gathering is a whole sheet and has to be completed, so a
