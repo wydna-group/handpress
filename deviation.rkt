@@ -78,7 +78,7 @@
   (require rackunit (only-in "compositor.rkt" [word mk-word]))
   (define (w* read habit final)
     (mk-word read read habit final final final 0
-             (list "justification: -ed written out for -'d") #f '()))
+             (list "justification: -ed written out for -'d") #f '() 'picked))
   (check-true (stages-cancel? (w* "composed" "compos'd" "composed"))
               "contracted, then written out again: the page shows the copy's form")
   (check-false (stages-cancel? (w* "composed" "compos'd" "compos'd"))
@@ -96,7 +96,7 @@
   ;; `composed' and `printed' carry them: setting them apart would exercise the
   ;; foul-case branch instead of the one under test.
   (define (set-as copy printed)
-    (mk-word copy copy copy copy printed printed 0 '() #f '()))
+    (mk-word copy copy copy copy printed printed 0 '() #f '() 'picked))
   (check-regexp-match #rx"conventions of the case"
                       (word-deviation (set-as "PICTURE" "PICTVRE")))
   (check-regexp-match #rx"no capital U"

@@ -189,6 +189,40 @@ program still cannot check itself.
       The misclassification is fixed: the placeholder now has its own category
       `#sort-wanting` rather than being reported as foul case.
 
+- [ ] **A forced substitution is free in the model and was not in the shop.**
+      Found by the single-writer audit, which is the one class of defect it
+      turned up that was not already fixed. `pick-line!` owns `printed` and
+      writes it; `width` was derived from `composed` by the stage before, and
+      is not rewritten. But the substituted sorts are not the same width as
+      what they replace:
+
+      | composed | set instead | difference |
+      |---|---|---|
+      | `ﬃ` 0.85 | `f`+`ﬁ` 0.88 | +0.03 em |
+      | `ﬀ` 0.60 | `f`+`f` 0.66 | +0.06 em |
+      | `ſ` 0.30 | `s` 0.39 | +0.09 em |
+
+      So a line that took a substitution is physically wider than the measure
+      it was justified to, and `make-line`'s post-condition — a line wider than
+      the measure cannot be locked up in a chase — is bypassed, because
+      `pick-line!` reaches the line by `struct-copy` rather than through the
+      constructor.
+
+      The magnitude is small: fifteen substitutions in 1,526 lines of the
+      markdown book, at most 0.09 em on a 21-em measure, which is less than the
+      hair space the line would be re-spaced with. So the page is not visibly
+      wrong, and the present behaviour — keep the composed width, let the
+      difference vanish — is closer to the truth than recording the wider width
+      and letting the words overlap would be.
+
+      But it is silent, and what really happened is not silent: the compositor
+      who finds his ffi box empty and sets f + fi has made the line too long
+      and must take a thin out somewhere. The fix is to re-space the line after
+      picking, which is a real pass and not a one-line change, and it belongs
+      with any other work on justification. Recorded here rather than patched,
+      because a patch that updated `width` alone would make the facsimile worse
+      while looking like a fix.
+
 - [ ] **Word division breaks inside consonant clusters.** 23% of the divided
       words in Floyd break somewhere no compositor would break them —
       `Exc-epte`, `conſtr-`, `praecl-`, `ſhipp-`, `omn-`, `Ariſt-`. Moxon and

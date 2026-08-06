@@ -44,7 +44,8 @@
 (require racket/list racket/string racket/match racket/contract racket/math
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt" "rng.rkt")
 
-(provide (struct-out word) (struct-out set-line) (struct-out event)
+(provide WORD-STAGES at-stage
+         (struct-out word) (struct-out set-line) (struct-out event)
          (struct-out profile) (struct-out page-spec)
          PROFILES make-comp comp? comp-profile comp-events comp-rng comp-case
          line-set-width line-text
@@ -82,8 +83,48 @@
 ;; `pieces' records which individually identifiable types printed this word,
 ;; as (character-index . sort-piece). It is the raw material of Hinman's
 ;; method: the same piece turning up in another forme proves a shared case.
-(struct word (copy read habit final composed printed width causes italic? pieces)
+;;
+;; `stage' is how far through the setting this word has got, and it is here to
+;; make one rule checkable: **each field belongs to one stage, and no stage may
+;; write a field a later one owns.**
+;;
+;;   set     he reads the copy, misreads it or not, and sets it in his own
+;;           spelling. `copy', `read' and `habit' are settled here; `final',
+;;           `composed' and `printed' stand provisionally at the habit's form.
+;;   fitted  the measure settles the spelling: `final', `composed', `width'.
+;;   picked  the case supplies the metal: `printed', `pieces'.
+;;
+;; This is not decoration. `revise' writes `printed' back to `composed', so a
+;; revision after picking would silently undo every foul case, every forced
+;; substitution and every place held for the proof in that word. Nothing but
+;; the order of two calls in book.rkt prevented it -- and that is the same
+;; shape as the bug that turned `composed' into `compos'd' and back: two
+;; writers, one field, and a convention keeping them apart. A convention
+;; written in a comment is a hope; one the constructor checks is an invariant.
+(struct word (copy read habit final composed printed width causes italic? pieces
+              stage)
   #:transparent)
+
+(define WORD-STAGES '(set fitted picked))
+
+(define (stage-index s)
+  (or (index-of WORD-STAGES s)
+      (error 'word "unknown stage ~s; expected one of ~s" s WORD-STAGES)))
+
+;; Advance a word to `to', refusing to go backwards. `who' is the writer, named
+;; so that a violation says which stage overstepped and onto what.
+(define (at-stage wd to who)
+  (define from (word-stage wd))
+  (when (> (stage-index from) (stage-index to))
+    (error who
+           (string-append
+            "this stage may not write a word that has reached `~a'.\n"
+            "  word:      ~s\n"
+            "  its stage: ~a\n"
+            "  writing as: ~a\n"
+            "Each field of a word belongs to one stage; see the struct.")
+           from (word-copy wd) from to))
+  (struct-copy word wd [stage to]))
 
 (struct set-line
   (words spaces indent measure kind justification turned-over? quadded? italic?)
@@ -276,12 +317,16 @@
            read-word)]))
   (define composed (apply-conventions cv habit))
   (word copy-word read-word habit habit composed composed
-        (width-of-word composed) '() italic? '()))
+        (width-of-word composed) '() italic? '() 'set))
 
 ;; Purely functional: returns a new word, leaves the old one alone.
+;;
+;; The measure settling a spelling. It rewrites `printed' along with the rest,
+;; which is safe only while the case has not yet supplied any metal -- hence
+;; the stage check, and hence its being here rather than in a comment.
 (define (revise cv wd form cause)
   (define composed (apply-conventions cv form))
-  (struct-copy word wd
+  (struct-copy word (at-stage wd 'fitted 'revise)
                [final form]
                [composed composed]
                [printed composed]
@@ -981,7 +1026,10 @@
                                   #:before (string (draw-wanted d))
                                   #:after (draw-got d))))
                     (draw-got d)]))))
-      (struct-copy word w [printed printed] [pieces (reverse pieces)])))
+      ;; The case is the last hand on the word: after this, `printed' and
+      ;; `pieces' are what stood in the forme, and nothing may write them again.
+      (struct-copy word (at-stage w 'picked 'pick-line!)
+                   [printed printed] [pieces (reverse pieces)])))
   ;; And the white. A gap is metal too -- an em quad, an en, a thick, a thin --
   ;; picked from its own box like any other sort, and it can run out. Until now
   ;; the program treated the spacing as arithmetic and drew nothing for it,
@@ -1004,6 +1052,25 @@
 
 (module+ test
   (require rackunit)
+
+  ;; One property, one writer. The stages of a word are a chronology and no
+  ;; stage may write a field a later one owns -- which is checked rather than
+  ;; hoped for, because the failure is silent: `revise' rewrites `printed', so
+  ;; revising a word after the case had supplied its metal would undo every
+  ;; foul case and every forced substitution in it and leave no trace.
+  (let ()
+    (define cv* (conventions #t #t #t #t #t 1600))
+    (define w0 (word "composed" "composed" "compos'd" "compos'd"
+                     "compos'd" "compos'd" 100 '() #f '() 'set))
+    (check-equal? (word-stage (revise cv* w0 "composed" "justification: x"))
+                  'fitted
+                  "a word straight from the frame may be fitted")
+    (define picked (struct-copy word w0 [stage 'picked] [printed "cōpoſ'd"]))
+    (check-exn #rx"may not write a word that has reached"
+               (lambda () (revise cv* picked "composed" "justification: x"))
+               "but one the case has already set may not be")
+    (check-exn #rx"unknown stage"
+               (lambda () (at-stage w0 'imposed 'test))))
 
   (define cv (conventions #t #t #t #t #t 1600))
   (define (fresh [name "B"] [seed 1623])
