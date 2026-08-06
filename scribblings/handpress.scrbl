@@ -22,22 +22,32 @@ recover from the printed page what the record says actually happened.
 @margin-note{Scribble is itself a typesetting system, which makes documenting
 a typesetting simulation in it a small pleasure.}
 
-The modules, in dependency order:
-@racketmodname[handpress/metrics],
-@racketmodname[handpress/typecase],
-@racketmodname[handpress/orthography],
-@racketmodname[handpress/copytext],
-@racketmodname[handpress/corrector],
-@racketmodname[handpress/compositor],
-@racketmodname[handpress/imposition],
-@racketmodname[handpress/book],
-@racketmodname[handpress/press],
-@racketmodname[handpress/render],
-@racketmodname[handpress/description],
-@racketmodname[handpress/tei],
-@racketmodname[handpress/analysis],
-@racketmodname[handpress/validate],
-@racketmodname[handpress/reconstruct].
+The modules, in dependency order. They are declared here rather than merely
+named, because @racket[declare-exporting] attaches bindings to a module without
+defining the module itself — so every module link in this manual dangled, and
+@tt{raco setup} had been saying so.
+
+@defmodule*/no-declare[(handpress/metrics
+                        handpress/paper
+                        handpress/typecase
+                        handpress/orthography
+                        handpress/copytext
+                        handpress/corrector
+                        handpress/compositor
+                        handpress/imposition
+                        handpress/prelims
+                        handpress/titlepage
+                        handpress/book
+                        handpress/press
+                        handpress/cancels
+                        handpress/binding
+                        handpress/render
+                        handpress/description
+                        handpress/tei
+                        handpress/analysis
+                        handpress/validate
+                        handpress/lexicon
+                        handpress/reconstruct)]
 
 @table-of-contents[]
 

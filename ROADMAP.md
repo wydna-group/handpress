@@ -260,6 +260,14 @@ the comma box belongs to the house), and **space-metal shared the same way**
 - [ ] **Two-pull press.** A folio forme needed two pulls; the timing model will
       need it when there is a clock.
 
+- [ ] **Thirty-two bindings the manual mentions but does not document.**
+      `raco setup --check-pkg-deps` names them: `make-house`, `book?`,
+      `PRELIM-SCHEMES`, `page-spec?`, `page-evidence?` and the rest. Each renders
+      as plain code instead of a link, because there is no `defproc` or
+      `defstruct` to link to. Not a blocker — the package builds clean — but it
+      is the difference between a manual and a reference, and the list is
+      already written for us.
+
 ---
 
 ## 6. Widen the calibration base
