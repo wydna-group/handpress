@@ -16,6 +16,21 @@ the opposite: same text, same seed, and the shop moved. Open
 | `xml` | 1614, from the TCP original | `4°: a⁴ A–O⁴` |
 | `late` | **1670**, the same copy, after the conventions had gone | `4°: a⁴ A–O⁴` |
 
+## The four views
+
+The page is no longer one scroll. Along the top:
+
+| | |
+|---|---|
+| **The book** | the leaves, with a map of the whole run above them — one tick per page, darker where the page was harder to fill. Click any tick to go there. |
+| **The make-up** | every gathering drawn as its sheet folds, with the conjugate pairs arced together, and the Bowers description under it. Hover a leaf to light its conjugate; a cancelled leaf is dashed and red. |
+| **The evidence** | what the run came to — the counts, with the rates as bars so they can be compared at a glance. This was a table at the very bottom of the scroll before, which is to say nobody found it. |
+| **The copies** | the eight made-up copies, how each was sewn, and what the binder got wrong. |
+
+Under **The book** the legend is now a filter: click any kind of departure to
+hide it. Ten kinds marked at once is an apparatus nobody can read, and it is
+the one complaint about a printed apparatus that a screen can actually fix.
+
 ## What to look at
 
 **The capitals.** `xml` and `late` are the same text set sixty years apart, and

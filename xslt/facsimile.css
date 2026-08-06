@@ -308,3 +308,157 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 .tag .leafnote {
   border-bottom: 1px dotted currentColor; cursor: help; letter-spacing: .06em;
 }
+
+/* ===================================================================== *
+ * The shell
+ * =====================================================================
+ * The page used to be one scroll: title, description, key, then sixty
+ * leaves, then a table of counts at the very bottom where nobody found it.
+ * Everything the file knows was in there and almost none of it reachable.
+ *
+ * So there are four views now, and a masthead that stays put. What goes in
+ * each is decided by what a reader actually asks of a book: what does it say
+ * (the book), how is it put together (the make-up), what did the run come to
+ * (the evidence), and how do the copies differ (the copies).
+ */
+
+.masthead {
+  position: sticky; top: 0; z-index: 40;
+  background: rgba(233,227,214,.94);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(60,45,25,.18);
+  padding: .55rem clamp(1rem, 4vw, 3rem) .3rem;
+}
+.masthead .mh { max-width: 62rem; margin: 0 auto; }
+.masthead h1 { font-size: clamp(1rem, 2.4vw, 1.35rem); margin: 0;
+               letter-spacing: .09em; }
+.masthead .lede { margin: .15rem 0 .35rem; font-size: .78rem; opacity: .72;
+                  max-width: 54rem; }
+
+.views { display: flex; gap: .2rem; max-width: 62rem;
+         margin: 0 auto; flex-wrap: wrap; }
+.views button {
+  font: inherit; font-size: .78rem; letter-spacing: .04em;
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: .35rem .7rem; cursor: pointer; color: inherit; opacity: .6;
+}
+.views button:hover { opacity: .95; }
+.views button.on { opacity: 1; border-bottom-color: rgba(120,60,20,.75);
+                   font-weight: 600; }
+
+.view { display: none; }
+.view.on { display: block; }
+.view h2 { font-size: 1rem; letter-spacing: .1em; text-transform: uppercase;
+           opacity: .75; margin: 2rem 0 1rem; font-weight: 600; }
+
+/* ---- the map: one tick per page -------------------------------------
+ * Manicule's idea, of a colour-coded bar giving a bird's-eye view of the
+ * whole book by page category. The tick's darkness is how hard the page was
+ * to fill, which is the one per-page number that varies interestingly across
+ * a book and had nowhere to be shown.
+ */
+.mapbar { position: sticky; top: 4.6rem; z-index: 30;
+          background: rgba(233,227,214,.9); backdrop-filter: blur(4px);
+          padding: .5rem 0 .3rem; margin: 0 0 1.4rem; }
+.maprow { display: flex; gap: 1px; align-items: stretch; height: 26px;
+          overflow-x: auto; padding-bottom: 2px; }
+.tick { flex: 1 1 3px; min-width: 3px; border-radius: 1px;
+        background: rgba(90,70,45, calc(.18 + var(--p) * .62));
+        transition: transform .12s, background .12s; }
+.tick.prelim { box-shadow: inset 0 3px 0 rgba(150,110,60,.85); }
+.tick:hover { background: rgba(120,60,20,.95); transform: scaleY(1.18); }
+.tick.here  { background: rgba(29,85,96,.95); }
+.maplegend { font-size: .68rem; opacity: .55; padding-top: .25rem; }
+
+.leaf.found { outline: 2px solid rgba(29,85,96,.6); outline-offset: 5px; }
+
+/* ---- filters --------------------------------------------------------- */
+
+.filters { align-items: center; }
+.filters .hint { opacity: .6; font-size: .7rem; }
+.filter { display: inline-flex; align-items: center; gap: .3rem;
+          cursor: pointer; padding: .12rem .45rem; border-radius: 999px;
+          border: 1px solid transparent; user-select: none; }
+.filter:hover { border-color: rgba(60,45,25,.22); }
+.filter input { position: absolute; opacity: 0; width: 0; height: 0; }
+.filter:not(.on) { opacity: .38; text-decoration: line-through; }
+.filter.empty { opacity: .3; }
+.filter .cnt { font-variant-numeric: tabular-nums; font-size: .68rem;
+               opacity: .6; min-width: 2.2em; text-align: right; }
+
+/* ---- the quire diagram -----------------------------------------------
+ * What VisColl draws for manuscripts, and worth more here, because this
+ * program knows which leaves are conjugate instead of having to infer it.
+ */
+.quires { display: flex; flex-wrap: wrap; gap: 1.6rem; margin: 1rem 0 1.4rem; }
+.quire { margin: 0; }
+.quire figcaption { font-size: .78rem; letter-spacing: .08em; opacity: .8;
+                    display: flex; gap: .5rem; align-items: baseline;
+                    margin-bottom: .4rem; }
+.quire figcaption span { font-size: .66rem; opacity: .55; }
+.fold-diagram { overflow: visible; }
+.fold-diagram .arc { fill: none; stroke: rgba(60,45,25,.34); stroke-width: 1.1; }
+.fold-diagram text { font-size: 9px; fill: rgba(40,30,15,.6);
+                     text-anchor: end; font-family: inherit;
+                     font-variant-numeric: tabular-nums; }
+.fold-diagram line { stroke: rgba(60,45,25,.42); stroke-width: 1.6;
+                     stroke-linecap: round; }
+.fold-diagram .fold { cursor: help; }
+.fold-diagram .fold:hover line, .fold-diagram .fold.lit line {
+  stroke: rgba(29,85,96,.95); stroke-width: 2.6; }
+.fold-diagram .fold:hover text, .fold-diagram .fold.lit text {
+  fill: rgba(29,85,96,.95); }
+.fold-diagram .fold.marked line { stroke: rgba(140,47,22,.8);
+                                  stroke-dasharray: 3 2.5; }
+.fold-diagram .fold.marked text { fill: rgba(140,47,22,.9); font-weight: 600; }
+
+/* ---- the copies ------------------------------------------------------ */
+
+.wits { border-collapse: collapse; font-size: .8rem; margin: 1rem 0; }
+.wits th, .wits td { text-align: left; padding: .35rem .8rem;
+                     border-bottom: 1px solid rgba(60,45,25,.12);
+                     vertical-align: top; }
+.wits thead th { font-size: .68rem; letter-spacing: .09em; opacity: .6;
+                 text-transform: uppercase; font-weight: 600; }
+.wits .sew { font-variant-numeric: tabular-nums; letter-spacing: .08em;
+             opacity: .8; }
+.wits .ok { opacity: .4; }
+.fault { display: inline-block; padding: .05rem .45rem; border-radius: 999px;
+         background: rgba(140,47,22,.16); cursor: help; margin-right: .25rem; }
+.fault.caught { background: rgba(70,100,50,.16); }
+
+/* ---- the counts ------------------------------------------------------
+ * A rate is a comparison, and a column of numbers does not compare. The bar
+ * does, and costs nothing but a width.
+ */
+.stats .extent { font-size: .85rem; opacity: .8; }
+.counts { border-collapse: collapse; font-size: .8rem; width: 100%;
+          max-width: 46rem; }
+.counts th, .counts td { padding: .3rem .7rem; text-align: left;
+                         border-bottom: 1px solid rgba(60,45,25,.1); }
+.counts thead th { font-size: .66rem; letter-spacing: .09em; opacity: .55;
+                   text-transform: uppercase; font-weight: 600; }
+.counts tbody th { font-weight: 400; }
+.counts tbody th i { display: inline-block; width: .55rem; height: .55rem;
+                     border-radius: 1px; margin-right: .45rem; }
+.counts td { font-variant-numeric: tabular-nums; }
+.counts tr.na td, .counts tr.na th { opacity: .45; }
+.counts .barh { width: 40%; }
+.counts .bar span { display: block; height: .5rem; border-radius: 2px;
+                    width: var(--w); min-width: 1px;
+                    background: rgba(90,70,45,.4); }
+
+/* The bar wears its category's own colour, so the table and the book agree. */
+.counts .bar span.dev-misread  { background: rgba(140,47,22,.55); }
+.counts .bar span.dev-accident { background: rgba(176,110,20,.55); }
+.counts .bar span.dev-fit      { background: rgba(29,85,96,.5); }
+.counts .bar span.dev-habit    { background: rgba(70,100,50,.5); }
+.counts .bar span.dev-divided  { background: rgba(120,110,95,.6); }
+.counts .bar span.dev-shift    { background: rgba(150,140,120,.7); }
+.counts .bar span.dev-wanting  { background: rgba(90,20,90,.6); }
+.counts .bar span.dev-variant  { background: rgba(150,120,20,.6); }
+
+@media (max-width: 700px) {
+  .quires { gap: 1rem; }
+  .counts .barh, .counts .bar { display: none; }
+}

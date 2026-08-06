@@ -131,7 +131,18 @@
                   (string-join
                    (for/list ([k (in-list marked)])
                      (format ".~a" (deviation-kind-class k)))
-                   ", body.plain "))))
+                   ", body.plain ")))
+    ;; One switch per kind, so a reader can take the apparatus down to the one
+    ;; thing being looked for. Ten kinds marked at once is an apparatus nobody
+    ;; can read, and it is the complaint every printed apparatus attracts; a
+    ;; screen can simply turn them off, which is what the LDLT viewer calls
+    ;; filtering the types of variant reading. Generated here with everything
+    ;; else, or a kind added later would appear in the filter list and refuse
+    ;; to switch.
+    (list "")
+    (for/list ([k (in-list marked)])
+      (format "body.hide-~a .~a { box-shadow: none; }"
+              (deviation-kind-class k) (deviation-kind-class k))))
    "\n"))
 
 (module+ test
