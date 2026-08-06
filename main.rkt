@@ -104,7 +104,10 @@
                        ;; scribal signs fall away by a factor of fifteen across
                        ;; the period this program covers, so a rate that is
                        ;; right for 1585 is fifteen times wrong for 1635.
-                       #:year [year 1600]
+                       ;; #f, not 1600: the default has to be distinguishable
+                       ;; from a year the operator actually chose, or the
+                       ;; document's date cannot know whether to defer to it.
+                       #:year [year #f]
                        #:html? [html? #f]
                        #:tei? [tei? #f]
                        #:xslt? [xslt? #f]
@@ -132,12 +135,24 @@
   (define (from-meta key given)
     (or given (let ([v (hash-ref meta key #f)])
                 (and v (not (string=? (string-trim v) "")) (string-trim v)))))
-  (define year*
-    (or (let ([d (from-meta 'year #f)]) (and d (string->number d)))
-        (let ([d (from-meta 'date #f)])
-          (and d (let ([m (regexp-match #px"1[4-9][0-9][0-9]|20[0-9][0-9]" d)])
-                   (and m (string->number (car m))))))
-        year))
+  ;; What the operator said beats what the document says, and the document
+  ;; beats the default. It was the other way round -- the document first, the
+  ;; flag last -- so `--year' silently did nothing for any input that carried a
+  ;; date, which is every TEI file, every .docx and every PDF. A flag that is
+  ;; ignored whenever the interesting case arises is worse than no flag.
+  ;;
+  ;; The years are also sanity-checked. A date after the hand press is a date
+  ;; read out of the wrong element, and printing a 1614 book with the
+  ;; conventions of 2007 is not a thing to do quietly.
+  (define (plausible-year n)
+    (and n (<= 1450 n 1830) n))
+  (define doc-year
+    (or (plausible-year (let ([d (from-meta 'year #f)]) (and d (string->number d))))
+        (plausible-year
+         (let ([d (from-meta 'date #f)])
+           (and d (let ([m (regexp-match #px"1[45678][0-9][0-9]" d)])
+                    (and m (string->number (car m)))))))))
+  (define year* (or year doc-year 1600))
   (define names (map string-trim (string-split comps ",")))
   (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t scribal? year*))
   (define h (make-house #:fmt (hash-ref FORMATS fmt-name)
@@ -277,7 +292,7 @@
   (define modern-uv? #f)
   (define modern-spelling? #f)
   (define scribal? #t)
-  (define year 1600)
+  (define year #f)          ; #f until --year says otherwise; see year* above
   (define html? #f)
   (define tei? #f)
   (define xslt? #f)

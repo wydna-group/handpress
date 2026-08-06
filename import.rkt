@@ -371,6 +371,28 @@
   (define m (regexp-match-positions rx s))
   (and m (caar m)))
 
+;; The date of the *book*, not of the file about the book.
+;;
+;; Taking the first <date> in a TEI document is wrong in exactly the case that
+;; matters most here. A TEI header describes two things: the electronic text
+;; and the source it was made from. Its <fileDesc><publicationStmt><date> is
+;; when the transcription was published, and in every EEBO-TCP file that is the
+;; first date in the document -- "2007-01 (EEBO-TCP Phase 1)". The book's own
+;; date is in <sourceDesc>, further down: "M. D. C. XIV [1614]".
+;;
+;; So every book set from a TCP file was being printed in 2007. The damage was
+;; silent and total: the conventions are dated, so with year 2007 the capital U
+;; was kept where a fount of 1614 had none, the tilde fell to the floor rate of
+;; the 1630s, and `--year' appeared to do nothing at all because the document
+;; always overruled it. It also explains a discrepancy noted three sessions ago
+;; and wrongly put down to clustering -- 0.22 scribal marks per thousand words
+;; in the TEI book against 1.80 in the same text read from markdown.
+;;
+;; <sourceDesc> is searched first, and the file's own publication date is used
+;; only if the source description has no date of its own.
+(define SOURCE-DESC-RX
+  #px"(?i:<sourceDesc\\b)(?:.*?)(?i:<date[^>]*>)(.*?)</(?i:date)>")
+
 (define (tei-metadata text)
   (define (grab rx key h)
     (define m (regexp-match rx text))
@@ -381,7 +403,9 @@
          [h (grab #px"(?i:<title[^>]*>)(.*?)</(?i:title)>" 'title h)]
          [h (grab #px"(?i:<author[^>]*>)(.*?)</(?i:author)>" 'author h)]
          [h (grab #px"(?i:<publisher[^>]*>)(.*?)</(?i:publisher)>" 'publisher h)]
-         [h (grab #px"(?i:<date[^>]*>)(.*?)</(?i:date)>" 'date h)])
+         [h (grab SOURCE-DESC-RX 'date h)]
+         [h (if (hash-has-key? h 'date) h
+                (grab #px"(?i:<date[^>]*>)(.*?)</(?i:date)>" 'date h))])
     h))
 
 (define (clean-blanks s)
@@ -709,6 +733,30 @@
       "# The Second Booke\n\nAnd so it ended.\n")))
   (check-equal? (hash-ref (source-metadata md) 'title) "A Booke")
   (check-equal? (hash-ref (source-metadata md) 'date) "1622")
+
+  ;; The date of the book, not the date of the transcription. Every EEBO-TCP
+  ;; file puts its own publication date first, and taking that one printed
+  ;; every book from the corpus with the conventions of 2007.
+  (let ()
+    (define tcp
+      (string-append
+       "<TEI><teiHeader><fileDesc><titleStmt><title>A Manual</title></titleStmt>"
+       "<publicationStmt><date>2007-01 (EEBO-TCP Phase 1).</date></publicationStmt>"
+       "<sourceDesc><biblFull><publicationStmt>"
+       "<date>M. D. C. XIV [1614]</date>"
+       "</publicationStmt></biblFull></sourceDesc>"
+       "</fileDesc></teiHeader><text><body><p>Some copy to set.</p></body></text></TEI>"))
+    (define s (tei->source tcp))
+    (check-equal? (hash-ref (source-metadata s) 'date) "M. D. C. XIV [1614]"
+                  "the source's date, not the file's"))
+  ;; and a file with only its own date still yields it
+  (let ()
+    (define plain
+      (string-append
+       "<TEI><teiHeader><fileDesc><titleStmt><title>X</title></titleStmt>"
+       "<publicationStmt><date>1650</date></publicationStmt></fileDesc></teiHeader>"
+       "<text><body><p>Copy.</p></body></text></TEI>"))
+    (check-equal? (hash-ref (source-metadata (tei->source plain)) 'date) "1650"))
   (check-true (regexp-match? #px"# \\[dedication\\]" (source-text md)))
   (check-true (regexp-match? #px"# \\[preface\\] Preface" (source-text md)))
   ;; and an ordinary heading is left undeclared

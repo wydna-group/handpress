@@ -20,6 +20,9 @@ out-chk/
 sources/
 *.pdf
 
-# Generated review outputs: regenerate rather than commit
+# Generated review outputs: regenerate rather than commit. The sources are
+# derived from the corpus, which is not ours to publish either.
 review/*/
 review/floyd.*
+review-manual/*/
+review-manual/manual.*
