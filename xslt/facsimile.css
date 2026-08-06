@@ -1,8 +1,83 @@
-:root { color-scheme: light dark; }
+/* ---------------------------------------------------------------------------
+   The palette.
+
+   Every colour that differs between the two themes is named here and nowhere
+   else; the rules below reference the names and carry no literal that a
+   dark-mode override would have to chase.
+
+   That is not tidiness. The first version of this stylesheet gave `body' and
+   `.leaf' a dark override and stopped there, so on a dark-mode machine the
+   canvas went black and the body text went light while the masthead kept its
+   parchment background -- title, lede and all four tabs at 1.03:1 against
+   their own bar, which is to say invisible, and the quire diagrams drawn in
+   dark line-work on a dark ground. A per-rule override is a list you can fall
+   off the end of, and we fell off it in the same commit that added the bar.
+
+   Both values sit on one line, so the light and the dark are decided in one
+   place and cannot drift apart. The bare declaration above each light-dark()
+   is the fallback a browser too old for it keeps: such a browser gets the
+   light palette entire, rather than a page with no colours at all.
+   --------------------------------------------------------------------------- */
+:root {
+  color-scheme: light dark;
+
+  /* The two grounds: the desk the book lies on, and the paper itself. The
+     leaf keeps a paper colour in both themes -- a printed page is not a light
+     source, and inverting it would be a picture of nothing that ever existed.
+     Dark mode only takes it off the white so it does not glare. */
+  --canvas:    #d9d2c3;
+  --canvas:    light-dark(#d9d2c3, #17140f);
+  --ink:       #1a150e;
+  --ink:       light-dark(#1a150e, #e8e0d0);
+  --paper:     #efe8d7;
+  --paper:     light-dark(#efe8d7, #e6dcc6);
+  --paper-ink: #241c12;
+
+  /* The furniture that floats above the canvas. */
+  --surface:      rgba(233,227,214,.94);
+  --surface:      light-dark(rgba(233,227,214,.94), rgba(34,29,22,.94));
+  --surface-soft: rgba(233,227,214,.90);
+  --surface-soft: light-dark(rgba(233,227,214,.90), rgba(34,29,22,.90));
+  --panel:        rgba(255,252,244,.35);
+  --panel:        light-dark(rgba(255,252,244,.35), rgba(232,224,208,.05));
+  --rule:         rgba(60,45,25,.18);
+  --rule:         light-dark(rgba(60,45,25,.18), rgba(232,224,208,.22));
+  --rule-soft:    rgba(60,45,25,.12);
+  --rule-soft:    light-dark(rgba(60,45,25,.12), rgba(232,224,208,.14));
+
+  /* Captions sit off the leaf, on the canvas, and so take canvas ink and not
+     the leaf's. In light mode the two happen to be the same colour, which is
+     why the difference went unnoticed until the canvas turned. */
+  --tag-ink:   #241c12;
+  --tag-ink:   light-dark(#241c12, #cdc3ae);
+  --tag-crowd: #8c2f16;
+  --tag-crowd: light-dark(#8c2f16, #e08a6a);
+  --tag-gape:  #1d5560;
+  --tag-gape:  light-dark(#1d5560, #79b3c0);
+  --recto:     #1d5560;
+  --recto:     light-dark(#1d5560, #79b3c0);
+  --verso:     #7a5a1e;
+  --verso:     light-dark(#7a5a1e, #cfa55e);
+
+  /* The quire diagram is line-work, and line-work has to invert with the
+     ground or it is not there at all. */
+  --dia-line: rgba(60,45,25,.58);
+  --dia-line: light-dark(rgba(60,45,25,.58), rgba(226,216,196,.58));
+  --dia-arc:  rgba(60,45,25,.46);
+  --dia-arc:  light-dark(rgba(60,45,25,.46), rgba(226,216,196,.46));
+  --dia-text: rgba(40,30,15,.74);
+  --dia-text: light-dark(rgba(40,30,15,.74), rgba(226,216,196,.78));
+}
+
+/* A toggle overrules the machine's preference by changing what light-dark()
+   resolves to, so it needs no second copy of the palette. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+
 * { box-sizing: border-box; }
 body {
   margin: 0; padding: 2.5rem 1.25rem 5rem;
-  background: #d9d2c3;
+  background: var(--canvas);
   /* An old-face roman is narrow. Georgia and Palatino are not, and a wide
      face on this body makes the words collide, because the positions come
      from the simulation and only the glyphs come from the font. Times-like
@@ -10,11 +85,8 @@ body {
      in metrics.rkt. */
   font-family: "Times New Roman", Times, "Liberation Serif", "Nimbus Roman",
                ui-serif, Georgia, serif;
-  color: #1a150e;
+  color: var(--ink);
 }
-@media (prefers-color-scheme: dark) { body { background: #17140f; color: #e8e0d0; } }
-:root[data-theme="dark"] body { background: #17140f; color: #e8e0d0; }
-:root[data-theme="light"] body { background: #d9d2c3; color: #1a150e; }
 .wrap { max-width: 62rem; margin: 0 auto; }
 h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
      text-transform: uppercase; margin: 0 0 .35rem; }
@@ -22,7 +94,7 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
         line-height: 1.55; }
 .leaf {
   position: relative; margin: 0 auto 3rem; padding: 3.2em 3.4em 2.6em;
-  background: #efe8d7;
+  background: var(--paper);
   box-shadow: 0 1px 2px rgba(0,0,0,.28), 0 14px 34px rgba(0,0,0,.22);
   border-radius: 1px;
   background-image:
@@ -31,9 +103,7 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
     repeating-linear-gradient(0deg, rgba(120,105,80,.035) 0 1px,
                               transparent 1px 34px);
 }
-@media (prefers-color-scheme: dark) { .leaf { background: #e6dcc6; } }
-:root[data-theme="dark"] .leaf { background: #e6dcc6; }
-.leaf, .leaf * { color: #241c12; }
+.leaf, .leaf * { color: var(--paper-ink); }
 /* --grid is one em of the type body, in pixels. Every position the
    simulation computed is expressed as a multiple of it, so the layout is the
    compositor's arithmetic and not the browser's.
@@ -58,22 +128,42 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    and would also widen every other gap away from the thick space it is meant
    to be, which is the wrong trade: the collisions are one pair in 1,250 and
    the spacing is the whole point of the exercise. Left as measured. */
-.plate { --grid: 16px; --fit: 1.00; --lead: 1.44; font-size: var(--grid); }
+/* One millimetre, in pixels. A pica em is 4.2175 mm and is drawn --grid wide,
+   so this is the single scale at which the whole book is reproduced: change
+   --grid and the type, the leaf and the margins all move together, because
+   they are all measured in the same millimetres.
 
-/* Every leaf is the same size, because every leaf of a book is. The width is
-   the type page plus the margins the period actually left; the height is the
-   full measure of lines whether or not this page filled them, so a spun-out
-   page shows as white at the foot rather than as a shorter piece of paper.
+   --lead is 1.00 because the description says the type is set solid, and set
+   solid means the line pitch *is* the body. It used to be 1.44, a screen
+   line-height with nothing behind it, which inflated the type page by 44% and
+   was most of why a quarto leaf came out at 1.99 tall to wide. */
+:root { --grid: 16px; --mm: calc(var(--grid) / 4.2175); }
+.plate { --fit: 1.00; --lead: 1.00; font-size: var(--grid); }
 
-   The proportions are the book's, not the screen's: a hand-press page carries
-   a narrow inner margin and a generous outer and lower one, the text sitting
-   high and towards the gutter. */
+/* Every leaf is the same size, because every leaf of a book is -- and that
+   size comes from the sheet and the folding, which is what the file records.
+   The height is the full measure of lines whether or not this page filled
+   them, so a spun-out page shows as white at the foot rather than as a
+   shorter piece of paper.
+
+   The fallbacks are a foolscap quarto, which is what an unrecorded book is
+   most likely to have been (Gaskell, p. 68); they apply only to a file written
+   before the leaf was in it. */
 .leaf {
-  width: calc(var(--grid) * ((var(--m) * var(--cols)) + (2.2 * (var(--cols) - 1)) + 11));
-  height: calc(var(--grid) * var(--lead) * var(--lines) + var(--grid) * 9);
+  width:  calc(var(--leaf-w, 160) * var(--mm));
+  height: calc(var(--leaf-h, 210) * var(--mm));
   box-sizing: border-box;
-  padding: 3.4em 4.6em 4.2em 3.4em;
+  padding: calc(var(--mh, 17) * var(--mm)) calc(var(--mo, 48) * var(--mm))
+           calc(var(--mt, 33) * var(--mm)) calc(var(--mi, 24) * var(--mm));
   display: flex; flex-direction: column;
+}
+/* The spine is on a recto's left and a verso's right, so the narrow margin
+   changes sides and the two pages of an opening lean towards each other. A
+   book whose inner margin sat on the same side of every leaf would be a book
+   nobody could bind. */
+.leaf.verso {
+  padding-left:  calc(var(--mo, 48) * var(--mm));
+  padding-right: calc(var(--mi, 24) * var(--mm));
 }
 .headline { display: flex; align-items: baseline; justify-content: space-between;
             gap: 1em; margin-bottom: .5em; }
@@ -86,10 +176,21 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    shown as it stands and says on hover what it should have been. */
 .pageno.wrong { border-bottom: 1px dotted rgba(140,47,22,.55); cursor: help; }
 .rule { border-bottom: 1px solid rgba(40,28,14,.5); margin-bottom: 1.1em; }
-.cols { display: flex; gap: 2.2em; align-items: flex-start; flex: 1;
-        min-height: calc(var(--grid) * var(--lead) * var(--lines)); }
-.col { position: relative; width: calc(var(--grid) * var(--m)); }
-.tline { position: relative; height: calc(var(--grid) * 1.44);
+/* --lines is the lines on the *page*, which is what a bibliographer counts and
+   what the description reports: a two-column folio of 66-line columns has 132.
+   The depth of the type is therefore --lines divided among the columns, not
+   --lines itself. Both sides of this used to take the page count, so a folio
+   reserved 2112px for two 1056px columns; the leaf was computed from the same
+   inflated figure, which is how it went unnoticed until the paper began to
+   decide the size instead. */
+.cols { display: flex; gap: calc(var(--grid) * var(--gut, 2.2));
+        align-items: flex-start; flex: 1;
+        min-height: calc(var(--grid) * var(--lead) * (var(--lines) / var(--cols))); }
+/* The column is exactly the measure, and must not be allowed to shrink to fit:
+   every word in it is positioned at an absolute offset the compositor
+   computed, so a squeezed column does not reflow, it clips. */
+.col { position: relative; flex: none; width: calc(var(--grid) * var(--m)); }
+.tline { position: relative; height: calc(var(--grid) * var(--lead));
          white-space: nowrap; }
 .w { position: absolute; top: 0; white-space: pre;
      left: calc(var(--grid) * var(--x));
@@ -225,8 +326,15 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
        letter-spacing: .11em; text-transform: uppercase; opacity: .66;
        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.crowd { color: #8c2f16; }
-.gape  { color: #1d5560; }
+/* The tag is a child of the leaf but painted above it, clear of the paper, so
+   it takes canvas ink. Left to `.leaf *' it takes the paper's instead, which
+   in light mode is the same colour by coincidence and in dark mode is a dark
+   word on a dark desk. */
+.leaf .tag, .leaf .tag * { color: var(--tag-ink); }
+.leaf .tag.crowd { color: var(--tag-crowd); }
+.leaf .tag.gape  { color: var(--tag-gape); }
+.crowd { color: var(--tag-crowd); }
+.gape  { color: var(--tag-gape); }
 table { border-collapse: collapse; width: 100%; font-size: .86rem;
         margin: 0 0 2rem; }
 th, td { text-align: left; padding: .4rem .6rem; vertical-align: top;
@@ -240,7 +348,7 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 .scroll { overflow-x: auto; }
 .desc { margin: 0 0 3rem; padding: 1.4rem 1.6rem; max-width: 62rem;
         border: 1px solid rgba(120,105,80,.45); border-radius: 2px;
-        background: rgba(255,252,244,.35); }
+        background: var(--panel); }
 .desc h2 { margin-top: 0; }
 .desc pre { margin: 0; white-space: pre-wrap; font-size: .8rem;
             line-height: 1.5; font-family: ui-monospace, Menlo, monospace; }
@@ -257,8 +365,7 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 .spread { display:flex; gap:1.6rem; justify-content:center; align-items:flex-start;
           margin:0 auto 3.2rem; flex-wrap:wrap; }
 .spread .side { display:flex; flex-direction:column; }
-.spread .leaf { margin:0;
-                min-height:calc(var(--grid) * (1.44 * var(--lines) + 11)); }
+.spread .leaf { margin:0; min-height:calc(var(--leaf-h, 210) * var(--mm)); }
 .leaf.absent { background:none; box-shadow:none;
                border:1px dashed rgba(120,105,80,.35);
                min-width:calc(var(--grid) * 26); }
@@ -266,8 +373,8 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
          letter-spacing:.1em; text-transform:uppercase; opacity:.75;
          font-family:ui-monospace,Menlo,monospace; }
 .folio .sig { font-weight:600; opacity:.95; }
-.folio .rv.recto { color:#1d5560; }
-.folio .rv.verso { color:#7a5a1e; }
+.folio .rv.recto { color:var(--recto); }
+.folio .rv.verso { color:var(--verso); }
 .folio.empty { opacity:.4; font-style:italic; text-transform:none;
                letter-spacing:0; }
 
@@ -324,9 +431,9 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 
 .masthead {
   position: sticky; top: 0; z-index: 40;
-  background: rgba(233,227,214,.94);
+  background: var(--surface);
   backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(60,45,25,.18);
+  border-bottom: 1px solid var(--rule);
   padding: .55rem clamp(1rem, 4vw, 3rem) .3rem;
 }
 .masthead .mh { max-width: 62rem; margin: 0 auto; }
@@ -358,7 +465,7 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
  * a book and had nowhere to be shown.
  */
 .mapbar { position: sticky; top: 4.6rem; z-index: 30;
-          background: rgba(233,227,214,.9); backdrop-filter: blur(4px);
+          background: var(--surface-soft); backdrop-filter: blur(4px);
           padding: .5rem 0 .3rem; margin: 0 0 1.4rem; }
 .maprow { display: flex; gap: 1px; align-items: stretch; height: 26px;
           overflow-x: auto; padding-bottom: 2px; }
@@ -379,7 +486,7 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 .filter { display: inline-flex; align-items: center; gap: .3rem;
           cursor: pointer; padding: .12rem .45rem; border-radius: 999px;
           border: 1px solid transparent; user-select: none; }
-.filter:hover { border-color: rgba(60,45,25,.22); }
+.filter:hover { border-color: var(--rule); }
 .filter input { position: absolute; opacity: 0; width: 0; height: 0; }
 .filter:not(.on) { opacity: .38; text-decoration: line-through; }
 .filter.empty { opacity: .3; }
@@ -397,11 +504,11 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
                     margin-bottom: .4rem; }
 .quire figcaption span { font-size: .66rem; opacity: .55; }
 .fold-diagram { overflow: visible; }
-.fold-diagram .arc { fill: none; stroke: rgba(60,45,25,.34); stroke-width: 1.1; }
-.fold-diagram text { font-size: 9px; fill: rgba(40,30,15,.6);
+.fold-diagram .arc { fill: none; stroke: var(--dia-arc); stroke-width: 1.1; }
+.fold-diagram text { font-size: 9px; fill: var(--dia-text);
                      text-anchor: end; font-family: inherit;
                      font-variant-numeric: tabular-nums; }
-.fold-diagram line { stroke: rgba(60,45,25,.42); stroke-width: 1.6;
+.fold-diagram line { stroke: var(--dia-line); stroke-width: 1.6;
                      stroke-linecap: round; }
 .fold-diagram .fold { cursor: help; }
 .fold-diagram .fold:hover line, .fold-diagram .fold.lit line {
@@ -416,7 +523,7 @@ h2 { font-size: .78rem; letter-spacing: .13em; text-transform: uppercase;
 
 .wits { border-collapse: collapse; font-size: .8rem; margin: 1rem 0; }
 .wits th, .wits td { text-align: left; padding: .35rem .8rem;
-                     border-bottom: 1px solid rgba(60,45,25,.12);
+                     border-bottom: 1px solid var(--rule-soft);
                      vertical-align: top; }
 .wits thead th { font-size: .68rem; letter-spacing: .09em; opacity: .6;
                  text-transform: uppercase; font-weight: 600; }

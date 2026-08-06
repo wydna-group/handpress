@@ -122,15 +122,21 @@
 
 ;; NB: not named `format' -- that is Racket's string formatter, and shadowing
 ;; it in a module this full of report text would be a slow-burning disaster.
-(struct book-format (name symbol leaves sheets columns measure-ems lines)
+;; `folds' is how many times the sheet is folded, and it is the one thing that
+;; decides the size of a leaf. It is not the same as leaves per gathering and
+;; must not be derived from it: folio in sixes is a *folio*, one fold, three
+;; such sheets quired one inside another, so it has six leaves to the gathering
+;; and the same leaf size as a plain folio. Deriving folds from leaves would
+;; make it an octavo, which it emphatically is not. See paper.rkt.
+(struct book-format (name symbol leaves sheets columns measure-ems lines folds)
   #:transparent)
 
 (define (book-format-pages f) (* 2 (book-format-leaves f)))
 
-(define FOLIO-IN-SIXES (book-format "folio in sixes" "2°" 6 3 2 16.0 66))
-(define FOLIO          (book-format "folio"          "2°" 2 1 2 16.0 66))
-(define QUARTO         (book-format "quarto"         "4°" 4 1 1 21.0 38))
-(define OCTAVO         (book-format "octavo"         "8°" 8 1 1 16.0 30))
+(define FOLIO-IN-SIXES (book-format "folio in sixes" "2°" 6 3 2 16.0 66 1))
+(define FOLIO          (book-format "folio"          "2°" 2 1 2 16.0 66 1))
+(define QUARTO         (book-format "quarto"         "4°" 4 1 1 21.0 38 2))
+(define OCTAVO         (book-format "octavo"         "8°" 8 1 1 16.0 30 3))
 
 (define FORMATS
   (hash "folio" FOLIO "folio6" FOLIO-IN-SIXES "folio-in-sixes" FOLIO-IN-SIXES

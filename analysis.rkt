@@ -12,7 +12,7 @@
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt" "pagination.rkt"
          "prelims.rkt" "titlepage.rkt" "binding.rkt" "cancels.rkt" "import.rkt"
-         "press.rkt" "render.rkt")
+         "press.rkt" "render.rkt" "paper.rkt")
 
 (provide (struct-out page-evidence)
          spelling-evidence attribution-report contamination-report
@@ -586,9 +586,22 @@
    (append
     (list "BIBLIOGRAPHICAL DESCRIPTION" ""
           (format "  Collation:   ~a" (book-collation b))
-          (format "  Format:      ~a (~a), ~a leaves to the gathering, ~a sheet(s)"
+          (format "  Format:      ~a (~a), ~a fold(s), ~a leaves to the gathering, ~a sheet(s)"
                   (book-format-name fmt) (book-format-symbol fmt)
+                  (book-format-folds fmt)
                   (book-format-leaves fmt) (book-format-sheets fmt))
+          ;; Format is the folding; size is the sheet. Neither gives a leaf a
+          ;; dimension on its own, so the two are reported together.
+          (format "  Paper:       ~a, sheet ~a×~a mm."
+                  (paper-name (book-paper b))
+                  (paper-long (book-paper b)) (paper-short (book-paper b)))
+          (let ([L (book-layout b)])
+            (format "  Leaf:        ~a×~a mm. uncut; type page ~a×~a mm.; margins i~a h~a o~a t~a~a"
+                    (exact-round (layout-leaf-h L)) (exact-round (layout-leaf-w L))
+                    (exact-round (layout-type-h L)) (exact-round (layout-type-w L))
+                    (exact-round (layout-inner L)) (exact-round (layout-head L))
+                    (exact-round (layout-outer L)) (exact-round (layout-tail L))
+                    (if (layout-fits? L) "" "  [WILL NOT FIT THE SHEET]")))
           (format "  Measure:     ~a ems of the body, ~a column(s), ~a lines to the page"
                   (real->decimal-string (book-format-measure-ems fmt) 0)
                   (book-format-columns fmt)

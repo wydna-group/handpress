@@ -5,9 +5,10 @@
 ;;;   racket main.rkt samples/hamlet.txt --format folio6 --html -o out
 
 (require racket/cmdline racket/file racket/string racket/port racket/list
-         racket/system racket/runtime-path
+         racket/system racket/runtime-path racket/math
          "book.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
-         "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt" "import.rkt")
+         "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt" "import.rkt"
+         "paper.rkt")
 
 (provide run-handpress apply-xslt)
 
@@ -59,6 +60,12 @@
 (define (run-handpress input
                        #:out [out-dir #f]
                        #:fmt-name [fmt-name "quarto"]
+                       ;; Bound as `sheet-name', not `paper-name': the latter
+                       ;; is paper.rkt's own accessor, and shadowing it here
+                       ;; turned (paper-name (book-paper b)) into an attempt to
+                       ;; apply the string "foolscap" to an argument. Same trap
+                       ;; imposition.rkt notes about `format'.
+                       #:paper-name [sheet-name "foolscap"]
                        #:compositors [comps "A,B"]
                        #:order [order "formes"]
                        #:kind [kind 'auto]
@@ -156,6 +163,11 @@
   (define names (map string-trim (string-split comps ",")))
   (define cv (conventions long-s? (not modern-uv?) (not modern-uv?) #t scribal? year*))
   (define h (make-house #:fmt (hash-ref FORMATS fmt-name)
+                        #:paper (or (paper-named sheet-name)
+                                    (error 'handpress
+                                           "unknown paper ~s; have ~a"
+                                           sheet-name
+                                           (string-join (paper-names) ", ")))
                         #:compositors names
                         #:seed seed
                         #:by-formes? (string=? order "formes")
@@ -246,16 +258,30 @@
       (write! ".html"
               (tei-file->html
                xml
-               #:lede (format "~a · set by ~a · ~a · ~a formes. Every word is placed at the position the simulated compositor computed for it."
-                              (book-collation b) (string-join names ", ")
-                              (if (string=? order "formes") "set by formes" "set seriatim")
-                              (length (book-formes b))))))
+               ;; The collation gives the format, which is a folding and not a
+               ;; size, so the sheet and the leaf it makes are named beside it.
+               ;; A reader who is told "4°" and nothing else has been told how
+               ;; the paper was folded and not how big the book is.
+               #:lede (let ([L (book-layout b)])
+                        (format "~a · ~a sheet ~a×~a mm, folded ~a · uncut leaf ~a×~a mm · set by ~a · ~a · ~a formes. Every word is placed at the position the simulated compositor computed for it."
+                                (book-collation b)
+                                (paper-name (book-paper b))
+                                (paper-long (book-paper b)) (paper-short (book-paper b))
+                                (case (book-format-folds (book-fmt b))
+                                  [(1) "once"] [(2) "twice"] [(3) "three times"]
+                                  [else (format "~a times" (book-format-folds (book-fmt b)))])
+                                (exact-round (layout-leaf-h L))
+                                (exact-round (layout-leaf-w L))
+                                (string-join names ", ")
+                                (if (string=? order "formes") "set by formes" "set seriatim")
+                                (length (book-formes b)))))))
     (printf "\nWritten to ~a\n" (path->string (path->complete-path out-dir))))
   b)
 
 (module+ main
   (define out-dir #f)
   (define fmt-name "quarto")
+  (define sheet-name "foolscap")
   (define comps "A,B")
   (define order "formes")
   (define kind 'auto)
@@ -306,6 +332,8 @@
      #:once-each
      [("-o" "--out") dir "directory for the output files" (set! out-dir dir)]
      [("--format") f "folio | folio6 | quarto | octavo" (set! fmt-name f)]
+     [("--paper") p "sheet the shop buys: foolscap | pot | crown | demy | royal"
+                    (set! sheet-name p)]
      [("--compositors") c "which workmen are at the frames" (set! comps c)]
      [("--order") o "formes | seriatim" (set! order o)]
      [("--kind") k "auto | verse | prose | drama" (set! kind (string->symbol k))]
@@ -377,7 +405,8 @@
      #:args (input) input))
 
   (void (run-handpress input
-                       #:out out-dir #:fmt-name fmt-name #:compositors comps
+                       #:out out-dir #:fmt-name fmt-name #:paper-name sheet-name
+                       #:compositors comps
                        #:order order #:kind kind #:seed seed #:copies copies
                        #:case-scale case-scale #:cast-off cast-off
                        #:skeletons skeletons #:formes-standing standing

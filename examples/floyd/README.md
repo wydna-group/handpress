@@ -43,7 +43,7 @@ The `floyd.*` sources were made with `tools/tcp-to-copy.py` and a conversion
 script. To rebuild the seven books from them:
 
 ```sh
-sh review/regenerate.sh
+sh examples/floyd/regenerate.sh
 ```
 
 One seed, one shop, one edition size for all seven, so that the only variable

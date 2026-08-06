@@ -3,16 +3,16 @@
 # holds the shop fixed, this one holds the text fixed and varies the shop --
 # because what wants looking at here is the setting, not the readers.
 #
-#   sh review-manual/regenerate.sh
+#   sh examples/manual/regenerate.sh
 set -e
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 run() {                       # run <out> <year> <input>
-  racket main.rkt --out "review-manual/$1" --year "$2" \
+  racket main.rkt --out "examples/manual/$1" --year "$2" \
     --format quarto --seed 1614 --copies 8 --cancels 1 --html --tei \
     --title "A MANVAL OF CONTROVERSIES" \
     --publisher "Iohn Heigham" --printer "Charles Boscard" \
-    "review-manual/$3"
+    "examples/manual/source/$3"
 }
 
 echo "=== md: 1614, the shop as the book was really printed ==="

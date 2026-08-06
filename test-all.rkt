@@ -32,6 +32,7 @@
 
 (module+ test
   (require (submod "metrics.rkt" test)
+           (submod "paper.rkt" test)
            (submod "imposition.rkt" test)
            (submod "pagination.rkt" test)
            (submod "typecase.rkt" test)

@@ -19,11 +19,11 @@
 (require racket/list racket/string racket/math
          "pagination.rkt" "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "prelims.rkt"
-         "titlepage.rkt" "rng.rkt")
+         "titlepage.rkt" "paper.rkt" "rng.rkt")
 
 (provide (struct-out page) (struct-out book) (struct-out house)
          (struct-out standing-type) (struct-out gathering-plan)
-         make-house set-book
+         make-house set-book house-layout book-layout
          page-sig page-all-lines page-text book-gatherings book-collation
          book-find-page book-runs plan-bound-leaves
          PRELIM-SCHEMES PRELIM-SCHEME-NAMES)
@@ -42,11 +42,23 @@
 (define (page-text p)
   (string-join (map line-text (page-all-lines p)) "\n"))
 
-(struct book (pages formes skeletons fmt events stints case title
+;; `paper' travels with the book because a leaf has no size without it, and
+;; every consumer downstream -- the description, the TEI, the facsimile -- has
+;; a book and not a house to hand.
+(struct book (pages formes skeletons fmt paper events stints case title
                     copy-units authors-copy preparation standing paging
                     plans division titlepage prelim-scheme moved-to-end
                     cut-from-last-sheet?)
   #:transparent)
+
+;; The leaf, and where the type page sits on it. Computed here, once.
+(define (book-layout b)
+  (define fmt (book-fmt b))
+  (define-values (lh lw) (paper-leaf (book-paper b) (book-format-folds fmt)))
+  (define-values (th tw) (type-page-mm (book-format-lines fmt)
+                                       (book-format-measure-ems fmt)
+                                       (book-format-columns fmt)))
+  (leaf-layout lh lw th tw))
 
 ;; The high-water mark of standing type, and the page-by-page ledger behind it.
 (struct standing-type (peak-sorts peak-pages ledger by-formes?) #:transparent)
@@ -67,14 +79,32 @@
 ;; The house
 ;; ---------------------------------------------------------------------------
 
-(struct house (fmt compositor-names seed by-formes? conventions case-scale
+(struct house (fmt paper compositor-names seed by-formes? conventions case-scale
                    cast-off-accuracy n-skeletons formes-standing
                    prepare-copy? title profiles condition stint-sheets
                    paging-error find-prelims? titlepage? book-title author
                    printer publisher sig-alphabet prelim-style)
   #:transparent)
 
+;; The leaf this house's paper and format make, and where the type page sits on
+;; it. One computation, so that the report, the TEI and the facsimile cannot
+;; disagree about the size of a page.
+(define (house-layout h)
+  (define fmt (house-fmt h))
+  (define-values (lh lw) (paper-leaf (house-paper h) (book-format-folds fmt)))
+  (define-values (th tw) (type-page-mm (book-format-lines fmt)
+                                       (book-format-measure-ems fmt)
+                                       (book-format-columns fmt)))
+  (leaf-layout lh lw th tw))
+
 (define (make-house #:fmt [fmt QUARTO]
+                    ;; The sheet the shop buys. Format says how often it was
+                    ;; folded; this says how big it was before anyone folded
+                    ;; it, and the two together are the only thing that gives
+                    ;; a leaf a size. Foolscap by default: Gaskell, p. 68, has
+                    ;; the sixteenth century's ordinary printing paper in that
+                    ;; range, and that is this program's period.
+                    #:paper [paper DEFAULT-PAPER]
                     #:compositors [names '("A" "B")]
                     #:seed [seed 1623]
                     #:by-formes? [by-formes? #t]
@@ -159,7 +189,7 @@
                     ;; mixture is what you see across a trade, not within a
                     ;; shop.
                     #:prelim-style [prelim-style #f])
-  (house fmt names seed by-formes? cv case-scale acc nsk
+  (house fmt paper names seed by-formes? cv case-scale acc nsk
          (max 1 standing) prep? title profiles condition
          (cond
            [stint (max 1 stint)]
@@ -1059,7 +1089,7 @@
               #:rate (house-paging-error h)
               #:rng (make-rng (+ (house-seed h) 5501))))
 
-  (book with-titles all-formes skeletons fmt
+  (book with-titles all-formes skeletons fmt (house-paper h)
         (append* (for/list ([name (in-list order)])
                    (comp-event-list (hash-ref men name))))
         (compress-stints (reverse stint-log))

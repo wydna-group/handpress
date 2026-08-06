@@ -6,7 +6,7 @@ lately wrong: 208 `cap.`, 22 `lib.` and 16 `Cor.` in 23,000 words, all-capital
 Latin on nearly every page, seventy-five `ff` words, and three declared
 divisions of front matter.
 
-`review/` varies the **input format** and holds the shop fixed. This one does
+`examples/floyd/` varies the **input format** and holds the shop fixed. This one does
 the opposite: same text, same seed, and the shop moved. Open
 `<dir>/manual.html`.
 
@@ -67,7 +67,7 @@ his habits, which is roughly what Blayney's `-ie` counts imply.
 ## Rebuilding
 
 ```sh
-sh review-manual/regenerate.sh
+sh examples/manual/regenerate.sh
 ```
 
 `manual.md` and `manual.xml` are the sources; the three directories are output

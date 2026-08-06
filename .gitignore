@@ -22,7 +22,12 @@ sources/
 
 # Generated review outputs: regenerate rather than commit. The sources are
 # derived from the corpus, which is not ours to publish either.
-review/*/
-review/floyd.*
-review-manual/*/
-review-manual/manual.*
+examples/*/source/
+examples/*/md/
+examples/*/xml/
+examples/*/html/
+examples/*/docx/
+examples/*/pdf/
+examples/*/tex/
+examples/*/txt/
+examples/*/late/

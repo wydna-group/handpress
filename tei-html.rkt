@@ -314,7 +314,11 @@
           ;; That is a fact about folding paper, not a failure, and saying so
           ;; keeps it from looking like one.
           (string-append (if (zero? n-lines) " blankleaf" "")
-                         (if prelim? " prelim" ""))
+                         (if prelim? " prelim" "")
+                         ;; The spine is on a recto's left and a verso's right,
+                         ;; so which margin is the narrow one changes sides.
+                         ;; The two pages of an opening lean towards each other.
+                         (if recto? " recto" " verso"))
           (esc sig)
           (esc leaf) (esc sheet) (esc forme)
           measure (max 1 (length cols))
@@ -348,6 +352,35 @@
 ;; The header: description, key, statistics
 ;; ---------------------------------------------------------------------------
 
+;; The size of a leaf, read off the file rather than assumed by the stylesheet.
+;;
+;; Before this, the CSS built a leaf out of the type page plus eleven ems of
+;; margin it had chosen itself, and so drew a quarto at 1.99 tall to wide where
+;; the paper gives 1.31. The stylesheet was deciding the size of the paper. Now
+;; the sheet decides it, the TEI carries it, and the stylesheet only scales it:
+;; one millimetre is drawn `--mm' pixels wide and everything follows.
+(define (dimensions-of ms kind)
+  (for/or ([d (in-list (find-all ms 'dimensions))])
+    (and (string=? (attr d 'type "") kind)
+         (let ([h (find d 'height)] [w (find d 'width)])
+           (and h w
+                (let ([hn (string->number (text-of h))]
+                      [wn (string->number (text-of w))])
+                  (and hn wn (cons hn wn))))))))
+
+(define (leaf-vars hdr)
+  (define ms (find hdr 'msDesc))
+  (define leaf (and ms (dimensions-of ms "leaf")))
+  (define lay (and ms (find ms 'layout)))
+  (cond
+    [(not (and leaf lay)) ""]
+    [else
+     (define (m k) (or (string->number (attr lay k "")) 0))
+     (format " style=\"--leaf-h:~a;--leaf-w:~a;--mi:~a;--mh:~a;--mo:~a;--mt:~a;--gut:~a\""
+             (car leaf) (cdr leaf)
+             (m '|hp:inner|) (m '|hp:head|) (m '|hp:outer|) (m '|hp:tail|)
+             (or (string->number (attr lay '|hp:gutter| "")) 2.2))]))
+
 ;; The Bowers description is already in the TEI's own vocabulary for physical
 ;; make-up, so this is a rendering of <msDesc> and not a second computation of
 ;; it. That is the difference the whole change turns on.
@@ -360,11 +393,13 @@
        (if e (format "<tr><th>~a</th><td>~a</td></tr>" label (esc (text-of e))) ""))
      (string-append
       "<div class=\"desc\"><h2>Bibliographical description</h2><table>"
+      ;; Paper first: the sheet is what the book is made of, and the format is
+      ;; a fact about how it was folded rather than a size in its own right.
+      (row "Paper" (find ms 'support))
       (row "Collation" (find ms 'collation))
       (row "Foliation" (find ms 'foliation))
       (row "Layout" (find ms 'layout))
       (row "Type" (find ms 'typeNote))
-      (row "Support" (find ms 'support))
       (apply string-append
              (for/list ([n (in-list (find-all ms 'additions))])
                (row "Additions" n)))
@@ -743,7 +778,7 @@
    "<button data-view=\"evidence\">The evidence</button>"
    "<button data-view=\"copies\">The copies</button>"
    "</nav></header>\n"
-   "<div class=\"wrap\">\n"
+   (format "<div class=\"wrap\"~a>\n" (leaf-vars hdr))
 
    ;; ---- the book -------------------------------------------------------
    "<section class=\"view on\" data-view=\"book\">"

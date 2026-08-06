@@ -29,20 +29,22 @@
 
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "imposition.rkt" "book.rkt"
-         "press.rkt" "typecase.rkt"
+         "press.rkt" "typecase.rkt" "paper.rkt"
          (only-in "prelims.rkt" prelim-kind-label))
 
 (provide description-lines description-text description-html
          description-tei-msdesc
-         collation-line signing-statement type-line catchword-list
+         collation-line signing-statement type-line paper-line catchword-list
          running-title-paragraph)
 
-;; A printer's pica em is 4.2175 mm, and the Folio's type is pica set solid.
-;; So a 20-line measurement -- the standard way of identifying a fount before
-;; foundries could be named -- follows directly from the body size.
-(define MM-PER-EM 4.2175)
+;; MM-PER-EM and the type-page arithmetic now live in paper.rkt, with the
+;; sheet sizes and the fold rule, so that the leaf and the print on it are
+;; measured against each other in one place.
+(define (mm x) (exact-round (mm-of-ems x)))
 
-(define (mm x) (exact-round (* x MM-PER-EM)))
+;; Millimetres for the report: whole numbers, since the paper was never cut to
+;; better than that and the trimming moved it again.
+(define (mm* x) (exact-round x))
 
 ;; ---------------------------------------------------------------------------
 
@@ -102,6 +104,29 @@
           (* lines (book-format-columns fmt))
           (mm lines) (mm (* measure (book-format-columns fmt)))
           (mm 20) (exact-round measure) (book-format-columns fmt)))
+
+;; The paper, and what the folding made of it.
+;;
+;; Format and size are different things and a description has to give both:
+;; "quarto" says the sheet was folded twice and nothing whatever about how big
+;; the leaf is. The leaf here is the *uncut* leaf, which is what the sheet
+;; yields; a bound copy has been ploughed and will measure less, by 0.5-1.0 cm
+;; each way for a small book and 1.0-2.0 for a large one (Gaskell, p. 76).
+(define (paper-line b)
+  (define p (book-paper b))
+  (define L (book-layout b))
+  (format (string-append
+           "~a, sheet ~a×~a mm.; uncut leaf ~a×~a mm. "
+           "Type page set ~a mm. from the inner edge and ~a mm. from the head; "
+           "margins inner ~a, head ~a, outer ~a, tail ~a mm.~a")
+          (paper-name p) (paper-long p) (paper-short p)
+          (mm* (layout-leaf-h L)) (mm* (layout-leaf-w L))
+          (mm* (layout-inner L)) (mm* (layout-head L))
+          (mm* (layout-inner L)) (mm* (layout-head L))
+          (mm* (layout-outer L)) (mm* (layout-tail L))
+          (if (layout-fits? L)
+              ""
+              " THE TYPE PAGE IS LARGER THAN THE LEAF: no sheet of this size could carry it.")))
 
 ;; The first word actually standing at the head of a page.
 (define (first-word p)
@@ -188,6 +213,8 @@
               (list (format "        (and ~a more)" cw-more)))))
    (list "")
    (list (format "Type:   ~a" (type-line b)))
+   (list "")
+   (list (format "Paper:  ~a" (paper-line b)))
    (list "")
    ;; states
    (list "States:")
@@ -315,8 +342,14 @@
           "          <physDesc>"
           "            <objectDesc form=\"codex\">"
           "              <supportDesc material=\"paper\">"
-          (format "                <extent>~a leaves</extent>"
-                  (* (book-gatherings b) (book-format-leaves fmt)))
+          ;; The sheet, and the leaf the folding makes of it. Without this the
+          ;; format is a fold with no size attached, and the facsimile has
+          ;; nothing to draw a page from but the type.
+          (format "                <support><p>~a</p></support>" (esc (paper-line b)))
+          (format "                <extent>~a leaves<dimensions type=\"leaf\" unit=\"mm\"><height>~a</height><width>~a</width></dimensions></extent>"
+                  (* (book-gatherings b) (book-format-leaves fmt))
+                  (mm* (layout-leaf-h (book-layout b)))
+                  (mm* (layout-leaf-w (book-layout b))))
           ;; The collation formula, and after it the one thing a formula cannot
           ;; say: that matter belonging at the front stands at the back. Without
           ;; it a reader of the facsimile who finds the table of contents on the
@@ -332,9 +365,20 @@
                         "")))
           "                <foliation><p>Leaves unnumbered; signed only.</p></foliation>"
           "              </supportDesc>"
-          (format "              <layoutDesc><layout columns=\"~a\" writtenLines=\"~a\"><p>~a</p></layout></layoutDesc>"
-                  (book-format-columns fmt) (book-format-lines fmt)
-                  (esc (type-line b)))
+          ;; The margins go in as numbers and not only as the prose of
+          ;; <support>, because the facsimile has to place the type page on the
+          ;; leaf and it builds itself from this file. Prose it cannot use is
+          ;; prose that leaves the renderer guessing, and a renderer that
+          ;; guesses is the second place a page size gets decided.
+          (let ([L (book-layout b)])
+            (format "              <layoutDesc><layout columns=\"~a\" writtenLines=\"~a\" hp:inner=\"~a\" hp:head=\"~a\" hp:outer=\"~a\" hp:tail=\"~a\" hp:gutter=\"~a\"><p>~a</p><dimensions type=\"written\" unit=\"mm\"><height>~a</height><width>~a</width></dimensions></layout></layoutDesc>"
+                    (book-format-columns fmt) (book-format-lines fmt)
+                    (mm* (layout-inner L)) (mm* (layout-head L))
+                    (mm* (layout-outer L)) (mm* (layout-tail L))
+                    COLUMN-GUTTER-EMS
+                    (esc (type-line b))
+                    (mm* (layout-type-h L))
+                    (mm* (layout-type-w L))))
           "            </objectDesc>"
           (format "            <typeDesc><typeNote><p>~a</p></typeNote></typeDesc>"
                   (esc (type-line b)))

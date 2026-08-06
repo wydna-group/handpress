@@ -1,11 +1,16 @@
 ﻿#lang scribble/manual
 @(require scribble/core scriblib/footnote "bib.rkt"
-          (for-label racket/base racket/contract
+          ;; `placeholder?' is ours and racket/base's both. Excluding it there
+          ;; rather than here because the one this manual documents is the piece
+          ;; of type set face down to hold a space, not the graph-building
+          ;; placeholder — and without the exclusion the document does not build
+          ;; at all, which is how it went a while without being built.
+          (for-label (except-in racket/base placeholder?) racket/contract
                      handpress/metrics handpress/typecase handpress/orthography
                      handpress/copytext handpress/corrector handpress/compositor
-                     handpress/imposition handpress/book handpress/press
-                     handpress/render handpress/analysis handpress/lexicon
-                     handpress/pagination handpress/deviation))
+                     handpress/imposition handpress/paper handpress/book
+                     handpress/press handpress/render handpress/analysis
+                     handpress/lexicon handpress/pagination handpress/deviation))
 
 @title{handpress: a simulation of hand-press composition}
 
@@ -49,7 +54,8 @@ Flags come @emph{before} the input file, as Racket's
   (list (list @bold{flag} @bold{effect})
         (list @bold{The book} "")
         (list @elem{@tt{-o}, @tt{--out}} "directory for the output files")
-        (list @tt{--format} "folio | folio6 | quarto | octavo")
+        (list @tt{--format} "folio | folio6 | quarto | octavo — how often the sheet is folded")
+        (list @tt{--paper} "the sheet itself: foolscap | pot | crown | demy | royal")
         (list @tt{--kind} "auto | verse | prose | drama — how the copy is parsed")
         (list @tt{--title} "running title")
         (list @tt{--edition} "sheets printed; the Cambridge accounts show 400–820")
@@ -76,6 +82,7 @@ Flags come @emph{before} the input file, as Racket's
         (list @tt{--numbers} "number every fifth line of type")
         (list @tt{--no-long-s} "set short s throughout")
         (list @tt{--modern-uv} "keep modern u/v and i/j")
+        (list @tt{--year} "the date, which governs the scribal marks — they have a slope")
         (list @elem{@tt{--pages}, @tt{--quiet}} "how much to print to the terminal"))]
 
 Every run writes @tt{NAME.facsimile.txt} (the type-facsimile) and
@@ -391,6 +398,72 @@ Page numbers on the outer and inner forme of each sheet.}
 The order in which the pages of a gathering are actually composed. Set
 seriatim they go 1, 2, 3…; set by formes the house begins at the middle of the
 gathering and works outward: 5, 8, 6, 7, 3, 10, 4, 9, 1, 12, 2, 11.}
+
+@subsection{The sheet, and the size it makes}
+@declare-exporting[handpress/paper]
+
+@bold{Format is how often the sheet was folded. Size is how big the sheet was.}
+Neither gives a leaf a dimension on its own, and ``quarto'' says nothing whatever
+about how big the book is. For most of this program's life only the first was
+modelled, so a leaf had no dimensions at all and the stylesheet was left to
+invent them — it drew a quarto at 1.99 tall to wide where Gaskell's own figures
+give 1.31.
+
+A fold halves whichever dimension is currently the longer, and the leaf is the
+result stood upright. That one rule is the whole relationship between format and
+size, and it reproduces Gaskell's Key III (p. 86) exactly for pot, demy and
+royal in every format, which is what the test submodule asserts. From a foolscap
+sheet of 420 × 320 mm:
+
+@tabular[#:sep @hspace[2]
+  (list (list @bold{format} @bold{folds} @bold{uncut leaf} @bold{tall : wide})
+        (list "folio"  "1" "320 × 210 mm" "1.52")
+        (list "quarto" "2" "210 × 160 mm" "1.31")
+        (list "octavo" "3" "160 × 105 mm" "1.52"))]
+
+The proportion @emph{alternates} rather than settling. A folio and an octavo are
+nearly the same shape and nothing like the same size; only the quarto is squat.
+
+Foolscap is the default because Gaskell (p. 68) has the sixteenth century's
+ordinary printing paper in that range, growing to demy by the eighteenth.
+@tt{--paper} selects among foolscap, pot, crown, demy and royal; each carries a
+note recording where its figure comes from, because a sheet size is a citation
+and not a constant — the same name meant different paper in different countries
+and centuries, which is the whole difficulty of Gaskell's Table 3.
+
+@defproc[(paper-leaf [p paper?] [folds exact-nonnegative-integer?])
+         (values real? real?)]{
+The uncut leaf in millimetres, height first, after @racket[folds] folds. Kept in
+exact rationals so that three folds of an odd sheet do not accumulate the error
+that halving to 0.5 mm at each step would.}
+
+@defproc[(leaf-layout [leaf-h real?] [leaf-w real?] [type-h real?] [type-w real?]
+                      [canon (listof real?) MARGIN-CANON])
+         layout?]{
+Places the type page on the leaf. The margins are what is left over, split
+inner : head : outer : tail. @racket[layout-fits?] is @racket[#f] when the type
+page is simply larger than the paper — a measure or a line count no sheet of
+that size could carry — which is reported rather than clamped away.}
+
+@racket[MARGIN-CANON] is @racket['(2 3 4 6)]. The type page does not sit in the
+middle of the leaf: it sits toward the inner and upper corner, so that the two
+type pages of an opening read as one block and the tail carries the weight. This
+is the one number in the module Gaskell does not supply — a convention and not a
+measurement, and a parameter for that reason.
+
+It is also where a finding sits that has @emph{not} been tuned away. The canon
+only yields those proportions when the type page shares the leaf's shape, and
+ours does not: on foolscap the quarto's type page is 160 × 89 mm, a ratio of
+1.80, on a leaf of 1.31. So the outer margins come out wider than the head and
+tail, which is the wrong way round for a hand-press book. Either the measure is
+too narrow for the paper or the stock is wrong for these books, and Blayney's
+Okes quartos are where to settle it.
+
+Watermarks, countermarks and chain-lines are @bold{not} modelled. Note before
+adding them that in this period the mark will not give the size: Gaskell lists
+the sixteenth-century foolscap group as carrying the Strasbourg lily, the pot and
+the grapes indifferently, and warns (p. 68) that the marks ``were not used
+exclusively for particular sizes, especially during the sixteenth century''.
 
 @subsection{Standing type, and what a gathering costs in metal}
 @declare-exporting[handpress/book]
@@ -1068,13 +1141,40 @@ mean either.
 
 @subsection{Fitting the face to the body}
 
-Both HTML renderings carry two CSS custom properties on @tt{.plate}:
+The rendering is scaled by one number. A pica em is 4.2175 mm and is drawn
+@tt{--grid} pixels wide, so @tt{--mm} — one millimetre in pixels — follows from
+it, and the type, the leaf and the margins are all measured in the same
+millimetres and move together.
 
 @tabular[#:sep @hspace[2]
   (list (list @tt{--grid} "one em of the type body, in pixels")
-        (list @tt{--fit}  "the set width of the face against that body"))]
+        (list @tt{--mm}   "one millimetre, derived: --grid ÷ 4.2175")
+        (list @tt{--fit}  "the set width of the face against that body")
+        (list @tt{--lead} "line pitch as a multiple of the body")
+        (list @elem{@tt{--leaf-h}, @tt{--leaf-w}} "the uncut leaf in mm, from the file")
+        (list @elem{@tt{--mi}, @tt{--mh}, @tt{--mo}, @tt{--mt}} "inner, head, outer and tail margins in mm"))]
 
-They have to be separate. Every word is positioned at
+The leaf dimensions and the margins are @emph{read out of the TEI}, not computed
+here. The stylesheet used to build a leaf from the type page plus eleven ems of
+margin it had chosen itself, which is a second place deciding a thing the model
+should own — and it drew a quarto half again too tall. Now the sheet decides the
+size, the file carries it, and the stylesheet only scales it.
+
+@tt{--lead} is 1.00 because the description says the type is set solid, and set
+solid means the line pitch @emph{is} the body. It was 1.44, a screen line-height
+with nothing behind it, which inflated the type page by 44%.
+
+Two bugs surfaced the moment the paper became authoritative, both of which the
+old arrangement had concealed by feeding the leaf and its contents the same wrong
+number. @tt{--lines} is the lines on the @emph{page}, which is what a
+bibliographer counts — a two-column folio of 66-line columns has 132 — so the
+depth of a column is @tt{--lines} divided among the columns and not @tt{--lines}
+itself. And the gutter between columns had to go into the modelled type page,
+because without it the flex box squeezed the columns to fit, and a column that is
+squeezed does not reflow: every word in it sits at an absolute offset the
+compositor computed, so it clips.
+
+@tt{--grid} and @tt{--fit} have to be separate. Every word is positioned at
 @tt{calc(var(--grid) * var(--x))}, where @tt{--x} is the offset the simulation
 computed. If the position were expressed in @tt{em} instead, it would resolve
 against the word's own font-size, so the glyphs and the grid would scale
