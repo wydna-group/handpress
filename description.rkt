@@ -29,7 +29,8 @@
 
 (require racket/list racket/string racket/math racket/format
          "metrics.rkt" "compositor.rkt" "imposition.rkt" "book.rkt"
-         "press.rkt" "typecase.rkt")
+         "press.rkt" "typecase.rkt"
+         (only-in "prelims.rkt" prelim-kind-label))
 
 (provide description-lines description-text description-html
          description-tei-msdesc
@@ -257,6 +258,17 @@
   (define set-pages
     (for/list ([p (in-list pages)] #:unless (member (page-sig p) blank))
       (page-sig p)))
+  ;; Matter that belongs at the front and stands at the back. A reader of the
+  ;; facsimile who finds the table of contents on the last leaves has no way to
+  ;; tell an economy from a mistake, and until now the explanation lived only in
+  ;; the report -- so the page could not answer the first question anybody asks
+  ;; of it. It is a fact about the contents of the book, so it is stated with
+  ;; them, which is where Bowers would put it.
+  (define moved
+    (let ([m (book-moved-to-end b)])
+      (and m (second m)
+           (format "        ~a: printed after the text, in the white leaves the last sheet left, and not bound in front (McKerrow, p. 78)."
+                   (string-join (map prelim-kind-label (first m)) " and ")))))
   (append
    (list (format "        ~a: text.~a"
                  (if (null? set-pages) "—"
@@ -264,7 +276,8 @@
                          (car set-pages)
                          (format "~a–~a" (car set-pages) (last set-pages))))
                  (if (null? blank) ""
-                     (format " ~a: blank." (string-join blank " ")))))))
+                     (format " ~a: blank." (string-join blank " ")))))
+   (if moved (list moved) '())))
 
 (define (description-text b [run #f])
   (string-join (description-lines b run) "\n"))
@@ -304,8 +317,19 @@
           "              <supportDesc material=\"paper\">"
           (format "                <extent>~a leaves</extent>"
                   (* (book-gatherings b) (book-format-leaves fmt)))
-          (format "                <collation><p>~a</p></collation>"
-                  (esc (collation-line b)))
+          ;; The collation formula, and after it the one thing a formula cannot
+          ;; say: that matter belonging at the front stands at the back. Without
+          ;; it a reader of the facsimile who finds the table of contents on the
+          ;; last leaves cannot tell an economy from a mistake, and the
+          ;; explanation lived only in the report -- which the facsimile is
+          ;; built without.
+          (format "                <collation><p>~a~a</p></collation>"
+                  (esc (collation-line b))
+                  (let ([m (book-moved-to-end b)])
+                    (if (and m (second m))
+                        (esc (format " The ~a is printed after the text, in the white leaves the last sheet left, and is not bound in front (McKerrow, p. 78)."
+                                     (string-join (map prelim-kind-label (first m)) " and ")))
+                        "")))
           "                <foliation><p>Leaves unnumbered; signed only.</p></foliation>"
           "              </supportDesc>"
           (format "              <layoutDesc><layout columns=\"~a\" writtenLines=\"~a\"><p>~a</p></layout></layoutDesc>"
