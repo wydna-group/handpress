@@ -28,7 +28,7 @@
 ;;; which language does the walking.
 
 (require racket/list racket/string racket/format racket/math xml
-         racket/runtime-path racket/file
+         racket/runtime-path racket/file racket/path
          "vocabulary.rkt")
 
 (provide tei->html tei-file->html)
@@ -688,7 +688,48 @@
 
 ;; ---------------------------------------------------------------------------
 
-(define (tei->html doc #:lede [lede ""])
+;; The fount the page is drawn in, and the fit that reconciles it.
+;;
+;; This is a rendering choice and not a fact about the book, so it is a
+;; parameter here and stays out of the TEI: the file records what was set, not
+;; what a browser was asked to draw it with.
+;;
+;; `fit' has to move with `face'. Every word is positioned at an offset the
+;; simulation computed, in --grid pixels, while the glyphs are drawn at
+;; --grid * --fit; the two are in different units on purpose, so that a face
+;; wider or narrower than the modelled widths can be reconciled without moving
+;; the words. Substituting a face and leaving fit at 1.00 is how words come to
+;; collide. `font-file' embeds the fount beside the page so the facsimile stays
+;; self-contained; naming a family without a file relies on the reader having
+;; it installed.
+(define (font-css face font-file fit)
+  (define src
+    (cond
+      [(not font-file) ""]
+      [else
+       (define name (if (path? font-file) (path->string font-file) font-file))
+       ;; path-get-extension answers in bytes, not a string.
+       (define ext (bytes->string/utf-8
+                    (or (path-get-extension (string->path name)) #".ttf")))
+       (format (string-append "@font-face{font-family:\"~a\";src:url(\"~a\")"
+                              " format(\"~a\");font-display:swap}\n")
+               (or face "handpress-fount")
+               (let-values ([(_d f _m) (split-path (string->path name))])
+                 (path->string f))
+               (cond [(regexp-match? #rx"woff2" ext) "woff2"]
+                     [(regexp-match? #rx"woff"  ext) "woff"]
+                     [(regexp-match? #rx"otf"   ext) "opentype"]
+                     [else "truetype"]))]))
+  (define decls
+    (string-append
+     (if face (format "--face:\"~a\",serif;" face) "")
+     (if fit (format "--fit:~a;" (real->decimal-string fit 3)) "")))
+  (cond
+    [(and (string=? src "") (string=? decls "")) ""]
+    [else (format "\n~a:root{~a}\n" src decls)]))
+
+(define (tei->html doc #:lede [lede ""]
+                   #:face [face #f] #:font-file [font-file #f] #:fit [fit #f])
   (define root (document-element doc))
   (define hdr (find root 'teiHeader))
   (define title (let ([t (find hdr 'title)]) (if t (text-of t) "A book")))
@@ -766,6 +807,7 @@
    "<!doctype html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n"
    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n"
    "<title>" (esc title) "</title><style>" (facsimile-stylesheet)
+   (font-css face font-file fit)
    "</style></head>\n<body>\n"
    ;; A masthead that stays put, because in a book of sixty leaves the title and
    ;; the collation are wanted at the foot as much as at the head.
@@ -809,8 +851,10 @@
    "</div>\n<script>" (file->string facsimile-js) "</script>\n"
    "</body></html>\n"))
 
-(define (tei-file->html path #:lede [lede ""])
-  (tei->html (read-xml (open-input-string (file->string path))) #:lede lede))
+(define (tei-file->html path #:lede [lede ""]
+                        #:face [face #f] #:font-file [font-file #f] #:fit [fit #f])
+  (tei->html (read-xml (open-input-string (file->string path)))
+             #:lede lede #:face face #:font-file font-file #:fit fit))
 
 ;; The stylesheet as it is actually served: the hand-written layout, plus the
 ;; departure marks generated from the vocabulary. Both renderings use this, and

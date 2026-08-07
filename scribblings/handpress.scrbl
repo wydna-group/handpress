@@ -91,6 +91,9 @@ Flags come @emph{before} the input file, as Racket's
         (list @tt{--witness} "which made-up copy the XSLT should show")
         (list @tt{--numbers} "number every fifth line of type")
         (list @tt{--no-long-s} "set short s throughout")
+        (list @tt{--font} "family the facsimile is drawn in, e.g. Junicode")
+        (list @tt{--font-file} "a fount to embed beside the page (.woff2/.ttf/.otf)")
+        (list @tt{--fit} "set width of that face against the body; re-derive it when the face changes")
         (list @tt{--modern-uv} "keep modern u/v and i/j")
         (list @tt{--year} "the date, which governs the scribal marks — they have a slope")
         (list @elem{@tt{--pages}, @tt{--quiet}} "how much to print to the terminal"))]
@@ -1191,6 +1194,25 @@ against the word's own font-size, so the glyphs and the grid would scale
 together and a wide face could never be made to fit — which is exactly the
 fault the first version had: 222 pairs of words overlapped, some by six
 pixels, and the word-spaces vanished entirely.
+
+@tt{--font} names the family, @tt{--font-file} embeds a fount beside the page so
+the output stays self-contained, and @tt{--fit} retunes the seam. The fount is a
+rendering choice and not a fact about the book, so it is a parameter of the
+renderer and stays out of the TEI: the file records what was set, not what a
+browser was asked to draw it with.
+
+@hyperlink["https://junicode.sourceforge.io/"]{Junicode} is the fount to use.
+Its roman derives from the seventeenth-century Oxford types, it is under the SIL
+Open Font License, and — checked rather than assumed — it carries every
+character this program sets: long s, the f-ligatures and @tt{ſt}, the macron
+vowels, and the superior letters of @tt{yᵉ} and @tt{wᶜʰ}. Measured on a 24-leaf
+quarto it leaves 4 touching word pairs in 8,636 at @tt{--fit 1.00}, against the
+0.08% recorded below for Times, so it needs no retuning. It is not bundled.
+
+A revival gives shapes and not the measure. Its fitting is the reviser's rather
+than the fount's — Marini autospaced IM Fell with his own algorithm, and
+Blokland observes that revivals of Renaissance type are fitted optically rather
+than to any historical grid.
 
 The default stack is Times-like, because an old-face roman is narrow and
 Georgia and Palatino are not. Calibrated by measuring every word in the

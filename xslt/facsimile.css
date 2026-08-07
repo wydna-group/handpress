@@ -83,8 +83,10 @@ body {
      from the simulation and only the glyphs come from the font. Times-like
      faces are the closest common approximation to the set widths modelled
      in metrics.rkt. */
-  font-family: "Times New Roman", Times, "Liberation Serif", "Nimbus Roman",
-               ui-serif, Georgia, serif;
+  /* --face is set by the renderer when a fount is named or embedded; the
+     fallback is the stack described above. */
+  font-family: var(--face, "Times New Roman", Times, "Liberation Serif",
+                   "Nimbus Roman", ui-serif, Georgia, serif);
   color: var(--ink);
 }
 .wrap { max-width: 62rem; margin: 0 auto; }
@@ -136,9 +138,14 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    --lead is 1.00 because the description says the type is set solid, and set
    solid means the line pitch *is* the body. It used to be 1.44, a screen
    line-height with nothing behind it, which inflated the type page by 44% and
-   was most of why a quarto leaf came out at 1.99 tall to wide. */
-:root { --grid: 16px; --mm: calc(var(--grid) / 4.2175); }
-.plate { --fit: 1.00; --lead: 1.00; font-size: var(--grid); }
+   was most of why a quarto leaf came out at 1.99 tall to wide.
+
+   --fit lives here rather than on .plate so that the renderer can override it
+   for the page: it is a property of whatever face is actually drawing, and has
+   to be re-derived whenever that changes. --lead does not move, because it is
+   the model's and not the font's: the description says set solid. */
+:root { --grid: 16px; --mm: calc(var(--grid) / 4.2175); --fit: 1.00; --lead: 1.00; }
+.plate { font-size: var(--grid); }
 
 /* Every leaf is the same size, because every leaf of a book is -- and that
    size comes from the sheet and the folding, which is what the file records.

@@ -60,6 +60,13 @@
 (define (run-handpress input
                        #:out [out-dir #f]
                        #:fmt-name [fmt-name "quarto"]
+                       ;; The fount the facsimile is drawn in. A family name
+                       ;; needs the reader to have it installed; a file is
+                       ;; copied beside the page and embedded, which keeps the
+                       ;; output self-contained the way the CSS and script are.
+                       #:face [face #f]
+                       #:font-file [font-file #f]
+                       #:fit [fit #f]
                        ;; Bound as `sheet-name', not `paper-name': the latter
                        ;; is paper.rkt's own accessor, and shadowing it here
                        ;; turned (paper-name (book-paper b)) into an attempt to
@@ -262,9 +269,19 @@
       (define xml (build-path out-dir (string-append stem ".tei.xml")))
       (write! ".tei.xml" (book->tei b r names))
       (write-assets! out-dir)
+      ;; An embedded fount travels with the page, like the stylesheet and the
+      ;; script. Copied rather than linked to where it happens to sit, so the
+      ;; output directory can be moved without the type going with it.
+      (when font-file
+        (unless (file-exists? font-file)
+          (error 'handpress "no such font file: ~a" font-file))
+        (define-values (_d fname _m) (split-path (string->path font-file)))
+        (copy-file font-file (build-path out-dir fname) #t))
       (write! ".html"
               (tei-file->html
                xml
+               #:face face #:font-file font-file
+               #:fit (and fit (string->number fit))
                ;; The collation gives the format, which is a folding and not a
                ;; size, so the sheet and the leaf it makes are named beside it.
                ;; A reader who is told "4°" and nothing else has been told how
@@ -289,6 +306,9 @@
   (define out-dir #f)
   (define fmt-name "quarto")
   (define sheet-name "foolscap")
+  (define face #f)
+  (define font-file #f)
+  (define fit #f)
   (define comps "A,B")
   (define order "formes")
   (define kind 'auto)
@@ -341,6 +361,11 @@
      [("--format") f "folio | folio6 | quarto | octavo" (set! fmt-name f)]
      [("--paper") p "sheet the shop buys: foolscap | pot | crown | demy | royal"
                     (set! sheet-name p)]
+     [("--font") f "family the facsimile is drawn in, e.g. Junicode" (set! face f)]
+     [("--font-file") f "a fount to embed beside the page, .woff2/.ttf/.otf"
+                        (set! font-file f)]
+     [("--fit") n "set width of that face against the body; re-derive it when the face changes"
+                  (set! fit n)]
      [("--compositors") c "which workmen are at the frames" (set! comps c)]
      [("--order") o "formes | seriatim" (set! order o)]
      [("--kind") k "auto | verse | prose | drama" (set! kind (string->symbol k))]
@@ -413,6 +438,7 @@
 
   (void (run-handpress input
                        #:out out-dir #:fmt-name fmt-name #:paper-name sheet-name
+                       #:face face #:font-file font-file #:fit fit
                        #:compositors comps
                        #:order order #:kind kind #:seed seed #:copies copies
                        #:case-scale case-scale #:cast-off cast-off

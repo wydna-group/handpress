@@ -211,6 +211,9 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 |---|---|
 | `--first-proof` | chance of a proof pulled *before* the run begins |
 | `--seed` | the whole run is deterministic in this |
+| `--font` | family the facsimile is drawn in, e.g. `Junicode` |
+| `--font-file` | a fount to embed beside the page — `.woff2`, `.ttf`, `.otf` |
+| `--fit` | set width of that face against the body; re-derive it when the face changes |
 | `--html` | HTML facsimile built from the TEI |
 | `--tei` | TEI P5 encoding |
 | `--xslt` | write the TEI and transform it to HTML |
@@ -276,6 +279,42 @@ The facsimile draws the leaf at that size rather than inventing one: one
 millimetre is a fixed number of pixels, and the type, the leaf and the margins
 all scale together. A verso's spine is on its right, so the narrow margin changes
 sides and the two pages of an opening lean towards each other.
+
+### The fount
+
+The default stack is Times-like, because an old-face roman is narrow and most
+modern screen serifs are not. That is an approximation, and the facsimile says
+so: the *positions* are the model's and the *glyphs* are the font's, and `--fit`
+is the seam between them. Every word sits at an offset the simulation computed,
+in `--grid` pixels, while the glyphs are drawn at `--grid × --fit` — deliberately
+different units, so a face wider or narrower than the modelled widths can be
+reconciled without moving the words.
+
+`--font` names a family, `--font-file` embeds one beside the page so the output
+stays self-contained, and `--fit` retunes the seam. **Re-derive `--fit` whenever
+the face changes**; leaving it at 1.00 under a wider face is how words come to
+collide.
+
+[Junicode](https://junicode.sourceforge.io/) is the fount to use. It is under
+the SIL Open Font License, its roman derives from the seventeenth-century Oxford
+types, and — checked rather than assumed — it carries every character this
+program sets: long s, `ﬀﬁﬂﬃﬄ` and `ſt`, the macron vowels, and the superior
+letters of `yᵉ` and `wᶜʰ`. It is not bundled, because a megabyte of fount does
+not belong in everyone's install:
+
+```sh
+racket main.rkt --html --font Junicode --font-file JunicodeVF-Roman.woff2 book.md
+```
+
+Measured on a 24-leaf quarto, Junicode at `--fit 1.00` leaves 4 touching word
+pairs in 8,636 — 0.046%, against the 0.08% the stylesheet records for Times. It
+needs no retuning.
+
+What a revival cannot give you is the *measure*. Its fitting is the reviser's,
+not the fount's — Marini autospaced IM Fell with his own algorithm, and Blokland
+notes that revivals of Renaissance type are fitted optically rather than to any
+historical grid. So the font supplies shapes here and nothing else; the widths
+are [a separate and unsolved problem](ROADMAP.md).
 
 Watermarks and chain-lines are **not** modelled, and are the largest single gap —
 see [the roadmap](ROADMAP.md). Note when picking them up that in this period the
