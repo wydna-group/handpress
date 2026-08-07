@@ -78,9 +78,25 @@
    #\M 0.89 #\N 0.72 #\O 0.74 #\P 0.58 #\Q 0.74 #\R 0.64
    #\S 0.55 #\T 0.61 #\U 0.72 #\V 0.68 #\W 0.95 #\X 0.68
    #\Y 0.65 #\Z 0.58
-   ;; figures were cast on an en body so that tables would range
-   #\0 0.50 #\1 0.50 #\2 0.50 #\3 0.50 #\4 0.50
-   #\5 0.50 #\6 0.50 #\7 0.50 #\8 0.50 #\9 0.50
+   ;; The figures did not range, and saying they did was reading a later
+   ;; convention back into the wrong century. Ranging (tabular) figures, all
+   ;; cast on one body so columns would line up, belong to the eighteenth
+   ;; century and after. A sixteenth-century fount had old-style figures of
+   ;; differing widths, and two independent sources say so: Blokland's calliper
+   ;; measurements of Garamont / Van den Keere's Moyen Canon Romain at the
+   ;; Museum Plantin-Moretus (appendix a5.5), where the ten figures run from
+   ;; 3.37 to 5.53 mm -- a spread of 64% -- and Marini's IM Fell English, a
+   ;; faithful digitisation of the seventeenth-century Oxford types, whose
+   ;; figures are old-style and plainly of differing widths.
+   ;;
+   ;; His millimetres are scaled so the mean stays exactly 0.50, the en body
+   ;; these used to sit on. So the setting density is unchanged and what has
+   ;; been adopted is the shape of the distribution and not its size -- which
+   ;; matters, because he measured a display fount and before Benton's
+   ;; pantograph every size was cut separately. The 7 being the widest of them
+   ;; is his measurement, not a slip.
+   #\0 0.59 #\1 0.39 #\2 0.48 #\3 0.43 #\4 0.51
+   #\5 0.42 #\6 0.54 #\7 0.65 #\8 0.50 #\9 0.49
    ;; points and marks
    #\. 0.28 #\, 0.28 #\; 0.28 #\: 0.28 #\! 0.30 #\? 0.44
    #\' 0.20 #\’ 0.20 #\- 0.33 #\— 1.00
@@ -145,5 +161,13 @@
   ;; the case have to be applied before any width is computed.
   (check-true (< (width-of #\ſ) (width-of #\s)))
   (check-equal? (width-of-word "") 0)
+  ;; The figures do not range: they are old-style and of differing widths, and
+  ;; a test that only checked their mean would pass on the uniform en bodies
+  ;; this replaced. Both facts are asserted.
+  (let ([figs (for/list ([c (in-string "0123456789")]) (width-of c))])
+    (check-true (> (- (apply max figs) (apply min figs)) (u 0.2))
+                "the figures are not all one width")
+    (check-= (/ (apply + figs) 10.0) EN-QUAD 0.5
+             "but they still average the en body they used to sit on"))
   (check-true (> (measure-in-characters (* 21 UNITS-PER-EM)) 30))
   (check-equal? (describe-space THICK) "thick space"))

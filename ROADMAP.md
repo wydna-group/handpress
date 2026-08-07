@@ -119,7 +119,77 @@ century". A watermark is evidence about a mould, not a ruler.
 
 ---
 
-## 4. Concurrent production — the McKenzie mode
+## 4. The set widths are invented, and their spread is too narrow
+
+`metrics.rkt` carries a per-sort width table with no source. Its own comment
+says so: "an old-face roman, rounded. Exactness is beside the point, proportion
+is not." It was built to be plausible. It sits underneath every line the
+compositor sets, and it is the one place where "the spacing is the whole point
+of the exercise" rests on nothing measured.
+
+**Whether it matters is not known, and the attempt to find out failed.** The
+branch `width-experiment` substitutes the only measured alternative anybody has
+published — Blokland's appendix a5.5, Garamont / Van den Keere's Moyen Canon
+Romain, sixteenth-century foundry type from the Museum Plantin-Moretus, taken
+sort by sort with a digital calliper — with the setting density held constant.
+Across eight seeds, preliminary scheme pinned so only the seed varies:
+
+| | invented table | measured table | diff / sd |
+|---|---|---|---|
+| needing an expedient | 70.65 ± 13.86 | 75.29 ± 9.23 | 0.39 |
+| a word divided at the end | 84.95 ± 19.13 | 83.50 ± 10.31 | −0.09 |
+| quadded out | 169.18 ± 1.60 | 170.25 ± 1.35 | 0.72 |
+
+Nothing there. **The seed dominates everything.** On one width table, changing
+only the seed swings word division from 65.34 to 113.41 — a 74% spread, and the
+same for expedients. Any difference the widths make is buried under it at this
+sample size. Detecting a five-point shift against a standard deviation of
+fourteen would need something like sixty runs a side, not eight.
+
+**Two claims made from a single seed and since retracted**, recorded because the
+first answer is the one that gets believed:
+
+- *"Division rises 15.4%."* It does on seed 1614. Over eight seeds the
+  difference is −1.5, and the sign reverses. Pure noise.
+- *"The collation changes from `4°: *⁴ A–E⁴` to `4°: A–F⁴`."* It does not. The
+  preliminary signature scheme is drawn from weights when left on `auto`, so any
+  change upstream shifts the RNG stream and the draw lands elsewhere. Pin the
+  scheme with `--prelim-signatures` and both tables give the same collation.
+  That was the RNG moving, not the type.
+
+What survives is narrower and still worth having: the table has no source; the
+measured fount's spread is wider than ours (m/i 3.86 against 2.79); and `quadded
+out` is the one metric with low enough seed variance that a real effect could be
+seen there if one exists.
+
+**Why the branch is not merged.** Blokland measured display sizes. Before
+Benton's pantograph "every point size was a type on its own and had to be cut
+separately", which made adaptations between sizes standard practice, so these
+millimetres must not be scaled to a pica. That is exactly the
+anchored-on-one-example error recorded at the foot of this file, and it is how
+the fount came to be three times too large. What transfers is the structure.
+
+**What transfers, and is worth doing without any new source:** widths came in
+shared classes rather than a continuum. Blokland's measured groups, within a
+tolerance of 0.2–0.4 mm, are `[a c e]`, `[b d g h n o p q v fi]`, `[i j l]` and
+`[r s t]`. Casting with fixed registers is why: matrices of corresponding
+letters were justified to one width. Our table gives forty-odd sorts forty-odd
+independent decimals.
+
+**What is still wanted: a measured text-size roman.** No book appears to
+tabulate one. Vervliet catalogues types for identification — 20-line body,
+x-height — not per-sort widths, and Mosley warns in his preface to Carter that
+type from identical matrices "may look very different if cast in a mould for a
+larger or smaller body", so a set width may not be a property of the matrices
+at all. Two routes, neither of them a purchase: measure it off a
+high-resolution facsimile of a page in a known fount, solving for widths across
+many lines of known content; or write to Blokland, who has the matrices, the
+microscope and the method, and measured display sizes only because that is what
+his argument needed.
+
+---
+
+## 5. Concurrent production — the McKenzie mode
 
 The program models one book at a time. McKenzie's central finding is that a shop
 worked on several at once, and that the patterns this produces are "of such an
@@ -147,7 +217,7 @@ the comma box belongs to the house), and **space-metal shared the same way**
 
 ---
 
-## 5. Smaller, and well specified
+## 6. Smaller, and well specified
 
 - [ ] **What became of the leaves that stayed white.** Two outlets are modelled
       — preliminaries printed there and cut out, and cancels printed there — and
@@ -184,6 +254,17 @@ the comma box belongs to the house), and **space-metal shared the same way**
       the Lear column. Only then is `BLANK-FOR-PROOF` (0.25, a guess) worth
       looking at. The misclassification is already fixed: the placeholder has its
       own category `#sort-wanting` rather than being reported as foul case.
+
+      Their *widths* are fixed, which is a separate thing from their number. The
+      table used to give every figure 0.50 em "so that tables would range", which
+      was an eighteenth-century convention read back into the sixteenth. Two
+      sources say otherwise: Blokland's calliper measurements run 3.37 to 5.53 mm
+      across the ten, a spread of 64%, and Marini's IM Fell English — a faithful
+      digitisation of the seventeenth-century Oxford types — has old-style
+      figures of plainly differing widths. They are now proportioned to his
+      measurements with the mean held at the en body, so the density is unchanged
+      and only the shape of the distribution has moved. See §4 for why the shape
+      transfers from a display size and the values do not.
 
 - [ ] **A forced substitution is free in the model and was not in the shop.**
       `pick-line!` owns `printed` and writes it; `width` was derived from
@@ -270,7 +351,7 @@ the comma box belongs to the house), and **space-metal shared the same way**
 
 ---
 
-## 6. Widen the calibration base
+## 7. Widen the calibration base
 
 Nearly every rate rests on **one pairing**: about 12,000 words of the *Much Ado*
 quarto against the Folio set from it. That is a narrow base for the confident
@@ -413,7 +494,7 @@ what is worth carrying forward is the number it produced.
 it. Every percentage the analysis produces is the analyser inverting the
 generator; both were written from the same account of how a printing house
 behaved, so agreement demonstrates self-consistency and nothing else. The right
-response is to keep saying so in every report and to build §4, which makes the
+response is to keep saying so in every report and to build §5, which makes the
 failure visible rather than arguing about it.
 
 **Fitting the parameters to the sample.** Several rates sit close to their
@@ -466,6 +547,27 @@ omission branch, and the crowding devices. Turn-over was wrongly added to that
 list and taken off again. To which that episode adds a corollary: **a report that
 prints a bare zero cannot distinguish a thing that did not happen from a thing
 that could not.** Both look like evidence and only one is.
+
+**One seed is not a measurement, and this applies to rates and not only to rare
+events.** It was already written down here that a test asserting a rare event
+happened at least once, on one seed, is a test of the seed. The same is true of
+every rate the report prints. Word division on one width table ranges from 65 to
+113 per thousand lines across eight seeds — a 74% spread — so a single-seed
+comparison can produce any answer you like, in either direction, and it will
+look like a finding. Two claims were made that way in one session and both were
+noise. Before comparing two versions of anything, run enough seeds to see the
+variance, and pin whatever is drawn at random: the preliminary signature scheme
+is on `auto` by default, so it re-draws whenever the RNG stream shifts and turns
+an unrelated change into an apparent change of collation.
+
+**A normalisation that looks neutral can smuggle in the effect you are testing
+for.** Substituting a measured width table, I held the unweighted mean over
+a–z, which seemed the obvious control. `i` and `s` are 13.5% of the text between
+them and both shrank hard, so the frequency-weighted mean fell 2.56% and the
+text simply set narrower — I had changed the density while believing I had
+changed only the proportions. Ask what a control actually holds constant, and
+weight it by how often each thing occurs in the copy rather than by how many
+kinds there are.
 
 **The corpus can answer questions about marks, not only about words.** The
 scribal rates were guessed from two books for several sessions while 5,287 sat on
