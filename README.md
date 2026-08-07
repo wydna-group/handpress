@@ -223,9 +223,25 @@ racket main.rkt --format folio6 --paper crown --compositors A,B,C,D,E \
 python tools/audit-mechanisms.py out-folio/folio.tei.report.txt
 ```
 
-About seven minutes, and it is the standard hard case: setting the whole Folio
-at a full edition found four defects that no smaller book did, including a
-folio measure 25% too narrow. See ROADMAP §6a.
+About seven minutes, and it is the standard hard case. Setting the whole Folio
+at a full edition found defects no smaller book did — a folio measure 25% too
+narrow, a fuller spelling that could overrun the measure and crash the
+compositor, copy names that broke past 26 copies — and then the Norton
+facsimile found more. Where it now stands against the record:
+
+| | model | recorded | source |
+|---|---|---|---|
+| verse share of the text | 73.2% | 73% | solved from the Norton plates |
+| word divisions per 100 lines | 1.77 | 2.03 | measured, 790 plates |
+| press variants in the book | 561 | "just over 500" | Hinman, Norton, p. xx |
+| formes corrected mid-run | 144 of 510 | ~100 of ~450 | ibid. |
+| impressions before correction | median 8% | "about 100" of 1,200 | ibid. |
+| identifiable types per page | 12.7 | 11–12 | Blayney i. 96 on Hinman |
+| type page | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
+| pages | 1,020 | 908 | the book |
+
+Nothing was tuned to close a gap; where one is open it is open on purpose, and
+ROADMAP §6a says which and why.
 
 `tools/audit-mechanisms.py` reads a finished report and sorts every countable
 mechanism into *fired*, *silent*, and *not offered* — the third pile being the

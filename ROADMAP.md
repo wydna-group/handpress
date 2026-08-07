@@ -557,6 +557,56 @@ proofed 1.9× as often — and only the base rate under it was wrong.
   half a folio page's type-area where ours holds 30%. Tuning until both fit
   would bury the discrepancy that says one of the two measures is still wrong.
 
+### Results against the record
+
+Everything below is the whole Folio at a full edition of 1,200 copies. The
+right-hand column is what the literature says; the middle is where the program
+now lands. Nothing was tuned to close a gap — where one is left, it is left.
+
+| | before | after | recorded | source |
+|---|---|---|---|---|
+| verse share of the text | 94% | **73.2%** | 73% | solved from the Norton plates |
+| word divisions per 100 lines | 0.15 | **1.77** | 2.03 | measured, 790 plates |
+| press variants in the book | 1,035 | **561** | "just over 500" | Hinman, Norton, p. xx |
+| formes corrected mid-run | 258 of 511 | **144 of 510** | ~100 of ~450 | ibid. |
+| impressions before correction | median 8% | median 8% | "about 100" of 1,200 | ibid. |
+| identifiable types per page | 18.9 | **12.7** | 11–12 | Blayney i. 96 on Hinman |
+| type page | — | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
+| leaves cancelled | 349 of 511 | **69 of 510** | one famous cancel | McKerrow, Hinman |
+| pages | 1,386 | **1,020** | 908 | the book |
+
+The uncorrected-impressions figure is the one nothing was fitted to: it falls
+out of the edition size and Hinman's own four pulls a minute, and it was right
+before anyone looked.
+
+Two gaps are deliberately open. The **quarto type-density check no longer
+passes** at the folio's re-anchored discrimination — about 4.3 against
+Blayney's 5–6 — because his reasoning assumes a quarto page holds half a folio
+page's type-area where ours holds 30%; tuning until both fit would bury the
+discrepancy that says one of the two measures is still wrong. And **pages run
+12% over**, which is accounted for: Gutenberg prints a scene list and Dramatis
+Personæ at the head of every play that the Folio does not.
+
+### What a plate showed that no statistic did
+
+Setting a page beside the Norton facsimile of the same play found four things
+the numbers could not, because none of them changes a rate:
+
+- the running title read `THE HISTORY` — the book's global default — on all
+  1,020 pages, where the Folio names the play;
+- Gutenberg's italic markers were being set as type, 4,510 underscores;
+- the Folio's **box frame and centre rule** were not drawn at all, though
+  Hinman treats them as skeleton furniture and a bruised rule is evidence in
+  the same way a damaged running title is;
+- the first line of a speech is indented in the Folio and flush in ours.
+
+The first three are fixed. **The indent is not**: the change was made on the
+prose path and these speeches go through `set-verse`, which has no first-line
+indent at all. Also outstanding, from the same comparison: stripping the
+underscores leaves stage directions reading `Afide.]` with a stray bracket,
+and the bracket is what the copy reader uses to recognise a direction, so it
+needs more than a regex.
+
 **What it showed that is not a defect.** Three mechanisms report nought on the
 Folio — pages crowded, lines of copy dropped, catchwords not answering — and
 all three are alive. They are consequences of the casting off, and casting off

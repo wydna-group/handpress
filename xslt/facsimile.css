@@ -183,6 +183,24 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    shown as it stands and says on hover what it should have been. */
 .pageno.wrong { border-bottom: 1px dotted rgba(140,47,22,.55); cursor: help; }
 .rule { border-bottom: 1px solid rgba(40,28,14,.5); margin-bottom: 1.1em; }
+
+/* The rules of the type page, which are furniture and not decoration.
+   A First Folio page is enclosed in a frame of rule and its two columns are
+   divided by a centre rule; only the head-line rule was drawn here, which was
+   plain against the Norton plate. Hinman treats them as part of the skeleton
+   -- they are lifted from forme to forme with the running titles and, like a
+   damaged running title, a bruised rule is evidence of which skeleton was
+   used. Drawing them is a first step towards being able to model that.
+
+   Multi-column pages only: a quarto is set in one column and has no centre
+   rule to draw, and a page with a frame round a single column would be a
+   picture of a book this program does not print. */
+.plate[style*="--cols:2"] .cols { border: 1px solid rgba(40,28,14,.42);
+                                  padding: .55em .7em 0; }
+.plate[style*="--cols:2"] .col + .col {
+  border-left: 1px solid rgba(40,28,14,.42);
+  padding-left: calc(var(--grid) * var(--gut, 2.2) / 2); }
+.plate[style*="--cols:2"] .cols { gap: calc(var(--grid) * var(--gut, 2.2) / 2); }
 /* --lines is the lines on the *page*, which is what a bibliographer counts and
    what the description reports: a two-column folio of 66-line columns has 132.
    The depth of the type is therefore --lines divided among the columns, not

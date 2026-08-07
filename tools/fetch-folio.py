@@ -205,6 +205,29 @@ def restore_initial(text, letter):
     return "\n".join(lines)
 
 
+def strip_markers(text):
+    """Take out Gutenberg's italic markers, which are not words.
+
+    Gutenberg marks italic with underscores -- `_Exit Caliban._`, `[_To
+    Ferdinand._]` -- and they were going through to the compositor and being
+    set as type: 125 of them in The Tempest alone, printing as underscores on
+    the page. No compositor ever set one. Comparing our page against the
+    Norton plate is what showed it; nothing in the statistics would have,
+    because an underscore is just another sort as far as the model is
+    concerned.
+
+    The italic itself is a real distinction the Folio observes for stage
+    directions, but the program takes that from the copy's structure rather
+    than from inline marks, so nothing is lost by removing them.
+    """
+    text = re.sub(r"_([^_\n]{1,200}?)_", r"\1", text)
+    text = text.replace("_", "")
+    # `[Exit Caliban.]` is how the program's own reader recognises a stage
+    # direction, so the brackets stay; it is the underscores inside them that
+    # had to go.
+    return text
+
+
 def strip_folger_header(text):
     """Drop the modern edition credit; keep everything from the first heading.
 
@@ -356,7 +379,7 @@ def main():
 
     plays, seen = [], {}
     for i, (section, heading, title) in enumerate(PLAYS, 1):
-        body = slice_for(heading)
+        body = strip_markers(slice_for(heading))
         # Not a download check but a content check. The Folger endpoint served
         # six wrong plays with HTTP 200 apiece; only comparing the texts caught
         # it. An identical body means the split went wrong.

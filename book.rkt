@@ -289,8 +289,13 @@
           (define lead (if pending (list (speech-prefix c pending pressure)) '()))
           (define o (flush-run-on out))
           (loop rest #f '()
+                ;; The line carrying the speaker is indented and the turnovers
+                ;; under it are not, which is how the Folio sets a speech and
+                ;; is plain on any plate of it. This read `(null? lead)',
+                ;; suppressing the indent on exactly the line that should have
+                ;; had it and indenting only the speeches with no prefix.
                 (append (reverse (set-prose c (copy-unit-text u) spec pressure
-                                            #:first-indent? (null? lead)
+                                            #:first-indent? #t
                                             #:lead lead))
                         o))])])))
 
@@ -1218,7 +1223,15 @@
     (for*/hash ([fm (in-list formes)] [p (in-list (forme-page-numbers fm))])
       (values (cons (forme-gathering fm) p) fm)))
   (define counters (make-hash))
+  ;; The play now being set. A heading line on a page is the start of one, and
+  ;; every page after it carries that name until the next heading.
+  (define current-head (box ""))
   (for/list ([p (in-list pages)])
+    (for ([l (in-list (page-all-lines p))]
+          #:when (eq? (set-line-kind l) 'heading))
+      (define txt (string-upcase (line-text l)))
+      (unless (string=? (string-trim txt) "")
+        (set-box! current-head txt)))
     (define r (page-pref p))
     (define fm (hash-ref by-key (cons (page-ref-gathering r) (page-ref-number r)) #f))
     (cond
@@ -1227,7 +1240,27 @@
        (define sk (forme-skeleton fm))
        (define k (hash-ref counters (skeleton-name sk) 0))
        (hash-set! counters (skeleton-name sk) (add1 k))
-       (struct-copy page p [running-title (title-for sk k)])])))
+       (define t (title-for sk k))
+       ;; The head-line names the play, not the book.
+       ;;
+       ;; `title-for' hands back the skeleton's title, whose *damage* is the
+       ;; evidence -- a chipped d recurring across formes is how a skeleton is
+       ;; identified, and that must travel unchanged. But its TEXT is a fact
+       ;; about what is being printed: a shop reaching the end of one play and
+       ;; starting the next resets the words while the type of the head-line
+       ;; goes on being the same battered type.
+       ;;
+       ;; This printed the book's one global title on every page. On a single
+       ;; play nobody notices; on the Folio it put THE HISTORY over all 1,020
+       ;; pages where the real book has The Tempest, then The Two Gentlemen of
+       ;; Verona, and so on. Comparing our page against the Norton plate is
+       ;; what showed it.
+       (struct-copy page p
+                    [running-title
+                     (if (string=? (unbox current-head) "")
+                         t
+                         (struct-copy running-title t
+                                      [text (unbox current-head)]))])])))
 
 (define (compress-stints log)
   (let loop ([xs log] [out '()])
