@@ -24,7 +24,7 @@
          LONG-S-LIGATURES LIGATURE-PRINTS take-ligature!
          LOWER-CASE-LEFT LOWER-CASE-RIGHT UPPER-CASE-LAY
          damage-vocabulary damage-for damage-phrase CONDITIONS batter!
-         note-recurrence! sort-piece-note
+         note-recurrence! sort-piece-note all-pieces battered-at-press
          SUBSTITUTIONS substitution-only? substitution-phrase
          PLACEHOLDER placeholder?)
 
@@ -529,7 +529,25 @@
 ;; Hinman illustrates (i, figs. 2-16): broken serifs, battered faces, nicked
 ;; bowls, chipped shoulders, cracked stems, types worn below the impression.
 
-(struct sort-piece (id char damage) #:transparent)
+;; `severity' is how striking the injury is, and it is a rank rather than a
+;; measurement: the piece's place in the population of injuries, on [0,1).
+;;
+;; Hinman is clear that the magnitude matters and that it varies enormously --
+;; the particles that did the damage "were by no means uniform in size and, as
+;; to shape, were almost infinitely various. The abnormalities they produce
+;; therefore differ very widely, some being far more striking than others"
+;; (i. 55). He is equally clear that there is no scale to put them on: "To
+;; precisely what extent a type must be deformed in order to make it
+;; sufficiently distinctive for use as evidence obviously cannot be said:
+;; 'sufficiently' is not a precise word."
+;;
+;; Taking it as a rank is what lets it be drawn without inventing a
+;; distribution. A rank is uniform on [0,1) by construction, so the uniform
+;; draw below asserts nothing about how injuries are distributed -- only that
+;; they can be ordered, which is the whole of what Hinman claims.
+(struct sort-piece (id char damage severity) #:transparent)
+
+(define (make-piece id ch g) (sort-piece id ch (damage-for ch g) (rnd g)))
 
 (define (sort-piece-note p)
   (format "~a (~a)" (damage-phrase (sort-piece-damage p)) (sort-piece-id p)))
@@ -583,8 +601,24 @@
 ;; `replenish!'.
 (struct tcase (boxes initial low exhausted distributed foulness turn-rate rng
                      distinctive recurrence counter inverted replenished
-                     cannibalized blanks white)
+                     cannibalized blanks white pieces battered)
   #:transparent)
+
+;; `distinctive' holds only the pieces standing in the case at this moment: a
+;; piece is taken out of it when it is picked and put back when its forme is
+;; distributed, so at the end of a book the pieces still locked up in standing
+;; formes are not in it. `pieces' is the register of every distinctive piece
+;; the fount has ever held, id -> piece, and is what anything asking "what
+;; could have been identified?" must read. The two are different questions and
+;; a couple of formes' worth of type separates them.
+(define (register-piece! tc p)
+  (hash-set! (tcase-pieces tc) (sort-piece-id p) p))
+
+(define (all-pieces tc) (hash-values (tcase-pieces tc)))
+
+;; The pieces this book's own printing made distinctive, id -> the forme that
+;; was at press when it happened. Everything else in `pieces' came damaged.
+(define (battered-at-press tc) (tcase-battered tc))
 
 ;; Every sort that leaves a box leaves it through here, so the low-water mark
 ;; cannot drift out of step with the stock -- and so a defective batch is used
@@ -740,6 +774,7 @@
   (define rate (if (real? condition) condition (hash-ref CONDITIONS condition 0.010)))
   (define distinctive (make-hash))
   (define counter (box 0))
+  (define register (make-hash))
   (for ([(ch n) (in-hash boxes)])
     (define k (exact-round (* n rate)))
     (when (> k 0)
@@ -747,16 +782,26 @@
       (hash-set! distinctive ch
                  (for/list ([i (in-range k)])
                    (set-box! counter (add1 (unbox counter)))
-                   (sort-piece (format "t~a" (unbox counter)) ch
-                               (damage-for ch rng))))))
+                   (define p (make-piece (format "t~a" (unbox counter)) ch rng))
+                   (hash-set! register (sort-piece-id p) p)
+                   p))))
   (tcase boxes (hash-copy boxes) (hash-copy boxes) (make-hash) (make-hash)
          foulness turn-rate rng distinctive (make-hash) counter
-         (make-hash) (make-hash) (make-hash) (make-hash) (make-hash)))
+         (make-hash) (make-hash) (make-hash) (make-hash) (make-hash)
+         register (make-hash)))
 
 ;; Types are battered at press as well as in the case. A sound sort may become
 ;; distinctive part-way through a book, which is why Hinman could date some
 ;; formes by the *first* appearance of a particular injury.
-(define (batter! tc n)
+;;
+;; `#:at' is what makes that dating possible, and it is why the injuries dealt
+;; during this book are kept apart from the ones the fount arrived with. Both
+;; kinds are distinctive and the recurrence evidence treats them alike, but
+;; only one of them has a date, and a piece whose first appearance is in a
+;; known forme fixes every later appearance after it. Without the separation
+;; the report can say how battered the fount is and not how much of that this
+;; book did, which is the question a printer would have asked.
+(define (batter! tc n #:at [place #f])
   (define g (tcase-rng tc))
   (for ([i (in-range n)])
     (define chs (hash-keys (tcase-boxes tc)))
@@ -765,12 +810,10 @@
       (when (> (hash-ref (tcase-boxes tc) ch 0) 1)
         (hash-update! (tcase-boxes tc) ch sub1)
         (set-box! (tcase-counter tc) (add1 (unbox (tcase-counter tc))))
-        (hash-update! (tcase-distinctive tc) ch
-                      (lambda (xs)
-                        (cons (sort-piece (format "t~a" (unbox (tcase-counter tc)))
-                                          ch (damage-for ch g))
-                              xs))
-                      '())))))
+        (define p (make-piece (format "t~a" (unbox (tcase-counter tc))) ch g))
+        (register-piece! tc p)
+        (hash-set! (tcase-battered tc) (sort-piece-id p) place)
+        (hash-update! (tcase-distinctive tc) ch (lambda (xs) (cons p xs)) '())))))
 
 (define (bump! h k) (hash-update! h k add1 0))
 

@@ -31,7 +31,21 @@
          racket/runtime-path racket/file racket/path
          "vocabulary.rkt")
 
-(provide tei->html tei-file->html)
+(provide tei->html tei-file->html current-witness)
+
+;; Which made-up copy the facsimile is showing.
+;;
+;; It has to be *a* copy. Before this existed the page took the first <rdg> of
+;; every <app>, and `variant-index' writes the uncorrected group first -- so
+;; the facsimile showed the uncorrected state of every variant forme at once.
+;; That is not a copy anybody could pull off a shelf: measured on a run of
+;; twenty-four copies with ten split variants, the closest actual copy agreed
+;; with the page in six of the ten and four of them agreed in none.
+;;
+;; A book made of the earliest state of every forme is exactly the conflation
+;; this program exists to warn about, and it was being shown unlabelled as
+;; "the book" while the copies tab listed the real ones beside it.
+(define current-witness (make-parameter "copya"))
 
 (define-runtime-path facsimile-css "xslt/facsimile.css")
 (define-runtime-path facsimile-js "xslt/facsimile.js")
@@ -120,6 +134,17 @@
 (define (word-forms w)
   (define ch (kid w 'choice))
   (define app (kid w 'app))
+  ;; Set false only when this copy has a reading the word's type does not
+  ;; describe. A word with no apparatus always keeps its type.
+  ;;
+  ;; It governs the damaged sorts as well as the glyph, and must. `hp:sorts'
+  ;; names a piece of type by its position in the word -- "the 4th character
+  ;; was set from t51" -- so the indices only mean anything against the string
+  ;; that was actually set. Show a different reading and keep the sorts and
+  ;; the damage marks land on whatever characters happen to sit at those
+  ;; offsets, which for "vnchaſte.e" against "vnchaſte." is a different letter
+  ;; and for a shorter reading is nothing at all.
+  (define type-applies? (box #t))
   (define-values (printed reading)
     (cond
       [ch
@@ -128,17 +153,38 @@
        (values (if first-branch (text-of first-branch) (text-of ch))
                (if second-branch (text-of second-branch) (text-of ch)))]
       [app
+       ;; The reading this witness has, not the first one written down.
        (define rs (kids app 'rdg))
-       (values (if (pair? rs) (text-of (car rs)) (text-of app))
-               (if (pair? rs) (text-of (car rs)) (text-of app)))]
+       (define mine
+         (or (for/or ([r (in-list rs)])
+               (and (member (string-append "#" (current-witness))
+                            (string-split (attr r 'wit "")))
+                    r))
+             (and (pair? rs) (car rs))))
+       ;; hp:set names the reading the word's own glyph and pieces describe.
+       ;; Where this copy has the other one, the text is all the file has, and
+       ;; showing hp:glyph beside it would put the type of one state under the
+       ;; reading of the other -- which is how "High" came to print as "Hiqh"
+       ;; in a copy that reads High.
+       (set-box! type-applies? (and mine (attr mine '|hp:set|) #t))
+       (values (if mine (text-of mine) (text-of app))
+               (if mine (text-of mine) (text-of app)))]
       [else (let ([t (text-of w)]) (values t t))]))
-  (values (or (attr w '|hp:glyph|) printed) reading))
+  (values (if (unbox type-applies?) (or (attr w '|hp:glyph|) printed) printed)
+          reading
+          (unbox type-applies?)))
 
-;; hp:sorts="3:t51:bent;7:t42:worn" -> index -> (id . damage)
+;; hp:sorts="3:t51:bent:0.72;7:t42:worn:0.15" -> index -> (id . damage)
+;;
+;; Three fields or four: the severity was added after this parser was written,
+;; and files made before it exist. `= 3' here would have dropped every piece
+;; in a four-field file on the floor -- no error, no empty attribute, just a
+;; facsimile with none of its damage marked, which is a page that quietly
+;; disagrees with the record it was built from.
 (define (sorts-of w)
   (define raw (attr w '|hp:sorts| ""))
   (for/hash ([spec (in-list (string-split raw ";"))]
-             #:when (= 3 (length (string-split spec ":"))))
+             #:when (<= 3 (length (string-split spec ":"))))
     (define parts (string-split spec ":"))
     (values (string->number (first parts)) (cons (second parts) (third parts)))))
 
@@ -186,7 +232,7 @@
                           (esc (string b)) (esc (string a)) (esc (string b))))))]))
 
 (define (word->html w sig damage-names)
-  (define-values (printed reading) (word-forms w))
+  (define-values (printed reading type-applies?) (word-forms w))
   (define ana (attr w 'ana ""))
   (define cls
     (string-join
@@ -195,7 +241,10 @@
                    (if (equal? (attr w 'rend) "italic") "it" "")
                    (hash-ref ANA-CLASS ana "")))
      " "))
-  (define sorts (sorts-of w))
+  ;; No sorts where they would be indexed against a string they do not
+  ;; describe. Losing the damage marks on such a word is a real loss and is
+  ;; the right one: the alternative is marks that are confidently wrong.
+  (define sorts (if type-applies? (sorts-of w) (hash)))
   (define body
     (mark-accident (mark-damage printed sorts damage-names) printed
                    (attr w '|hp:composed|)))
@@ -728,8 +777,9 @@
     [(and (string=? src "") (string=? decls "")) ""]
     [else (format "\n~a:root{~a}\n" src decls)]))
 
-(define (tei->html doc #:lede [lede ""]
+(define (tei->html doc #:lede [lede ""] #:witness [witness "copya"]
                    #:face [face #f] #:font-file [font-file #f] #:fit [fit #f])
+  (current-witness witness)
   (define root (document-element doc))
   (define hdr (find root 'teiHeader))
   (define title (let ([t (find hdr 'title)]) (if t (text-of t) "A book")))
@@ -851,10 +901,11 @@
    "</div>\n<script>" (file->string facsimile-js) "</script>\n"
    "</body></html>\n"))
 
-(define (tei-file->html path #:lede [lede ""]
+(define (tei-file->html path #:lede [lede ""] #:witness [witness "copya"]
                         #:face [face #f] #:font-file [font-file #f] #:fit [fit #f])
   (tei->html (read-xml (open-input-string (file->string path)))
-             #:lede lede #:face face #:font-file font-file #:fit fit))
+             #:lede lede #:witness witness
+             #:face face #:font-file font-file #:fit fit))
 
 ;; The stylesheet as it is actually served: the hand-written layout, plus the
 ;; departure marks generated from the vocabulary. Both renderings use this, and

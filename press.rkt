@@ -93,7 +93,7 @@
              (if (string=? (page-signature p) "") 0 1)))))
 
 (struct press-run (states copies events silent-readings edition binding-error
-                          cancels perfecting heap-disorder)
+                          cancels perfecting heap-disorder cancel-rate)
   #:transparent)
 
 (define (run-variants r)
@@ -481,8 +481,13 @@
                                     (leaf-of (car (book-pages b))))
                   #:rng (make-rng (+ seed 7331))))
 
+  ;; The cancel rate is kept because the report has to say *why* no leaf was
+  ;; cancelled. Nought cancels at rate 0.00 means the run was never asked to
+  ;; consider one; nought at 0.15 means it considered and declined. Those are
+  ;; different facts and a bare "No leaf was cancelled" tells them apart for
+  ;; nobody.
   (press-run states made (reverse log) silent-readings edition binding-error
-             cancels inner-first heap-disorder))
+             cancels inner-first heap-disorder cancel-rate))
 
 ;; The readings actually shown by one copy: the silent corrections, which
 ;; every copy has, plus whichever state of each variant forme it was made up

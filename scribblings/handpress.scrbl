@@ -80,6 +80,8 @@ Flags come @emph{before} the input file, as Racket's
         (list @tt{--fount} "condition of the type: new | used | worn | foul")
         (list @tt{--skeletons} "skeleton formes in use")
         (list @tt{--formes-standing} "formes of type standing before distribution")
+        (list @bold{The analysis} "")
+        (list @tt{--discrimination} "how finely the analysis can tell one damaged type from another, 0–1; a ceiling, not a typical eye")
         (list @bold{At press} "")
         (list @tt{--first-proof} "chance of a proof pulled before the run begins")
         (list @tt{--seed} "the whole run is deterministic in this")

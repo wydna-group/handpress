@@ -8,7 +8,7 @@
          racket/system racket/runtime-path racket/math
          "book.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
          "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt" "import.rkt"
-         "paper.rkt")
+         "paper.rkt" "recurrence.rkt")
 
 (provide run-handpress apply-xslt)
 
@@ -101,6 +101,10 @@
                        #:cancels [cancels 0]
                        #:imprint-change? [imprint-change? #f]
                        #:heap-disorder [heap-disorder 0.15]
+                       ;; How fine an eye the analysis reads the book with.
+                       ;; Nothing in the printing house sees this: it changes
+                       ;; what the report can identify, never what was set.
+                       #:discrimination [discrimination DEFAULT-DISCRIMINATION]
                        #:jaggard? [jaggard? #f]
                        #:prelim-style [prelim-style #f]
                        #:pages [pages 0]
@@ -209,6 +213,10 @@
   ;; the reader's spelling instead of the compositor's.
   (show-modernised? modern-spelling?)
   (define facsimile (render-book-text b #:numbers? numbers?))
+  ;; Set after the book is made and before it is read, which is the order the
+  ;; thing describes: the injuries are in the metal either way, and this says
+  ;; only how much of them an investigator can make out.
+  (current-discrimination discrimination)
   (define report (full-report b r names #:source src))
 
   (unless quiet?
@@ -280,6 +288,10 @@
       (write! ".html"
               (tei-file->html
                xml
+               ;; The same witness the XSLT reading text uses. The facsimile
+               ;; must be *a* copy, not the earliest state of every forme at
+               ;; once, which is a book no one owns.
+               #:witness witness
                #:face face #:font-file font-file
                #:fit (and fit (string->number fit))
                ;; The collation gives the format, which is a folding and not a
@@ -337,6 +349,7 @@
   (define cancels 0)
   (define imprint-change? #f)
   (define heap-disorder 0.15)
+  (define discrimination DEFAULT-DISCRIMINATION)
   (define jaggard? #f)
   (define prelim-style #f)
   (define pages 0)
@@ -406,6 +419,9 @@
       (set! cancel-rate (string->number x))]
      [("--imprint-change") "re-issue with the bookseller's name altered: a cancel title"
       (set! imprint-change? #t)]
+     [("--discrimination") x
+      "how finely the ANALYSIS can tell one damaged type from another, 0-1; the default is anchored on Hinman's Folio and is a ceiling, not a typical eye"
+      (set! discrimination (string->number x))]
      [("--heap-disorder") x
       "how much of the heaps' order the drying and piling destroy, 0-1. At 0 the copies are gathered exactly as Gaskell describes and the press variants group consistently; at 1 every forme is an independent draw. No source gives a value (default 0.15)"
       (set! heap-disorder (string->number x))]
@@ -454,6 +470,7 @@
                        #:prelim-style prelim-style
                        #:cancel-rate cancel-rate #:cancels cancels
                        #:imprint-change? imprint-change? #:heap-disorder heap-disorder
+                       #:discrimination discrimination
                        #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
                        #:modern-spelling? modern-spelling? #:scribal? scribal? #:year year

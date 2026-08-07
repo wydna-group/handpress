@@ -205,6 +205,18 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--formes-standing` | formes of type standing before distribution |
 | `--paging-error` | how freely the paging goes wrong, 0–1 (default 0.04) |
 
+### The analysis
+
+Nothing here changes what was printed. It changes what a bibliographer reading
+the result is able to make out, which is a different thing and was not modelled
+at all until recently: the analysis used to be handed every distinctive piece in
+the fount, perfectly labelled.
+
+| flag | effect |
+|---|---|
+| `--witness` | which made-up copy the facsimile and the XSLT reading text show, e.g. `copya`. It must be *a* copy: the facsimile used to take the first reading of every apparatus, which is the uncorrected state of every forme at once — a book no one owns. Measured on 24 copies with 10 split variants, the closest real copy agreed with that page in 6 of the 10. |
+| `--discrimination` | the finest difference between two injuries an investigator can reliably see, 0–1. The default 0.20 is anchored on Hinman's Folio — 12.2 identifiable types a page against the 11–12 Blayney counts in his *Lear* — and is therefore a **ceiling** on what anyone saw, not a typical eye. Raise it for a worse investigator. |
+
 ### At press, and output
 
 | flag | effect |

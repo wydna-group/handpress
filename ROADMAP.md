@@ -43,15 +43,120 @@ press. Expect it to work and then fail interestingly — when two formes were se
 close together, when a case was replenished mid-forme, or under concurrent
 production, where a sort may recur because it went to another book and came back.
 
-**Turner's rule belongs here**, and is the sharpest single experiment available.
+**The analyst's eye is built** — `recurrence.rkt`, and it had to come first,
+because until it existed the analysis was handed every distinctive piece in the
+fount, perfectly labelled, with every one of its appearances known. That is not
+evidence, it is the answer, and grading an inference against the truth means
+nothing if the inference starts from the truth.
+
+How far off it was is the measurement worth keeping. At the default fount the
+model puts **27.2 distinctive types on a folio page** (± 1.2 over five seeds)
+where Hinman's actual harvest from the Folio *Lear* was 11–12. Roughly twice as
+much evidence as the man who invented the method ever had — and it is his figure
+that every published type-recurrence argument rests on. The gap is *not* a sign
+the fount is too battered: `CONDITIONS` says how much metal is damaged and
+Hinman's number counts what one man could identify, and closing it by adjusting
+the fount would have made the type case wrong to make a report right.
+
+Most of what Hinman says about identifying types (i. 54–6) is a rule, and two
+are encoded with no free parameter: **bent or broken ascenders on b, d and h**,
+which he says are "practically useless as means of identifying individual
+types", and **pieces too alike to separate** — "defective in so nearly the same
+way that they cannot always be clearly distinguished from each other". The
+second is the interesting one, because it means evidence does not scale with
+decay: a fouler fount holds more distinctive pieces *and* more pieces damaged
+alike, so past a point further battering buys nothing. That falls out of counting
+the model's own pieces, and §1 can test it at any fount condition.
+
+One free parameter, `discrimination`, the finest difference between two injuries
+an investigator can reliably see. Anchored on the folio at 0.20, which gives
+12.2 ± 0.7 a page against Blayney's 11–12. **The quarto is a check and not a
+second anchor, and it passes**: with 0.20 carried over untouched, 5.3 ± 0.5
+against the 5–6 Blayney argues for from the type-area. The ratio between the
+formats is the model's own.
+
+Anchored on Hinman's Folio, so it is a *ceiling* on what a bibliographer sees
+rather than a typical value — the best-equipped study the method has had, with
+eighty-odd copies and a collating machine. Blayney says most quarto
+investigators "have used rather less evidence per forme than did Hinman", and §4
+below records what happened last time a parameter here was anchored on Jaggard
+and treated as ordinary. `--discrimination` sets it.
+
+**Two of Hinman's mechanisms are named and not built**, and both belong with the
+inference rather than with the eye:
+
+- **The printers culled the worst types.** "any especially striking abnormality
+  is, as a rule, soon noticed by the printers themselves, who at once cull the
+  peccant type" — so the grossest injuries are *not* the best evidence, because
+  they leave the case early. That is a shop behaviour and belongs in
+  `typecase.rkt`. Without it, severity is monotone and the model has no reason
+  the worst-damaged piece should be rare.
+- **A recognisable piece can still be missed on a page.** Defects "especially
+  liable to be inked over occasionally — with the result that, in a given page,
+  such a type may be unrecognizable in some copies", and an investigator who
+  "may simply fail to notice". Recognition here is per piece and held for the
+  whole book, so a piece the analyst can use has an unbroken chain — which is
+  exactly what makes forme-ordering easy, and therefore exactly what will
+  overstate how well the method works. Wants the copies machinery, since
+  Hinman's own answer was that "thorough investigation will certainly require
+  the use of more than one copy."
+
+**Turner's rule is built and graded**, in `recurrence.rkt` and reported in full.
 The principle is that "in a quarto set by formes, type from the first forme of
 each sheet normally reappears in both formes of the succeeding sheet, but type
 from the second forme only in the second forme". Blayney takes his *Midsummer
 Night's Dream* table and shows that the further claim — that "when type
 reappears in this manner, composition cannot have been seriatim" — is
-"completely untrue", the same evidence being perfectly consistent with seriatim
-setting. This program knows which it did. Generate the recurrence table, run the
-rule, count how often it is right.
+"completely untrue".
+
+**Blayney is right, and the number is 57%.** Quarto, eight seeds a side, one
+forme standing:
+
+| | sheet-pairs | pattern appears | names the first forme rightly |
+|---|---|---|---|
+| set by formes | 56 | 54 (96%) | 54 of 54 (100%) |
+| set **seriatim** | 56 | 46 (82%) | 46 of 46 (100%) |
+
+As Turner's test for "composition cannot have been seriatim" that is 57%
+accuracy against a coin's 50%, and 54% precision when it fires. The pattern
+turns up in seriatim setting nearly as often as in setting by formes, which is
+exactly Blayney's objection — "it does not describe conditions found only in
+sheets set by formes."
+
+**But the rule is not worthless; it is pointed at the wrong question.** Where
+the pattern appears it names the forme that was distributed first **100% of the
+time, under both methods**. That is what makes it useless as a test of setting
+order: it identifies the forme correctly whichever method was used, so the
+pattern itself carries no information about the method. A good instrument, a
+false claim.
+
+Two things fell out that Turner's statement does not mention.
+
+- **The rule depends on a condition he never states.** It only speaks at *one
+  forme standing*. At the default of two the pattern never appears at all in
+  112 sheet-pairs: with distribution lagging by a forme, a sheet's type reaches
+  only one forme of the next, never both. Whether the rule can be applied to a
+  book is a fact about that shop's standing-type discipline.
+- **Detection is not what kills it.** Blayney's other worry is that the rule
+  reads a negative, so an imperfect eye manufactures the absences it needs. At
+  a perfect eye (discrimination 0) the accuracy is 56%, against 57% at Hinman's.
+  The rule is structurally uninformative, not evidence-starved — which is a
+  sharper criticism than the one about detection, and the opposite of what I
+  expected before measuring.
+
+One caveat to carry: at two or more formes standing the model produces a very
+clean one-way signal — outer→inner when set by formes, inner→outer when
+seriatim — which would discriminate perfectly. That is the model's own
+regularity, a fixed standing-type threshold distributing on schedule, and it
+should not be believed. Real shops ran several presses and several books; §5 is
+where that gets tested.
+
+Related and cheap now that the table exists: the *order* of the sheets it pairs
+is the order they were **printed**, not bound, and getting that wrong is silent.
+Preliminaries cut from the white paper of the last sheet are bound first, so the
+raw page order of a quarto reads H, A, B … G — which produced a confident table
+for "H → A", the sheet printed last against the one printed first, and dropped
+the real G → H. `turner-table` now orders the sheets itself.
 
 Related and cheap once this exists: **pagination errors as evidence of order.**
 `pagination.rkt` already separates errors of omission from commission because

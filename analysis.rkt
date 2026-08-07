@@ -8,8 +8,8 @@
 ;;;
 ;;; Read the last section before believing any of the numbers.
 
-(require racket/list racket/string racket/math racket/set
-         "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
+(require racket/list racket/string racket/math racket/set racket/format
+         "metrics.rkt" "orthography.rkt" "typecase.rkt" "recurrence.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt" "pagination.rkt"
          "prelims.rkt" "titlepage.rkt" "binding.rkt" "cancels.rkt" "import.rkt"
          "press.rkt" "render.rkt" "paper.rkt")
@@ -17,7 +17,7 @@
 (provide (struct-out page-evidence)
          spelling-evidence attribution-report contamination-report
          skeleton-report castingoff-report case-report press-report
-         description full-report MCKENZIE)
+         description full-report ledger-report turner-report MCKENZIE)
 
 (define word-rx #px"[A-Za-zſÀ-ɏﬀﬁﬂﬃﬄ'’]+")
 
@@ -454,6 +454,295 @@
     (recurrence-lines b))
    "\n"))
 
+;; ---------------------------------------------------------------------------
+;; Everything that happened, and everything that could have
+;; ---------------------------------------------------------------------------
+;; The sections below each argue a case. This one argues nothing: it is the
+;; tally, and it exists because the figures were scattered through eleven
+;; sections and some of them were nowhere at all.
+;;
+;; **Every count is printed against its exposure.** A bare zero cannot be
+;; read: it may mean the thing did not happen on this run, or that it could
+;; not have happened because the parameter governing it is nought, or that the
+;; mechanism is dead and nothing has noticed. Those are three different facts
+;; and only one of them is interesting. Four mechanisms in this program have
+;; been silently dead, each invisible because no report counted it, and one
+;; live mechanism was misdiagnosed as dead because a report printed `0.00'
+;; with nothing beside it. So `0 of 63 leaves' and `0, and none was possible:
+;; --cancel-rate is 0.00' are both written out in full, and neither is
+;; abbreviated to `none'.
+;; A count with what it was drawn against, and -- where the model has one --
+;; how many would have been expected. Reads "3 of 63" or "0 of 63, none
+;; possible: ...".
+(define (tally n out-of unit [impossible #f])
+  (cond
+    [(and (zero? n) impossible)
+     (format "0 of ~a ~a — none was possible: ~a" out-of unit impossible)]
+    [(zero? out-of) (format "no ~a to go wrong" unit)]
+    [else (format "~a of ~a ~a" n out-of unit)]))
+
+;; Catchwords, counted rather than asserted.
+;;
+;; A page's catchword is taken from the *copy*, not from the page that follows
+;; it, so when the casting off is wrong and the compositor resumes at the
+;; wrong point the catchword does not answer -- which is McKerrow's diagnostic
+;; and a real trace in real books. The count needs its exposure beside it
+;; because a book can carry catchwords on every page and have none of them
+;; fail, and a book set without catchwords at all reports the same zero.
+(define (catchword-failures b)
+  (define ps (book-pages b))
+  (for/list ([p (in-list ps)] [nxt (in-list (if (null? ps) '() (cdr ps)))]
+             #:when
+             (let ([opens (for/or ([l (in-list (page-all-lines nxt))])
+                            (and (pair? (set-line-words l))
+                                 (word-printed (car (set-line-words l)))))])
+               (and opens
+                    (not (string=? (page-catchword p) ""))
+                    (not (string=? (page-catchword p) opens)))))
+    (list (page-sig p) (page-catchword p)
+          (for/or ([l (in-list (page-all-lines nxt))])
+            (and (pair? (set-line-words l))
+                 (word-printed (car (set-line-words l))))))))
+
+(define (pages-with-catchword b)
+  (for/sum ([p (in-list (book-pages b))])
+    (if (string=? (page-catchword p) "") 0 1)))
+
+;; Hinman's split, which the paging section explains at length and has never
+;; counted. An omission is a number not used; a commission is a wrong number
+;; set. Only the first is good evidence of the order of setting.
+;; Five branches in `paginate', not two, and forcing Hinman's binary onto them
+;; mislabels three. What he cares about is whether a number went *unused* --
+;; that is the gap that says what had been set when. A number set wrongly is a
+;; commission, and it matters separately whether it propagates: the compositor
+;; takes his next number from the last one set, so a wrong number carries
+;; forward while transposed digits do not.
+(define (paging-kinds b)
+  (define errs (pagination-errors (book-paging b)))
+  (define (count rx)
+    (for/sum ([n (in-list errs)])
+      (if (regexp-match? rx (folio-number-note n)) 1 0)))
+  (list (cons "numbers skipped, never used" (count #rx"skipped"))
+        (cons "a page left unnumbered" (count #rx"unpaged"))
+        (cons "a number used a second time" (count #rx"already used"))
+        (cons "a wrong number, carried forward" (count #rx"carries on"))
+        (cons "digits transposed in the stick" (count #rx"transposed"))
+        (cons "a turned figure, 6 for 9" (count #rx"turned figure"))))
+
+(define (ledger-report b [r #f])
+  (define evs (book-events b))
+  (define tc (book-case b))
+  (define pages (book-pages b))
+  (define npages (length pages))
+  ;; A leaf is two pages, and the two must not be confused in a report about
+  ;; leaves being cut out of a book.
+  (define nleaves
+    (length (remove-duplicates
+             (for/list ([p (in-list pages)])
+               (let ([s (page-sig p)]) (substring s 0 (sub1 (string-length s))))))))
+  (define shifts (filter (lambda (e) (eq? (event-kind e) 'shift)) evs))
+  (define accidents (filter (lambda (e) (eq? (event-kind e) 'accident)) evs))
+  (define copy-errs (filter (lambda (e) (eq? (event-kind e) 'copy)) evs))
+  ;; The case, at its thinnest. `case-depletion' gives (sort bill low share)
+  ;; per sort; the deepest of those is the moment the shop actually felt.
+  (define dep (case-depletion tc))
+  (define emptied (for/sum ([row (in-list dep)]) (if (zero? (caddr row)) 1 0)))
+  (define deepest (if (null? dep) #f (argmax cadddr dep)))
+  ;; The ligature sorts live in the private-use area so they can be single
+  ;; characters in a string, and print as an unreadable codepoint unless they
+  ;; are named. `#' is the sh ligature and tells the reader nothing.
+  (define (sort-label ch)
+    (cond [(hash-ref LIGATURE-PRINTS ch #f) => (lambda (s) (format "~s (~a)" ch s))]
+          [else (format "~s" ch)]))
+  ;; The fount. Pieces the cases were laid with, against pieces this book's
+  ;; own printing made distinctive.
+  (define all (all-pieces tc))
+  (define born (battered-at-press tc))
+  (define at-press (hash-count born))
+  (define laid (- (length all) at-press))
+  (define kinds (paging-kinds b))
+  (define paging-errs (for/sum ([kv (in-list kinds)]) (cdr kv)))
+  (define bad-catch (catchword-failures b))
+  (define with-catch (pages-with-catchword b))
+  (define cancels (if r (cancel-plan-cancels (press-run-cancels r)) '()))
+  (define proofed
+    (if r (for/sum ([(k s) (in-hash (press-run-states r))])
+            (if (forme-state-proofed? s) 1 0))
+        0))
+  (define corrected
+    (if r (for/sum ([(k s) (in-hash (press-run-states r))])
+            (if (forme-state-corrected? s) 1 0))
+        0))
+  (define formes (if r (hash-count (press-run-states r)) 0))
+  (define variants
+    (if r (for/sum ([(k s) (in-hash (press-run-states r))])
+            (length (forme-state-variants s)))
+        0))
+  (string-join
+   (append
+    (list "WHAT HAPPENED IN THE PRINTING HOUSE" ""
+          "  The tally. Every figure is printed against what it was drawn"
+          "  against, so that a nought can be told from a thing that could"
+          "  not have happened. The sections that follow argue about these"
+          "  numbers; this one only counts them."
+          ""
+          "  THE FORME WORK"
+          (format "    Pages numbered:         ~a"
+                  (tally (- npages (for/sum ([n (in-list (book-paging b))])
+                                     (if (string=? (folio-number-printed n) "") 1 0)))
+                         npages "pages"))
+          (format "    Paging errors:          ~a" (tally paging-errs npages "pages"))
+          "        Every kind the model can produce, so a nought is a nought:")
+    (for/list ([kv (in-list kinds)])
+      (format "        ~a ~a~a" (pad (format "~a" (cdr kv)) 4) (pad (car kv) 34)
+              (if (regexp-match? #rx"skipped|unnumbered" (car kv))
+                  "← unused, Hinman's informative kind" "")))
+    (list
+          (format "    Catchwords set:         ~a" (tally with-catch npages "pages"))
+          (format "    Not answering:          ~a"
+                  (tally (length bad-catch) with-catch "carrying one"
+                         (and (zero? with-catch)
+                              "this book was set without catchwords"))))
+    (if (null? bad-catch) '()
+        (for/list ([c (in-list (take bad-catch (min 6 (length bad-catch))))])
+          (format "        ~a caught \"~a\", the next page opens \"~a\""
+                  (pad (first c) 6) (second c) (third c))))
+    (list ""
+          "  THE CASE, AT ITS THINNEST"
+          (format "    Sorts that touched nought: ~a" (tally emptied (length dep) "sorts in the bill"))
+          (if deepest
+              (format "    Deepest depletion:      ~a — bill ~a, fell to ~a (~a% gone)"
+                      (sort-label (car deepest)) (cadr deepest) (caddr deepest)
+                      (~r (* 100.0 (cadddr deepest)) #:precision 0))
+              "    Deepest depletion:      no bill to deplete")
+          (format "    Sorts wanted while formes stood locked up: ~a"
+                  (hash-count (tcase-exhausted tc)))
+          (format "    Shifts made for want of a sort: ~a" (length shifts))
+          (format "    Accidents of the case:  ~a" (length accidents))
+          (format "    Errors reading the copy: ~a" (length copy-errs))
+          ""
+          "  WHAT THE PRINTING DID TO THE FOUNT"
+          "    A sound sort battered at press becomes individually"
+          "    identifiable, and unlike the injuries the fount arrived with,"
+          "    its first appearance is in a forme whose date is known."
+          (format "    Distinctive when the cases were laid: ~a" laid)
+          (format "    Made distinctive at press:            ~a" at-press)
+          (format "    Distinctive by the end:               ~a" (length all))
+          (if (zero? at-press)
+              "    (nothing was battered: no forme was distributed on this run)"
+              (format "    That is a ~a% increase over the run."
+                      (~r (* 100.0 (/ at-press (max 1 laid))) #:precision 0))))
+    (if r
+        (list ""
+              "  AT PRESS"
+              (format "    Sheets printed:         ~a per forme (--edition)"
+                      (press-run-edition r))
+              (format "    Copies made up and collated: ~a (--copies)"
+                      (length (press-run-copies r)))
+              "        The edition is what the press worked off; the copies are"
+              "        what a bibliographer got hold of. Only the second are"
+              "        collated, and every press variant below was found in"
+              (format "        those and no others; the remaining ~a copies of each"
+                      (max 0 (- (press-run-edition r) (length (press-run-copies r)))))
+              "        sheet were never looked at."
+              (format "    Formes:                 ~a" formes)
+              (format "    Proofed:                ~a" (tally proofed formes "formes"))
+              (format "    Corrected mid-run:      ~a" (tally corrected formes "formes"))
+              (format "    Press variants:         ~a" variants)
+              (format "    Leaves cancelled:       ~a"
+                      (tally (length cancels) nleaves "leaves"
+                             (and (zero? (length cancels))
+                                  (format "--cancel-rate is ~a, so no surviving error was ever considered for one"
+                                          (~r (press-run-cancel-rate r) #:precision 2))))))
+        (list "" "  AT PRESS" "    Not run: no press run was made, so nothing here could happen."))
+    (list ""
+          "  Each of these is argued out in a section of its own below."))
+   "\n"))
+
+;; ---------------------------------------------------------------------------
+;; Turner's rule, graded
+;; ---------------------------------------------------------------------------
+;; The bibliographer's view of a page: its signature, the sheet that printed
+;; it, and which side of that sheet. All three are on the leaf or follow from
+;; the format and the fold; none of them says anything about setting order.
+(define (page-views b)
+  (for/list ([p (in-list (book-pages b))])
+    (define parts (string-split (page-forme-name p)))
+    (list (page-sig p)
+          (string-join (take parts (sub1 (length parts))) " ")
+          (last parts))))
+
+(define (turner-report b)
+  (define ev (recurrence-evidence (book-case b)))
+  (define tbl (turner-table ev (page-views b)))
+  (define truth (true-first-forme (book-fmt b) (book-by-formes? b)))
+  (define fired (filter turner-pair-pattern? tbl))
+  (define right (for/sum ([tp (in-list fired)])
+                  (if (equal? (turner-pair-first-forme tp) truth) 1 0)))
+  (string-join
+   (append
+    (list "TURNER'S RULE" ""
+          "  \"in a quarto set by formes, type from the first forme of each"
+          "  sheet normally reappears in both formes of the succeeding sheet,"
+          "  but type from the second forme only in the second forme of the"
+          "  succeeding sheet\" (Turner, SB xviii, 258; Blayney i. 91)."
+          ""
+          "  The table below is the one Blayney prints for Turner's Midsummer"
+          "  Night's Dream: distinct identifiable types shared between one"
+          "  sheet's formes and the next sheet's. Sheets are in the order they"
+          "  were PRINTED, which is not the order they were bound."
+          "")
+    (if (null? tbl)
+        (list "  No pair of sheets has two formes apiece, so the rule cannot"
+              "  speak. A sheet worked and turned has one forme.")
+        (append
+         (for/list ([tp (in-list (take tbl (min 5 (length tbl))))])
+           (define c (turner-pair-counts tp))
+           (define froms (remove-duplicates (map car (hash-keys c))))
+           (define tos (remove-duplicates (map cdr (hash-keys c))))
+           (string-append
+            (format "    ~a into ~a\n" (turner-pair-from tp) (turner-pair-to tp))
+            (string-join
+             (for/list ([f (in-list froms)])
+               (format "        from ~a ~a" (pad f 7)
+                       (string-join
+                        (for/list ([t (in-list tos)])
+                          (format "~a ~a" (pad t 7) (hash-ref c (cons f t) 0)))
+                        "   ")))
+             "\n")
+            (format "\n        ~a"
+                    (if (turner-pair-pattern? tp)
+                        (format "Turner's pattern: the ~a forme is named as set first."
+                                (turner-pair-first-forme tp))
+                        "Not Turner's pattern; the rule says nothing of this pair."))))
+         (list ""
+               (format "  The pattern appears in ~a of ~a sheet-pairs."
+                       (length fired) (length tbl))
+               (if (null? fired)
+                   (string-append
+                    "  It says nothing here, and that is a fact about the shop\n"
+                    "  rather than about the evidence: with more than one forme\n"
+                    "  standing, a forme is distributed too late for its type to\n"
+                    "  reach both formes of the next sheet. Turner's statement\n"
+                    "  does not mention the condition it depends on.")
+                   (format
+                    (string-append
+                     "  Where it appears it names the first-set forme rightly ~a\n"
+                     "  of ~a times. The truth for this book is the ~a forme.")
+                    right (length fired) truth))
+               ""
+               "  What it does NOT show is that composition was by formes."
+               "  Turner's further claim -- \"when type reappears in this manner,"
+               "  composition cannot have been seriatim\" -- is one Blayney calls"
+               "  \"completely untrue\", and this program can score it because it"
+               "  knows which method it used. Over 8 seeds a side with one forme"
+               "  standing, the pattern appears in 96% of sheet-pairs set by"
+               "  formes and 82% of sheet-pairs set SERIATIM: 57% accuracy as a"
+               "  test, against 50% for a coin. It identifies the forme that was"
+               "  distributed first, which is a real thing, and says nothing"
+               "  whatever about the order the pages were composed in."))))
+   "\n"))
+
 ;; How much metal the gathering ate.
 ;;
 ;; McKerrow's point about imposition has a consequence nobody can set type
@@ -496,12 +785,27 @@
 ;; of these and followed each through the Folio; the two volumes are the
 ;; result. Everything else in this program models his conclusions. This models
 ;; the evidence.
-(define (recurrence-lines b)
-  (define rec (tcase-recurrence (book-case b)))
+;;
+;; Two counts, and the difference between them is the whole point. The fount
+;; holds so many damaged pieces; an investigator can identify rather fewer,
+;; and it is his number that every published type-recurrence argument was
+;; built on. `recurrence.rkt' does the filtering and says why.
+(define (recurrence-lines b [discrimination (current-discrimination)])
+  (define tc (book-case b))
+  (define rec (tcase-recurrence tc))
+  (define ev (recurrence-evidence tc #:discrimination discrimination))
+  (define seen (evidence-places ev))
+  (define pages (book-pages b))
   (define page-forme
-    (for/hash ([p (in-list (book-pages b))]) (values (page-sig p) (page-forme-name p))))
+    (for/hash ([p (in-list pages)]) (values (page-sig p) (page-forme-name p))))
+  (define by-page (evidence-by-page ev))
+  (define per-page
+    (for/list ([p (in-list pages)]) (set-count (hash-ref by-page (page-sig p) (set)))))
+  (define density
+    (if (null? per-page) 0.0
+        (/ (apply + per-page) (exact->inexact (length per-page)))))
   (define repeats
-    (sort (for/list ([(id places) (in-hash rec)] #:when (> (length places) 1))
+    (sort (for/list ([(id places) (in-hash seen)] #:when (> (length places) 1))
             (cons id places))
           > #:key (lambda (kv) (length (cdr kv)))))
   (define cross
@@ -511,11 +815,30 @@
                                     (hash-ref page-forme (first pl) "?"))))
                          1))
       r))
+  (define lost (evidence-lost ev))
   (append
    (list ""
-         (format "  Individually identifiable types used: ~a" (hash-count rec))
-         (format "  Of those, appearing more than once:   ~a" (length repeats))
-         (format "  Appearing in more than one forme:     ~a" (length cross)))
+         (format "  Distinctive types the fount held:     ~a"
+                 (set-count (evidence-present ev)))
+         (format "  Of those, ones that printed at all:   ~a" (hash-count rec))
+         ""
+         "  What an investigator could actually identify. The rest are lost"
+         "  to Hinman's three causes, and the counts are of the whole fount:"
+         (format "      injuries too slight to tell from none:  ~a"
+                 (cdr (assq 'too-slight lost)))
+         (format "      pairs too alike in the same sort:       ~a"
+                 (cdr (assq 'confusable lost)))
+         (format "      bent ascenders on b, d and h:           ~a"
+                 (cdr (assq 'vulnerable-ascender lost)))
+         (format "  Identifiable: ~a types, ~a a page."
+                 (set-count (evidence-identifiable ev))
+                 (~r density #:precision 1))
+         (format "  Hinman got 11-12 a page out of the Folio; Blayney reckons a")
+         (format "  quarto yields 5 or 6. Discrimination here is ~a."
+                 (~r discrimination #:precision 2))
+         ""
+         (format "  Identifiable types recurring:         ~a" (length repeats))
+         (format "  Recurring across formes:              ~a" (length cross)))
    (if (null? cross)
        (list "      None recurred across formes; nothing here would let a"
              "      bibliographer connect one forme to another.")
@@ -990,6 +1313,7 @@ CANCELS
   (define ev (spelling-evidence b names))
   (string-join
    (append (list (description b)
+                 (ledger-report b r)
                  (prelims-report b r src)
                  (attribution-report ev names)
                  (contamination-report b)
@@ -997,6 +1321,7 @@ CANCELS
                  (castingoff-report b)
                  (pagination-report (book-paging b))
                  (case-report b)
+                 (turner-report b)
                  (deviation-report b r))
            (if r (list (press-report b r)) '())
            (list MCKENZIE))

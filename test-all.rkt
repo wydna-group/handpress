@@ -36,6 +36,7 @@
            (submod "imposition.rkt" test)
            (submod "pagination.rkt" test)
            (submod "typecase.rkt" test)
+           (submod "recurrence.rkt" test)
            (submod "copytext.rkt" test)
            (submod "import.rkt" test)
            (submod "prelims.rkt" test)

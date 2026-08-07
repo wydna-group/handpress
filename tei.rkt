@@ -35,7 +35,7 @@
          "press.rkt" "binding.rkt" "cancels.rkt" "corrector.rkt" "description.rkt"
          "pagination.rkt"
          "vocabulary.rkt"
-         (only-in "typecase.rkt" sort-piece-id sort-piece-damage damage-vocabulary
+         (only-in "typecase.rkt" sort-piece-id sort-piece-damage sort-piece-severity damage-vocabulary
                   substitution-only? placeholder?)
          (only-in "deviation.rkt" deviation-counts word-deviation stages-cancel?
                   classify)
@@ -314,9 +314,20 @@
        (string-append
         "<app>"
         (string-join
-         (for/list ([r (in-list app)] #:unless (null? (car r)))
-           (format "<rdg wit=\"~a\">~a</rdg>"
+         ;; `hp:set' marks the one reading the rest of this <w> describes.
+         ;;
+         ;; The word's attributes -- hp:glyph, hp:sorts, hp:x, hp:w -- are
+         ;; facts about the type that stood in the forme when it was first
+         ;; set, which is the uncorrected state. The corrected state was never
+         ;; a word in this program: it is the corrector's reading and has no
+         ;; glyphs, no pieces and no measured width. So a renderer showing a
+         ;; copy that has the corrected state must take the text and nothing
+         ;; else, and it needs to be told which reading that applies to rather
+         ;; than inferring it from the order these are written in.
+         (for/list ([r (in-list app)] [i (in-naturals)] #:unless (null? (car r)))
+           (format "<rdg wit=\"~a\"~a>~a</rdg>"
                    (string-join (for/list ([w (in-list (car r))]) (string-append "#" w)) " ")
+                   (if (string=? (cdr r) set-form) " hp:set=\"true\"" "")
                    (esc (cdr r))))
          "")
         "</app>")]
@@ -350,10 +361,18 @@
   ;; An attribute rather than markup inside <w>, because the alternative is to
   ;; break the word into one element per character and the word is the unit
   ;; every other part of this file agrees on.
+  ;; Character, id, injury, and how bad the injury is. The fourth field is
+  ;; there because `recurrence.rkt' decides what a bibliographer can identify
+  ;; from the severity and from nothing else: a file carrying the id and the
+  ;; kind but not the degree records which pieces recurred while making it
+  ;; impossible to work out which of them anyone could have followed, and the
+  ;; second is the question. Two decimals, which is finer than any
+  ;; discrimination worth setting.
   (define sorts
     (for/list ([p (in-list (word-pieces w))])
-      (format "~a:~a:~a" (car p) (sort-piece-id (cdr p))
-              (sort-piece-damage (cdr p)))))
+      (format "~a:~a:~a:~a" (car p) (sort-piece-id (cdr p))
+              (sort-piece-damage (cdr p))
+              (real->decimal-string (sort-piece-severity (cdr p)) 2))))
   (format "<w hp:x=\"~a\" hp:w=\"~a\" ana=\"~a\"~a~a~a~a~a>~a</w>"
           (em x) (em (word-width w)) ana
           (if (word-italic? w) " rend=\"italic\"" "")

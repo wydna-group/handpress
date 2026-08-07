@@ -1045,8 +1045,11 @@
                                    [w (in-list (set-line-words l))]
                                    [pr (in-list (word-pieces w))])
                          (cdr pr))))
-                 ;; and a few sound sorts are battered at press each time
-                 (batter! tc 2)
+                 ;; and a few sound sorts are battered at press each time.
+                 ;; Named with the forme that was on the press, because a
+                 ;; piece whose injury is first seen in a known forme dates
+                 ;; every appearance it makes afterwards.
+                 (batter! tc 2 #:at printed)
                  (dist)))
 
            (page-loop (cdr ps) (add1 pos)

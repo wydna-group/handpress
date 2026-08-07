@@ -183,8 +183,17 @@
           ""
           (format "  Paged: ~a" (pagination-summary ns))
           ""
-          (format "  ~a leaves numbered, ~a unpaged, ~a error(s)"
-                  (- (length ns) (length unpaged)) (length unpaged) (length bad))
+          ;; Pages, not leaves. `paginate' is handed one page-ref per page and
+          ;; numbers both sides unless `recto-only?' is set, which is the
+          ;; difference between pagination and foliation. Calling the result
+          ;; leaves put 63 of them in a 32-leaf quarto, which is not a number
+          ;; any book could have.
+          (format "  ~a ~a numbered, ~a unnumbered, ~a error(s)"
+                  (- (length ns) (length unpaged))
+                  (if (for/or ([n (in-list ns)])
+                        (string-suffix? (folio-number-sig n) "v"))
+                      "pages" "leaves")
+                  (length unpaged) (length bad))
           "")
     (if (null? bad)
         (list "  The paging is correct throughout, which for a book of any"

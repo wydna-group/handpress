@@ -280,9 +280,18 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
 .unit { position: absolute; top: -1.5rem; right: 0; display: flex; gap: .3rem;
         font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+/* These chips are `position: absolute; top: -1.5rem' -- they float ABOVE the
+   leaf, on the canvas, not on the paper. They were coloured as though they
+   were on the paper: a hard-coded rgba(255,252,244,.5) ground and the inherited
+   --paper-ink, which has one value for both schemes because ink on paper does
+   not change. Over the light canvas that reads; over the dark one it composites
+   to a mid grey with dark ink on it, measured at 3.17:1 across all nineteen
+   chips, and none of it visible in a light-mode screenshot.
+   Furniture over the canvas takes the canvas's tokens. */
 .unit span { padding: .1rem .55rem; border-radius: 999px; cursor: pointer;
-             border: 1px solid rgba(90,74,50,.55); opacity: .85;
-             background: rgba(255,252,244,.5); transition: none; }
+             border: 1px solid var(--rule); opacity: .85;
+             color: var(--ink);
+             background: var(--surface-soft); transition: none; }
 .unit span:hover { opacity: 1; background: rgba(29,85,96,.14);
                    border-color: rgba(29,85,96,.7); }
 /* Which unit each button lights, so the colours mean something before you
