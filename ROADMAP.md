@@ -456,6 +456,140 @@ the comma box belongs to the house), and **space-metal shared the same way**
 
 ---
 
+## 6a. The First Folio as the standard test case
+
+`tools/fetch-folio.py` builds the whole book as copy — 868,245 words, all 36
+plays in the order of the 1623 Catalogue with the eight preliminary pieces,
+as both declared TEI and constructed Markdown. Nothing is committed; it is
+other people's text, on the footing of `corpus/` and `sources/`.
+
+It is the standard case because it is the *hard* one. Everything the program
+had been exercised on was a quarto of prose or a single play; setting the
+whole Folio at 1,200 copies found four defects that nothing smaller did.
+
+**What it caught.**
+
+- **The folio measure was wrong, and by 25%.** `FOLIO` and `FOLIO-IN-SIXES`
+  carried an unsourced 16 ems. Hinman measured the book: "twenty lines measure
+  about 83 millimetres; and since the horizontal measure of the type-column is
+  also about 83 mm., each ordinary Folio line may be said to contain 20 ems"
+  (i. 35). At 16 a pentameter does not fit, so **a third of all verse lines
+  were being turned over**, each turn-over costing a second line of type.
+  Correcting it took turn-overs from 333 to 139 per 1000 verse lines and the
+  book from 1,386 pages to 1,026, against the real Folio's 908.
+- **A fuller spelling could overrun the measure and crash the compositor.**
+  `justify` re-checks the squeeze every round and gives up at HAIR; the
+  *stretch* — fuller spellings to fill a loose line — was never re-checked, so
+  it could overshoot. It needs words long enough that one substitution
+  overruns a 16-em column, which is why only Hamlet found it:
+  `historical-pastoral` became `hiſtorical-paſtoralle` and the line overhung by
+  one hair space. Habit proposes, the measure disposes.
+- **Copy names broke past 26 copies.** `(integer->char (+ 65 i))` gave copy 27
+  the name `Copy [`, copy 28 `Copy \` — not a legal Windows filename — and copy
+  33 `Copy a`, which after `string-downcase` overwrote copy A. Now A…Z, AA, AB…
+- **The heap table printed every copy name per forme.** Fine for four copies,
+  useless for 1,200: one forme ran to six hundred names and buried the finding
+  underneath. Counts now, with the first ten names.
+
+**Then the Norton Facsimile arrived**, and it did what every source the user
+has supplied has done. Two kinds of evidence came out of it, and both
+overturned something.
+
+*Measured off the plates.* The facsimile's OCR is good enough to count on, and
+Hinman's through-line numbers identify a genuine leaf, so the whole book can be
+measured rather than sampled — 790 pages, 101,006 lines of type:
+
+| | word divisions per 100 lines |
+|---|---|
+| whole Folio | **2.03** |
+| prose plays (Merry Wives, Much Ado, As You Like It) | 6.41 |
+| verse plays (Macbeth, Caesar, Richard II, King John) | 0.40 |
+
+The 16× gap confirms the model's rule — verse turns over where prose divides —
+and the three rates together *solve* for the book's composition: 73% verse,
+which agrees with the usual literary estimate of 70–75%.
+
+**We were producing 94%**, and the cause was the `<l>`-per-line fix above.
+`looks-like-verse?` asks whether a line is under 78 characters, which is fair
+for copy whose breaks mean something and useless for copy a machine wrapped at
+72: every wrapped prose line read as verse, and since verse does not divide,
+word division collapsed to 0.15 per 100 lines. Classifying per *speech* on the
+length of its non-final lines — verse averages 41 characters, prose 68 — gives
+**73.2% verse and 1.77 divisions per 100 lines** against the measured 2.03.
+
+This also retires a figure that had been quoted here for months. The word
+division rate was calibrated on "5.1 per 100 lines across five scenes of *Much
+Ado*"; the whole book gives 2.03. **The single sample was 2.5× the book**,
+because those scenes are prose and most of the Folio is not.
+
+*Read out of Hinman's introduction* (pp. xix–xxi), which gives the press-variant
+figures his two volumes do not summarise: "just over 500" press variants in the
+whole book, about seventy in the Comedies (in 29 of more than 300 pages),
+seventy in the Histories (in 31 of 262), and some 370 in the Tragedies — half
+of those in the seventy-odd pages set by Compositor E, whose work was reviewed
+because he was "evidently expected to make many errors". That is roughly a
+hundred variant formes in about 450.
+
+| | model, before | Hinman |
+|---|---|---|
+| formes corrected mid-run | 258 of 511 (50%) | ~100 of ~450 (22%) |
+| press variants | 1,035 | "just over 500" |
+| impressions before correction | median 8% | "about 100" of 1,200 = 8.3% |
+
+The last of those was already right and is the one nothing was fitted to. The
+first two were wrong because `proof-rate` was an unsourced 0.6; it is now 0.28,
+derived from his count. The *unevenness* was already modelled — E's formes are
+proofed 1.9× as often — and only the base rate under it was wrong.
+
+**Two further defects the scale exposed.**
+
+- **`--cancel-rate` was drawn per surviving error, not per leaf**, so its
+  meaning changed with the length of the book: 0.15 meant one leaf in eight on a
+  pamphlet and 349 of 511 leaves on the Folio, against the real book's one
+  famous cancel. A parameter whose meaning depends on the size of its input is
+  not a parameter. Now at most one cancel per leaf.
+- **The discrimination anchor had rotted.** It was fitted at 0.20 when the folio
+  measure was an unsourced 16 ems; correcting the measure to Hinman's 20 put a
+  quarter more type on the page and the same eye found a quarter more evidence
+  on it. Re-anchored to 0.26 (11.5 types a page against his 11–12). **The quarto
+  check no longer passes at the same value** — about 4.3 against Blayney's 5–6 —
+  and that is left standing, because his reasoning assumes a quarto page holds
+  half a folio page's type-area where ours holds 30%. Tuning until both fit
+  would bury the discrepancy that says one of the two measures is still wrong.
+
+**What it showed that is not a defect.** Three mechanisms report nought on the
+Folio — pages crowded, lines of copy dropped, catchwords not answering — and
+all three are alive. They are consequences of the casting off, and casting off
+is some sixteen times tighter on verse than on prose, because the man counts
+verse lines and estimates prose: `slip` in `imposition.rkt`, 0.06 against 1.0,
+which is Gaskell's point. The same code on prose copy at the same accuracy
+crowds 109 pages per thousand and drops 406 lines per thousand. **The report
+now says so beside the noughts**, because a bare `0.00` is exactly the reading
+that once had a live mechanism written off as dead here.
+
+`tools/audit-mechanisms.py` sorts every countable mechanism into *fired*,
+*silent*, and *not offered*, and now distinguishes a silence with an
+established explanation from one without. It exits non-zero only for the
+latter, so it is usable as a check.
+
+**Greg's consistency condition depends on how many copies you collate**, which
+was not expected and is worth chasing:
+
+| heap-disorder | 24 copies | 200 copies |
+|---|---|---|
+| 0 — Gaskell's ideal | HOLDS | HOLDS |
+| 0.15 — the default | HOLDS | **FAILS** |
+| 0.5 | FAILS | FAILS |
+
+At the default disorder the condition holds on a small collation and fails on a
+large one. That is the detector working — more copies mean more chances for the
+warehouse's lost order to show — but it means **a bibliographer collating four
+copies would conclude the heaps kept their order when they did not**. The
+sensitivity of Greg's test to sample size is measurable here and is not, as far
+as I know, anywhere in the literature.
+
+---
+
 ## 7. Widen the calibration base
 
 Nearly every rate rests on **one pairing**: about 12,000 words of the *Much Ado*

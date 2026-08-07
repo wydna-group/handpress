@@ -464,6 +464,40 @@
      (row "crowded" (g 'crowded) (g 'pages) "per 1000 pages")
      (row "spun out" (g 'spun-out) (g 'pages) "per 1000 pages")
      (row "lines of copy dropped" (g 'omitted) (g 'pages) "per 1000 pages")
+     ;; All three of these are consequences of the casting off, and the
+     ;; casting off is much more accurate on verse than on prose: the man
+     ;; marking up the copy counts verse lines and estimates prose. That is
+     ;; Gaskell's point and it is in `slip' in imposition.rkt -- 0.06 for
+     ;; verse against 1.0 for prose. So a book of verse plays reports noughts
+     ;; here, and the nought means "this copy could hardly produce one",
+     ;; not "the mechanism is dead".
+     ;;
+     ;; It has to be said out loud. A bare 0.00 is exactly the reading that
+     ;; once had a live mechanism written off as dead in this program, and
+     ;; three of the four figures above sit at nought on the First Folio while
+     ;; the same code on prose copy gives 109 crowded pages and 406 dropped
+     ;; lines per thousand.
+     ;; Gate on the omission branch and on the copy being chiefly verse. Not
+     ;; on `crowded' being nought as well: the Folio crowds two pages in a
+     ;; thousand, which is the same story rather than a different one, and
+     ;; requiring both to be nought meant the note never appeared on the very
+     ;; book it was written for.
+     (if (and (zero? (g 'omitted))
+              (> (g 'verse-lines) (* 4 (- (g 'lines) (g 'verse-lines)))))
+         (format
+          (string-append
+           "\n    No copy was dropped and ~a crowded, and on a book of verse\n"
+           "    that is what to expect rather than a mechanism failing to fire:\n"
+           "    verse is cast off by counting lines and prose by judging them,\n"
+           "    so the estimate is some sixteen times tighter here than it\n"
+           "    would be on prose (imposition.rkt, `slip'). The same code on\n"
+           "    prose copy at the same accuracy crowds 109 pages in a thousand\n"
+           "    and drops 406 lines in a thousand.")
+          (case (g 'crowded)
+            [(0) "nothing was"]
+            [(1) "one page was"]
+            [else (format "~a pages were" (g 'crowded))]))
+         "")
      "")
     (list
      "  The two rates worth comparing are habit and fitting. Habit is the"

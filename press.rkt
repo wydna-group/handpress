@@ -128,7 +128,33 @@
 (define (run-press b
                    #:copies [copies 4]
                    #:seed [seed 1623]
-                   #:proof-rate [proof-rate 0.6]
+                   ;; How often a forme is proofed at all.
+                   ;;
+                   ;; Measured, not guessed, and the measurement is Hinman's
+                   ;; own summary of the whole Folio (Norton Facsimile,
+                   ;; Introduction, p. xx). He looked for press variants across
+                   ;; some eighty Folger copies and found "just over 500" --
+                   ;; against the ten thousand there would have been had every
+                   ;; page been corrected as thoroughly as the two surviving
+                   ;; marked proofs. They fall out very unevenly: about seventy
+                   ;; in the whole of the Comedies, in 29 of more than 300
+                   ;; pages; about seventy in the Histories, in 31 of 262; and
+                   ;; some 370 in the Tragedies, half of them in the seventy-odd
+                   ;; pages set by Compositor E.
+                   ;;
+                   ;; That is roughly a hundred variant formes in about 450 --
+                   ;; call it a fifth. This was 0.6, which put 258 formes of 511
+                   ;; into a corrected state on the whole Folio, two and a half
+                   ;; times what Hinman found, and 1,035 press variants against
+                   ;; his 500. Not far enough out to look wrong on a quarto,
+                   ;; which is why it survived: it took the whole book to show.
+                   ;;
+                   ;; The unevenness is the more interesting half and is
+                   ;; already modelled -- E's formes are proofed 1.9 times as
+                   ;; often, because Hinman's shop reviewed the work of a man
+                   ;; "evidently expected to make many errors". What was wrong
+                   ;; was the base rate under it.
+                   #:proof-rate [proof-rate 0.28]
                    #:catches-accident [catches-accident 0.75]
                    #:catches-misreading [catches-misreading 0.10]
                    ;; How often the reader calls for the copy rather than
@@ -414,9 +440,25 @@
     (for/hash ([name (in-hash-keys states)])
       (values name (< (rnd (make-rng (+ seed 4409 (equal-hash-code name)))) 0.5))))
 
+  ;; A, B ... Z, AA, AB ... which is the way a bibliographer runs out of
+  ;; letters and the way this program already signs its gatherings.
+  ;;
+  ;; It used to be `(integer->char (+ 65 i))', which is fine for the four
+  ;; copies anybody collates by hand and silently wrong past twenty-six: copy
+  ;; 27 was named "Copy [", copy 28 "Copy \" -- not a legal filename on
+  ;; Windows -- and copy 33 came out "Copy a", which after `string-downcase'
+  ;; is the same file as copy A and overwrote it. An edition is 1,200 copies,
+  ;; and Hinman collated far more than twenty-six.
+  (define (copy-letters i)
+    (let loop ([n i] [acc '()])
+      (define ch (integer->char (+ (char->integer #\A) (remainder n 26))))
+      (if (< n 26)
+          (list->string (cons ch acc))
+          (loop (sub1 (quotient n 26)) (cons ch acc)))))
+
   (define made
     (for/list ([i (in-range copies)])
-      (define nm (format "Copy ~a" (integer->char (+ (char->integer #\A) i))))
+      (define nm (format "Copy ~a" (copy-letters i)))
       (printed-copy
        nm
        (for/hash ([(name s) (in-hash states)])

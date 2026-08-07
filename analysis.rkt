@@ -1198,16 +1198,31 @@ THE HEAPS, AND THE COPIES GATHERED FROM THEM
        (string-append
         "  forme                        perfected first   corrected in
 "
-        (apply string-append
-               (for/list ([(name copies-with) (in-hash groups)])
-                 (format "  ~a ~a ~a
+        ;; The count first, then as many names as are worth reading.
+        ;;
+        ;; This printed every copy holding each corrected state, which is what
+        ;; you want when four copies are on the table and useless when 1,200
+        ;; are: one forme ran to six hundred names, the section to 38 KB, and
+        ;; the finding underneath it -- whether Greg's condition holds -- was
+        ;; buried past any reasonable scrolling. The grouping is what matters
+        ;; and the grouping is a count.
+        (let ([n-copies (length (press-run-copies r))])
+          (apply string-append
+                 (for/list ([(name copies-with) (in-hash groups)])
+                   (define named (sort (map (lambda (c) (string-replace c "Copy " ""))
+                                            copies-with) string<?))
+                   (format "  ~a ~a ~a
 " (pad name 28)
-                         (pad (if (hash-ref (press-run-perfecting r) name #t)
-                                  "inner" "outer") 17)
-                         (if (null? copies-with) "none"
-                             (string-join (sort (map (lambda (c)
-                                                       (string-replace c "Copy " ""))
-                                                     copies-with) string<?) " ")))))
+                           (pad (if (hash-ref (press-run-perfecting r) name #t)
+                                    "inner" "outer") 17)
+                           (cond
+                             [(null? named) (format "none of ~a" n-copies)]
+                             [(<= (length named) 12)
+                              (format "~a of ~a: ~a" (length named) n-copies
+                                      (string-join named " "))]
+                             [else
+                              (format "~a of ~a: ~a …" (length named) n-copies
+                                      (string-join (take named 10) " "))])))))
         "
 "
         (wrap (format "Greg's condition for consistent grouping -- that \"given any two constant groups, either these or their complements are either mutually exclusive or one wholly includes the other\" (Calculus of Variants, p. 12) -- ~a here. That is the test worth watching. A made-up copy descends from no other copy but is assembled from as many heaps as there are sheets, which is conflation by construction, and Greg warns that where \"the grouping is throughout random ... some sort of conflation has somewhere to be assumed\" (p. 43). Gathered as Gaskell describes, the groupings are constant up to complementation and the condition holds; drawn independently, it fails. So the consistency of these groups measures how far the warehouse preserved the order of printing -- and, sheet by sheet, which forme went to press first."

@@ -170,15 +170,31 @@
     (define w (unbox spare))
     (cond [(pair? w) (set-box! spare (cdr w)) (car w)] [else #f]))
 
+  ;; Not every surviving error is worth cutting a leaf out for. Gaskell's
+  ;; counter-example is a warning against assuming they had to be grave --
+  ;; Baskerville's four-volume Ariosto of 1773 had sixty-six cancelled leaves,
+  ;; "most of them correcting no more than a single letter" -- so this is a
+  ;; rate rather than a severity test, and the rate is the user's.
+  ;;
+  ;; **The rate is per LEAF, not per error**, and the difference is the whole
+  ;; of this comment. It used to be drawn once for every surviving error, which
+  ;; is defensible on a quarto with a few dozen of them and absurd on a book
+  ;; with thousands: the First Folio came out with 349 of its 511 leaves
+  ;; cancelled, two in three, where the real Folio has essentially one famous
+  ;; cancel. A parameter whose meaning changes with the length of the book is
+  ;; not a parameter, and no reader of the flag could have guessed that 0.15
+  ;; meant "nearly every leaf" here and "one leaf in eight" on a pamphlet.
+  ;;
+  ;; So: at most one cancel per leaf, drawn at `rate' among the leaves that
+  ;; carry a surviving error at all. Cancelling a leaf replaces the whole leaf,
+  ;; so a second draw on the same leaf could never have meant anything anyway.
+  (define by-leaf (make-hash))
+  (for ([e (in-list errors)])
+    (unless (hash-has-key? by-leaf (car e)) (hash-set! by-leaf (car e) e)))
   (define from-errors
-    (for/list ([e (in-list errors)]
-               ;; Not every surviving error is worth cutting a leaf out for.
-               ;; Gaskell's counter-example is a warning against assuming they
-               ;; had to be grave -- Baskerville's four-volume Ariosto of 1773
-               ;; had sixty-six cancelled leaves, "most of them correcting no
-               ;; more than a single letter" -- so this is a rate rather than
-               ;; a severity test, and the rate is the user's.
+    (for/list ([leaf (in-list (sort (hash-keys by-leaf) string<?))]
                #:when (< (rnd g) rate))
+      (define e (hash-ref by-leaf leaf))
       (define sheet (take-spare!))
       (cancel (car e) 'error (cdr e) sheet (and sheet #t) (mckerrow-signs g))))
 
@@ -245,11 +261,25 @@
 
   ;; The endogenous cause: an error the program made and the corrector missed.
   ;; Nothing about it is supplied from outside.
+  ;; Twenty errors, but on four leaves: `(modulo i 4)' puts five errors on each
+  ;; of C1r-C4r. At rate 1.0 that is four cancels and not twenty, because a
+  ;; cancel replaces the whole leaf and the second error on a leaf is mended by
+  ;; the same act as the first.
+  ;;
+  ;; This check asserted 20 and so encoded the defect: the draw was made once
+  ;; per error rather than once per leaf, which is defensible only while a book
+  ;; has few enough errors that no leaf carries two. The First Folio carries
+  ;; thousands, and came out with 349 of its 511 leaves cancelled.
   (define errs (for/list ([i 20]) (cons (format "C~ar" (add1 (modulo i 4)))
                                         "foul case: a turned n")))
   (define endo (plan-cancels leaves #:errors errs #:rate 1.0
                              #:white '("K4" "K3") #:rng (make-rng 2)))
-  (check-equal? (length (cancel-plan-cancels endo)) 20)
+  (check-equal? (length (cancel-plan-cancels endo)) 4
+                "one cancel per leaf, however many errors stand on it")
+  (check-equal? (length (remove-duplicates
+                         (map cancel-at (cancel-plan-cancels endo))))
+                (length (cancel-plan-cancels endo))
+                "and no leaf is cancelled twice")
   (check-true (for/and ([c (in-list (cancel-plan-cancels endo))])
                 (eq? (cancel-cause c) 'error)))
   ;; the first replacements go into the white paper, the rest cost a half-sheet

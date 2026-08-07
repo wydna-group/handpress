@@ -138,25 +138,25 @@
 ;; ---------------------------------------------------------------------------
 
 ;; The finest difference between two injuries that an investigator can
-;; reliably see, as a fraction of the range of injuries: at 0.20 he can
-;; separate two injuries a fifth of the range apart and no closer.
+;; reliably see, as a fraction of the range of injuries: at 0.26 he can
+;; separate two injuries about a quarter of the range apart and no closer.
 ;;
 ;; Anchored on Hinman's own harvest. Blayney counts what Hinman actually got
 ;; out of the Folio _Lear_ -- "314 appearances of distinctive types in the
 ;; pages of Lear, which gives a density of approximately 23 per forme, or
-;; 11-12 per page" (i. 96) -- and at 0.20 a folio at the default fount
-;; condition yields 12.2 identifiable types a page (± 0.7 over five seeds,
+;; 11-12 per page" (i. 96) -- and at 0.26 a folio at the default fount
+;; condition yields 11.5 identifiable types a page (± 0.9 over five seeds,
 ;; areopagitica.txt, preliminary scheme pinned). That also sits inside
 ;; Hinman's own description of the harvest, "from eight or ten to well over a
 ;; score ... in almost every page of the Folio" (i. 56).
 ;;
-;; **The quarto is a check and not a second anchor, and it passes.** Blayney
+;; **The quarto was a check and it used to pass; it no longer does.** Blayney
 ;; argues from the type-area that a quarto page at the same fount condition
-;; would leave an investigator "no more than 5 or 6 types per page". Nothing
-;; was fitted to that: with 0.20 carried over unchanged from the folio, the
-;; quarto gives 5.3 ± 0.5. The ratio between the two formats is the model's
-;; own -- it comes out of the geometry and the flow of type through the cases,
-;; neither of which was told what answer to produce.
+;; would leave an investigator "no more than 5 or 6 types per page". At the old
+;; 0.20 and the old 16-em folio the quarto gave 5.3 ± 0.5 and both fitted at
+;; one value. With the folio measure corrected the folio needs 0.26 and the
+;; quarto then reads about 4.3. See the note on DEFAULT-DISCRIMINATION: the
+;; disagreement is evidence about the type-area ratio and is left in view.
 ;;
 ;; One anchor even so, and it is worth saying which end of the range it sits
 ;; at. This is the Folio: a worn pica in the largest house in London, examined
@@ -166,7 +166,27 @@
 ;; happened the last time a parameter here was anchored on Jaggard and treated
 ;; as ordinary. Blayney says as much of the field: most quarto investigators
 ;; "have used rather less evidence per forme than did Hinman."
-(define DEFAULT-DISCRIMINATION 0.20)
+;; **Re-anchored after the folio measure was corrected, and the first anchor
+;; is a warning worth keeping.** This was 0.20, fitted when `FOLIO' carried an
+;; unsourced 16-em measure. Hinman's own 20 ems put a quarter more type on the
+;; page, so the same eye found a quarter more evidence on it: 14.1 identifiable
+;; types a page against his 11-12, and 18.9 on the whole Folio, where the extra
+;; came from a long book battering more type as it went. The parameter had not
+;; changed and was no longer calibrated, because what it was calibrated
+;; *against* had. A number fitted to one version of a model is not a
+;; measurement of anything once that model moves; date the fit or it rots.
+;;
+;; 0.26 puts a folio at 11.5 a page, inside Hinman's 11-12.
+;;
+;; **The quarto check no longer passes at the same value, and that is left
+;; standing.** At 0.26 a quarto gives about 4.3 where Blayney predicts 5-6.
+;; The two agreed at 0.20 and no longer do, which says something about the
+;; model rather than about the parameter: Blayney's reasoning is that a quarto
+;; page holds "half (or somewhat less than half) the type-area of a folio
+;; page", and ours holds 798 ems against the folio's 2,640 -- 30%, not half.
+;; So either the quarto measure or the folio's is still wrong, and tuning
+;; discrimination until both fit would bury the discrepancy that says so.
+(define DEFAULT-DISCRIMINATION 0.26)
 
 (define DISCRIMINATION-NOTE
   (string-append

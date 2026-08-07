@@ -532,7 +532,26 @@
                (define-values (new note) (stretch cv ws g need))
                (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
 
-        (define white (- measure indent (content-width final-ws)))
+        ;; A fuller spelling the line cannot afford is not one the compositor
+        ;; can use. `stretch' is asked for `need' units and may hand back more
+        ;; -- there is no spelling of an arbitrary length, so it overshoots --
+        ;; and nothing checked the result. Squeezing has always been bounded,
+        ;; by re-testing `per' every round and giving up at HAIR; stretching
+        ;; was not, so a line filled out with longer forms could come back
+        ;; wider than the measure and reach `make-line' with nowhere to go.
+        ;;
+        ;; It took the whole Folio to find: the words have to be long enough
+        ;; that one fuller spelling overruns a 16-em column, and Hamlet's
+        ;; "tragical-comical-historical-pastoral" is where it happens.
+        ;; `historical-pastoral' became `hiſtorical-paſtoralle' and the line
+        ;; overhung by three units, which is one hair space.
+        ;;
+        ;; Reverting to the squeezed forms is the rule this pipeline is built
+        ;; on: habit proposes and the measure disposes. It is not a clamp on
+        ;; the arithmetic, it is the compositor declining a spelling he has no
+        ;; room for.
+        (define fitted-ws (if (< (per final-ws) HAIR) tight-ws final-ws))
+        (define white (- measure indent (content-width fitted-ws)))
         (define spaces (apportion white gaps))
         ;; Moxon's account of justifying is quantised: the compositor sets with
         ;; one space between words, and if the line will not fill he "puts a
@@ -542,14 +561,14 @@
         ;; gap wider than an em is beyond what he would own to, and has a name:
         ;; "These wide Whites are by Compositers (in way of Scandal) call'd
         ;; Pidgeon-holes."
-        (define pigeon? (> (per final-ws) EM-QUAD))
+        (define pigeon? (> (per fitted-ws) EM-QUAD))
         (define note
           (string-append
            (if pigeon? "pigeon-holes — " "")
-           (describe-space (exact-round (per final-ws)))
-           (if (null? all-notes) ""
+           (describe-space (exact-round (per fitted-ws)))
+           (if (or (null? all-notes) (eq? fitted-ws tight-ws)) ""
                (string-append "; " (string-join (reverse all-notes) "; ")))))
-        (make-line final-ws spaces indent measure 'prose #:justification note)])]))
+        (make-line fitted-ws spaces indent measure 'prose #:justification note)])]))
 
 (define (content-width ws) (for/sum ([w (in-list ws)]) (word-width w)))
 

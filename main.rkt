@@ -101,6 +101,8 @@
                        #:cancels [cancels 0]
                        #:imprint-change? [imprint-change? #f]
                        #:heap-disorder [heap-disorder 0.15]
+                       ;; How many made-up copies get written out as text.
+                       #:copy-texts [copy-texts 12]
                        ;; How fine an eye the analysis reads the book with.
                        ;; Nothing in the printing house sees this: it changes
                        ;; what the report can identify, never what was set.
@@ -242,8 +244,16 @@
         (lambda (o) (write-string text o))))
     (write! ".facsimile.txt" facsimile)
     (write! ".report.txt" report)
-    ;; one file per made-up copy of the edition, so they can be collated
-    (for ([pc (in-list (press-run-copies r))])
+    ;; One file per made-up copy, so they can be collated by eye. Capped,
+    ;; because an edition is 1,200 copies and each one of a Folio renders to
+    ;; some megabytes: writing them all is six gigabytes of near-identical
+    ;; text nobody asked for. The *collation* still covers every copy -- that
+    ;; happens in the press run and is reported in full; this only limits how
+    ;; many are written out to read.
+    (for ([pc (in-list (if (and (positive? copy-texts)
+                                (> (length (press-run-copies r)) copy-texts))
+                           (take (press-run-copies r) copy-texts)
+                           (if (zero? copy-texts) '() (press-run-copies r))))])
       (write! (format ".~a.txt" (string-downcase
                                  (string-replace (printed-copy-name pc) " " "-")))
               (render-book-text b (copy-reading-map pc r))))
@@ -350,6 +360,7 @@
   (define imprint-change? #f)
   (define heap-disorder 0.15)
   (define discrimination DEFAULT-DISCRIMINATION)
+  (define copy-texts 12)
   (define jaggard? #f)
   (define prelim-style #f)
   (define pages 0)
@@ -419,6 +430,9 @@
       (set! cancel-rate (string->number x))]
      [("--imprint-change") "re-issue with the bookseller's name altered: a cancel title"
       (set! imprint-change? #t)]
+     [("--copy-texts") n
+      "how many made-up copies to write out as text; 0 for none. Every copy is still collated."
+      (set! copy-texts (string->number n))]
      [("--discrimination") x
       "how finely the ANALYSIS can tell one damaged type from another, 0-1; the default is anchored on Hinman's Folio and is a ceiling, not a typical eye"
       (set! discrimination (string->number x))]
@@ -470,7 +484,7 @@
                        #:prelim-style prelim-style
                        #:cancel-rate cancel-rate #:cancels cancels
                        #:imprint-change? imprint-change? #:heap-disorder heap-disorder
-                       #:discrimination discrimination
+                       #:discrimination discrimination #:copy-texts copy-texts
                        #:pages pages #:numbers? numbers?
                        #:long-s? long-s? #:modern-uv? modern-uv?
                        #:modern-spelling? modern-spelling? #:scribal? scribal? #:year year

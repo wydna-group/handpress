@@ -82,6 +82,8 @@ Flags come @emph{before} the input file, as Racket's
         (list @tt{--formes-standing} "formes of type standing before distribution")
         (list @bold{The analysis} "")
         (list @tt{--discrimination} "how finely the analysis can tell one damaged type from another, 0–1; a ceiling, not a typical eye")
+        (list @tt{--witness} "which made-up copy the facsimile shows; the page carries them all and a picker switches between them")
+        (list @tt{--copy-texts} "how many copies to write out as text (0 for none); every copy is collated regardless")
         (list @bold{At press} "")
         (list @tt{--first-proof} "chance of a proof pulled before the run begins")
         (list @tt{--seed} "the whole run is deterministic in this")

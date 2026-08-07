@@ -27,7 +27,7 @@
 ;;; single source of truth -- is about which way the data flows, not about
 ;;; which language does the walking.
 
-(require racket/list racket/string racket/format racket/math xml
+(require racket/list racket/string racket/format racket/math racket/set xml
          racket/runtime-path racket/file racket/path
          "vocabulary.rkt")
 
@@ -46,6 +46,35 @@
 ;; this program exists to warn about, and it was being shown unlabelled as
 ;; "the book" while the copies tab listed the real ones beside it.
 (define current-witness (make-parameter "copya"))
+
+;; Every made-up copy in the edition, in the order the header lists them, and
+;; the table that lets one page serve all of them.
+;;
+;; A press variant is a property of a FORME, so all the words altered in one
+;; forme divide the edition the same way. Storing which copies read which way
+;; per word would be words x copies -- on this Folio, thousands of variant
+;; words against 1,200 copies -- so the division is stored once per distinct
+;; pattern and the words point at it. There are only as many distinct patterns
+;; as there are corrected formes.
+(define current-witnesses (make-parameter '()))
+(define mask-table (make-parameter #f))   ; (box (cons hash reversed-list))
+
+(define (mask-index! m)
+  (define b (mask-table))
+  (cond
+    [(not b) #f]
+    [else
+     (define st (unbox b))
+     (define h (car st))
+     (or (hash-ref h m #f)
+         (let ([i (hash-count h)])
+           (hash-set! h m i)
+           (set-box! b (cons h (cons m (cdr st))))
+           i))]))
+
+(define (masks-in-order)
+  (define b (mask-table))
+  (if b (reverse (cdr (unbox b))) '()))
 
 (define-runtime-path facsimile-css "xslt/facsimile.css")
 (define-runtime-path facsimile-js "xslt/facsimile.js")
@@ -258,9 +287,52 @@
         (cond
           [(or (string=? ana "") (string=? ana "#copy")) ""]
           [else (substring ana 1)])))
-  (format "<span class=\"~a\"~a style=\"--x:~a;--w:~a;opacity:~a\">~a</span>"
+  ;; Where the copies disagree, carry every reading and the pattern that says
+  ;; which copy reads which way, so the switcher can serve all of them without
+  ;; a second rendering of the book.
+  (define app (kid w 'app))
+  (define app-attrs
+    (cond
+      [(or (not app) (null? (current-witnesses))) ""]
+      [else
+       (define rs (kids app 'rdg))
+       (define wits
+         (for/list ([r (in-list rs)])
+           (list->set (string-split (attr r 'wit "")))))
+       ;; one character per copy: which reading that copy has
+       (define m
+         (list->string
+          (for/list ([c (in-list (current-witnesses))])
+            (define k (string-append "#" c))
+            (define i (for/first ([ws (in-list wits)] [j (in-naturals)]
+                                  #:when (set-member? ws k))
+                        j))
+            (integer->char (+ (char->integer #\0) (or i 0))))))
+       (define set-i
+         (for/first ([r (in-list rs)] [j (in-naturals)] #:when (attr r '|hp:set|)) j))
+       ;; data-h is the marked-up SET reading, built here rather than reused
+       ;; from `body'. `body' is whatever witness the page was rendered for,
+       ;; which is usually the other state -- so restoring it on switching
+       ;; back put the wrong words on the page, and every copy showed the same
+       ;; reading however the picker was driven. The glyph and the damaged
+       ;; sorts belong to the type that stood in the forme, so they belong to
+       ;; this reading and to no other.
+       (define set-body
+         (and set-i
+              (let* ([txt (text-of (list-ref rs set-i))]
+                     [shown (or (attr w '|hp:glyph|) txt)])
+                (mark-accident (mark-damage shown (sorts-of w) damage-names)
+                               shown (attr w '|hp:composed|)))))
+       (string-append
+        (format " data-m=\"~a\"" (mask-index! m))
+        (if set-i (format " data-set=\"~a\" data-h=\"~a\"" set-i (esc set-body)) "")
+        (apply string-append
+               (for/list ([r (in-list rs)] [j (in-naturals)])
+                 (format " data-r~a=\"~a\"" j (esc (text-of r))))))]))
+  (format "<span class=\"~a\"~a~a style=\"--x:~a;--w:~a;opacity:~a\">~a</span>"
           cls
           (if (string=? title "") "" (format " title=\"~a\"" (esc title)))
+          app-attrs
           (attr w '|hp:x| "0")
           (attr w '|hp:w| "0")
           (real->decimal-string (ink printed sig) 2)
@@ -783,6 +855,14 @@
   (define root (document-element doc))
   (define hdr (find root 'teiHeader))
   (define title (let ([t (find hdr 'title)]) (if t (text-of t) "A book")))
+  ;; The made-up copies, in the order the header lists them. Set before any
+  ;; word is rendered, because `word->html' records which copies read which
+  ;; way as it goes.
+  (define wit-ids
+    (for/list ([wtn (in-list (find-all hdr 'witness))])
+      (attr wtn '|xml:id| "")))
+  (current-witnesses wit-ids)
+  (mask-table (box (cons (make-hash) '())))
   (define damage-names
     (let ([tax (for/or ([t (in-list (find-all hdr 'taxonomy))])
                  (and (equal? (attr t '|xml:id|) "hp.damage") t))])
@@ -869,7 +949,26 @@
    "<button data-view=\"makeup\">The make-up</button>"
    "<button data-view=\"evidence\">The evidence</button>"
    "<button data-view=\"copies\">The copies</button>"
-   "</nav></header>\n"
+   "</nav>"
+   ;; Which copy the book is being shown in.
+   ;;
+   ;; Until now the page could only be one side of every division: it took the
+   ;; first reading of every apparatus, which is the uncorrected state of every
+   ;; forme at once, and no copy in the warehouse reads that way. A press
+   ;; variant divides the edition, and with 1,200 copies there are as many
+   ;; different books as there are combinations of corrected formes. The file
+   ;; already holds all of them; this is how you look at one.
+   (if (< (length wit-ids) 2)
+       ""
+       (string-append
+        "<label class=\"witpick\">copy <select id=\"witness\">"
+        (apply string-append
+               (for/list ([c (in-list wit-ids)])
+                 (format "<option value=\"~a\"~a>~a</option>"
+                         (esc c) (if (string=? c witness) " selected" "")
+                         (esc c))))
+        "</select></label>"))
+   "</header>\n"
    (format "<div class=\"wrap\"~a>\n" (leaf-vars hdr))
 
    ;; ---- the book -------------------------------------------------------
@@ -898,8 +997,28 @@
    (witnesses->html hdr)
    "</section>\n"
 
-   "</div>\n<script>" (file->string facsimile-js) "</script>\n"
+   "</div>\n<script>"
+   ;; The apparatus, in the compact form the switcher needs: the copies in
+   ;; order, and one division pattern per distinct press variant rather than
+   ;; one per altered word. On this Folio that is a few hundred patterns
+   ;; against many thousands of words, because every word altered in one forme
+   ;; divides the edition identically.
+   (format "window.HP_COPIES=~a;window.HP_MASKS=~a;\n"
+           (json-array wit-ids)
+           (json-array (masks-in-order)))
+   (file->string facsimile-js) "</script>\n"
    "</body></html>\n"))
+
+;; A JSON array of strings, which is all the page needs and avoids a
+;; dependency for it.
+(define (json-array xs)
+  (string-append
+   "["
+   (string-join
+    (for/list ([x (in-list xs)])
+      (string-append "\"" (regexp-replace* #rx"[\\\"]" x "\\\\&") "\""))
+    ",")
+   "]"))
 
 (define (tei-file->html path #:lede [lede ""] #:witness [witness "copya"]
                         #:face [face #f] #:font-file [font-file #f] #:fit [fit #f])

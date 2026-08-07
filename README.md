@@ -205,6 +205,33 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 | `--formes-standing` | formes of type standing before distribution |
 | `--paging-error` | how freely the paging goes wrong, 0–1 (default 0.04) |
 
+### The whole First Folio
+
+`tools/fetch-folio.py` assembles the book of 1623 as copy — 868,245 words, all
+36 plays in Catalogue order with the eight preliminary pieces, as both TEI
+(preliminaries *declared*) and Markdown (*constructed*). It is not committed;
+rerun the script. The plays come from Project Gutenberg in modern spelling; the
+preliminaries are Wikisource's transcription and are in **original 1623
+spelling**, because no free modern-spelling edition of them exists — 0.24% of
+the copy, and the script says so at length.
+
+```
+python tools/fetch-folio.py
+racket main.rkt --format folio6 --paper crown --compositors A,B,C,D,E \
+  --kind drama --year 1623 --edition 1200 --copies 1200 --copy-texts 0 \
+  --tei --html -o out-folio folio/folio.tei.xml
+python tools/audit-mechanisms.py out-folio/folio.tei.report.txt
+```
+
+About seven minutes, and it is the standard hard case: setting the whole Folio
+at a full edition found four defects that no smaller book did, including a
+folio measure 25% too narrow. See ROADMAP §6a.
+
+`tools/audit-mechanisms.py` reads a finished report and sorts every countable
+mechanism into *fired*, *silent*, and *not offered* — the third pile being the
+one a list of counts cannot give you, because a bare `0` cannot tell a thing
+that did not happen from one that could not.
+
 ### The analysis
 
 Nothing here changes what was printed. It changes what a bibliographer reading
@@ -214,6 +241,7 @@ the fount, perfectly labelled.
 
 | flag | effect |
 |---|---|
+| `--copy-texts` | how many made-up copies to write out as plain text; 0 for none. **Every copy is collated regardless** — this only limits how many are dumped to disk, and at 1,200 copies of a Folio that is six gigabytes of near-identical text. The apparatus in the TEI holds them all. |
 | `--witness` | which made-up copy the facsimile and the XSLT reading text show, e.g. `copya`. It must be *a* copy: the facsimile used to take the first reading of every apparatus, which is the uncorrected state of every forme at once — a book no one owns. Measured on 24 copies with 10 split variants, the closest real copy agreed with that page in 6 of the 10. |
 | `--discrimination` | the finest difference between two injuries an investigator can reliably see, 0–1. The default 0.20 is anchored on Hinman's Folio — 12.2 identifiable types a page against the 11–12 Blayney counts in his *Lear* — and is therefore a **ceiling** on what anyone saw, not a typical eye. Raise it for a worse investigator. |
 

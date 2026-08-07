@@ -225,10 +225,53 @@
     });
   }
 
+  /* Show the book as one named copy reads it.
+   *
+   * Every press variant divides the edition, and the page carries all the
+   * readings: each altered word has data-r0, data-r1 ... and a data-m
+   * pointing at the pattern that says which copy takes which. The patterns
+   * are shared -- one per corrected forme, not one per word -- because a
+   * forme is what a variant belongs to.
+   *
+   * data-set names the reading whose TYPE this word describes. Only that one
+   * may keep its glyph and its damaged sorts: hp:glyph, hp:sorts and the
+   * position are facts about the metal that stood in the forme, and the other
+   * state was never set as type at all. Showing the marks beside the other
+   * reading would put the type of one state under the words of another, and
+   * the sorts are indexed by position, so they would land on whatever letters
+   * happened to sit at those offsets.
+   */
+  function showCopy(id) {
+    var copies = window.HP_COPIES || [], masks = window.HP_MASKS || [];
+    var ci = copies.indexOf(id);
+    if (ci < 0) return;
+    $$('[data-m]').forEach(function (w) {
+      var mask = masks[+w.dataset.m];
+      if (!mask) return;
+      var r = mask.charCodeAt(ci) - 48;
+      if (w.dataset.set !== undefined && +w.dataset.set === r) {
+        w.innerHTML = w.dataset.h;
+      } else {
+        w.textContent = w.dataset['r' + r] || '';
+      }
+      w.classList.toggle('other-state',
+                         w.dataset.set === undefined || +w.dataset.set !== r);
+    });
+    document.documentElement.setAttribute('data-copy', id);
+  }
+
+  function witnessPicker() {
+    var sel = $('#witness');
+    if (!sel) return;
+    sel.addEventListener('change', function () { showCopy(sel.value); });
+    showCopy(sel.value);
+  }
+
   function init() {
     countMarks();
     trackPosition();
     conjugates();
+    witnessPicker();
   }
 
   if (document.readyState === 'loading') {

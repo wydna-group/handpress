@@ -133,8 +133,24 @@
 
 (define (book-format-pages f) (* 2 (book-format-leaves f)))
 
-(define FOLIO-IN-SIXES (book-format "folio in sixes" "2°" 6 3 2 16.0 66 1))
-(define FOLIO          (book-format "folio"          "2°" 2 1 2 16.0 66 1))
+;; The folio measure is Hinman's, measured off the First Folio itself (i. 35):
+;; "The plays are all set in a type of which twenty lines measure about 83
+;; millimetres; and since the horizontal measure of the type-column is also
+;; about 83 mm., each ordinary Folio line may be said to contain 20 ems." He
+;; gives the depth in the same breath -- "each full column contains sixty-six
+;; lines plus a 'direction line' at its foot" -- and the direction line is the
+;; skeleton's, carrying the catchword and signature, so 66 is the text.
+;;
+;; It was 16 ems, unsourced, and the error is not cosmetic. The plays are
+;; chiefly verse and a pentameter runs about 18 ems, so at 16 a third of all
+;; verse lines had to be turned over, each turn-over costing a second line of
+;; type. Setting the whole Folio came out at 1,386 pages against the real
+;; book's 908. Hinman is explicit that the ragged right is genuine -- "since
+;; the plays are chiefly in verse, relatively few lines of the text proper
+;; extend all the way to the right-hand margin of the column" -- so the white
+;; is real and it is the measure that was wrong.
+(define FOLIO-IN-SIXES (book-format "folio in sixes" "2°" 6 3 2 20.0 66 1))
+(define FOLIO          (book-format "folio"          "2°" 2 1 2 20.0 66 1))
 (define QUARTO         (book-format "quarto"         "4°" 4 1 1 21.0 38 2))
 (define OCTAVO         (book-format "octavo"         "8°" 8 1 1 16.0 30 3))
 

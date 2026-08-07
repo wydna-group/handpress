@@ -288,6 +288,20 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
    to a mid grey with dark ink on it, measured at 3.17:1 across all nineteen
    chips, and none of it visible in a light-mode screenshot.
    Furniture over the canvas takes the canvas's tokens. */
+/* The copy picker. Furniture over the canvas, so it takes the canvas's
+   tokens rather than the paper's -- see the note on .unit span below, which
+   is the same mistake made once already. */
+.witpick { margin-left: auto; display: flex; align-items: center; gap: .4rem;
+           font-size: .72rem; letter-spacing: .06em; text-transform: uppercase;
+           color: var(--ink); opacity: .75; }
+.witpick select { font: inherit; letter-spacing: inherit; padding: .15rem .4rem;
+                  color: var(--ink); background: var(--surface-soft);
+                  border: 1px solid var(--rule); border-radius: 4px; }
+/* A reading this copy has but its type does not describe: the words are
+   right, the glyphs and the damaged sorts belong to the other state and are
+   deliberately not shown. Marked so the reader can see which is which. */
+.w.other-state { border-bottom: 1px dotted var(--rule); }
+
 .unit span { padding: .1rem .55rem; border-radius: 999px; cursor: pointer;
              border: 1px solid var(--rule); opacity: .85;
              color: var(--ink);
