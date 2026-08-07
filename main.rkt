@@ -241,9 +241,16 @@
       ;; than inlined, so it has to travel with the output.
       (write-assets! out-dir)
       (define out (build-path out-dir (string-append stem ".tei.html")))
+      ;; No processor is a documented outcome, not a fault: `apply-xslt' returns
+      ;; #f when it can find neither xsltproc nor PowerShell, and the reading
+      ;; text is the one output that is optional. So it is reported and not
+      ;; raised -- and not on stderr under --quiet, because a machine reading
+      ;; stderr for failures will otherwise count a missing optional tool as
+      ;; one. The package build service does exactly that.
       (unless (apply-xslt xml xsl out #:witness witness #:layout layout)
-        (eprintf "could not run an XSLT processor; ~a not written\n"
-                 (path->string out))))
+        (unless quiet?
+          (eprintf "could not run an XSLT processor; ~a not written\n"
+                   (path->string out)))))
     ;; The facsimile is built from the TEI file, not from the book in memory.
     ;; That is the whole of the change: there is one rendering, its source is
     ;; the file on disk, and anything the TEI does not carry cannot appear.

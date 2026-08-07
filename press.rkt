@@ -512,7 +512,15 @@
    string<? #:key car))
 
 (module+ test
-  (require rackunit "imposition.rkt" racket/file)
+  (require rackunit "imposition.rkt" racket/file racket/runtime-path)
+
+  ;; A committed sample, reached relative to this module rather than to the
+  ;; working directory. It used to read `areopagitica.txt' from
+  ;; (current-directory), which is gitignored -- so this test, which is the one
+  ;; that measures the whole Gaskell-and-Greg result, passed here and threw on
+  ;; every clean checkout. The package build service found it within a day of
+  ;; publication, which is exactly what a process per module is for.
+  (define-runtime-path greg-sample "samples/ado/_all-q1600.txt")
 
   ;; Gaskell's mechanism, tested by Greg's rule.
   ;;
@@ -532,8 +540,7 @@
   (let ()
     (define book
       (set-book (make-house #:fmt QUARTO #:seed 21)
-                (file->string
-                 (build-path (current-directory) "areopagitica.txt"))))
+                (file->string greg-sample)))
     (define (consistent-share disorder)
       (define-values (ok n)
         (for/fold ([ok 0] [n 0]) ([seed (in-range 25)])
