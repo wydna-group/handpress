@@ -39,3 +39,4 @@ test-output.txt
 # footing as corpus/ and sources/. Rebuild with tools/fetch-folio.py.
 folio/
 fonts/
+__pycache__/
