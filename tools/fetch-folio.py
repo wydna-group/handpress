@@ -313,6 +313,87 @@ def blocks(text):
     return out
 
 
+def front_units(kind, head, body):
+    """The body of a preliminary piece, as (tag, text) pairs.
+
+    This read `blocks(body)[1:]', on the reasoning that block [0] was the
+    heading and the heading had already been written. Block [0] IS the
+    heading -- the Wikisource text opens with the piece's own title -- but it
+    is not separated from what follows by a blank line, so `blocks' returns
+    the title and the whole piece as ONE block and the slice threw the piece
+    away. Jonson's poem lost all 668 of its words, `To the great Variety of
+    Readers' all 477, the Catalogue and the Actors all 30; the dedication kept
+    eight, being the two lines of signature that did stand apart.
+
+    So the whole front matter of the First Folio came to 98 words of headings,
+    the preliminary gathering was cast off at three leaves and printed one
+    blank page, and the book began at The Tempest with no dedication, no
+    epistles, no commendatory verses, no Catalogue and no list of actors. The
+    report said `8 preliminary divisions declared by the TEI markup and taken
+    from it, not guessed' throughout, which was true of the divisions and not
+    of a word inside them.
+
+    The heading is stripped by matching it rather than by counting blocks,
+    which is what went wrong. And the verse is emitted as verse: the four
+    commendatory poems and the two lists are set line for line in the Folio,
+    and running them together as prose paragraphs would be the same mistake
+    this file already records for the plays.
+    """
+    def letters(s):
+        return re.sub(r"[^a-z]", "", s.lower())
+
+    def shared(a, b):
+        n = 0
+        while n < len(a) and n < len(b) and a[n] == b[n]:
+            n += 1
+        return n
+
+    def strip_head(s):
+        """Drop the piece's own title from the head of its text.
+
+        Matching it exactly does not work, and each failure is a different
+        kind. The <head> we chose is not always the source's wording -- ours
+        is `To the memory of my beloued, the Author' where Wikisource runs on
+        `Mr. William Shakespeare: And what he hath left vs'. The title may be
+        broken over two lines. And `restore_initial' has put the dropped
+        decorative capital back, so Holland's opens `the Famous TScenicke
+        Poet' with a T that belongs to no word.
+
+        So: consume leading lines while they keep extending a common prefix of
+        the heading, and stop as soon as the heading is covered. Three lines
+        at most -- a title longer than that is not a title. The Catalogue is
+        the case this must NOT fire on: its text opens `The Workes of William
+        Shakespeare', which shares nothing with `The Names of the Principall
+        Actors', so nothing is dropped and the list keeps its own headline.
+        """
+        want = letters(head)
+        lines = s.split("\n")
+        seen, i = "", 0
+        while i < len(lines) and i < 3 and len(seen) < len(want):
+            cand = seen + letters(lines[i])
+            # the line has to carry the heading forward, not merely start with
+            # the same letter
+            if shared(cand, want) <= len(seen) + 3:
+                break
+            seen, i = cand, i + 1
+        return "\n".join(lines[i:]).lstrip("\n") if shared(seen, want) >= len(want) * 0.8 else s
+
+    text = strip_head(body.strip())
+    # These are not Gutenberg files: a single blank line is a real break --
+    # a paragraph in the epistles, a stanza in the verse.
+    paras = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    verse = kind in ("commendatory", "dramatis personae")
+    out = []
+    for p in paras:
+        if verse:
+            for line in p.split("\n"):
+                if line.strip():
+                    out.append(("l", line.strip()))
+        else:
+            out.append(("p", " ".join(l.strip() for l in p.split("\n") if l.strip())))
+    return out
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     raw = os.path.join(OUT, "raw")
@@ -415,8 +496,8 @@ def main():
     for kind, head, body in front:
         t.append('    <div type="%s">' % esc(kind))
         t.append('      <head>%s</head>' % esc(head))
-        for b in blocks(body)[1:]:          # [0] is the heading, already used
-            t.append('      <p>%s</p>' % esc(b))
+        for tag, text in front_units(kind, head, body):
+            t.append('      <%s>%s</%s>' % (tag, esc(text), tag))
         t.append('    </div>')
     # <l> per line of the play, not <p> per speech.
     #

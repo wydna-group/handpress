@@ -154,7 +154,31 @@
                    ;; often, because Hinman's shop reviewed the work of a man
                    ;; "evidently expected to make many errors". What was wrong
                    ;; was the base rate under it.
-                   #:proof-rate [proof-rate 0.28]
+                   ;; 0.28 was still a fifth too many, and for a reason worth
+                   ;; naming: THIS IS THE RATE FORMES ARE PROOFED, and Hinman's
+                   ;; hundred-in-450 is a count of formes CORRECTED. They are
+                   ;; not the same number. 86% of proofed formes turn out to
+                   ;; have something worth altering, and E's formes are proofed
+                   ;; 1.9 times as often, which lifts the effective rate from
+                   ;; the nominal 28.0% to 32.3%. The two together delivered
+                   ;; 137 corrected formes of 493 -- 27.8% against Hinman's
+                   ;; 22.2% -- and 773 press variants against his "just over
+                   ;; 500".
+                   ;;
+                   ;; It has been wrong since it was set: the previous full
+                   ;; Folio gave 144 of 510, the same 28%. It went unnoticed
+                   ;; because a second error cancelled it. Variants per
+                   ;; corrected forme were 3.90 against Hinman's 5.00, so the
+                   ;; product landed near 500 by accident. Setting a white line
+                   ;; between speeches was what held that figure down; with the
+                   ;; page set solid it is 5.64, and the compensation went with
+                   ;; it.
+                   ;;
+                   ;; 0.224 is the base that puts corrected formes at 22.2%
+                   ;; once both are accounted for. Two wrongs stop making a
+                   ;; right, which is the only reason the arithmetic is spelt
+                   ;; out here rather than the number simply changed.
+                   #:proof-rate [proof-rate 0.224]
                    #:catches-accident [catches-accident 0.75]
                    #:catches-misreading [catches-misreading 0.10]
                    ;; How often the reader calls for the copy rather than

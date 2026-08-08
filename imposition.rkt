@@ -389,7 +389,25 @@
                     (* NORMAL-SPACE
                        (length (regexp-match* #px" " text)))))
        (cond
-         [(eq? kind 'verse) (if (<= w measure) 1 2)]
+         ;; Whether a verse line turns over has to be judged at the spacing
+         ;; the compositor will actually reach for, and that is the finest
+         ;; space in the case, not the ordinary one. `set-verse' works down
+         ;; the ladder and squeezes the words themselves before it gives up
+         ;; and turns over; its own test is content plus a hair to each gap.
+         ;;
+         ;; Judged at the normal space this predicted 363 turn-overs in 2,188
+         ;; verse lines where the compositor set 166 -- 197 lines of copy that
+         ;; were never going to be needed, held back over 25 pages, which is
+         ;; 7.9 lines a page. That was most of the 12.8 lines by which the
+         ;; average page fell short of its depth, and it is why two thirds of
+         ;; the Folio's pages came out spun out with white at the foot of the
+         ;; second column. At a hair the same copy predicts 130, which errs
+         ;; the other way by 1.4 lines a page and leaves the crowded pages and
+         ;; the omission branch something to fire on.
+         [(eq? kind 'verse)
+          (define tight (+ (width-of-word (string-replace text " " ""))
+                           (* HAIR (length (regexp-match* #px" " text)))))
+          (if (<= tight measure) 1 2)]
          [else
           (define n (max 1 (exact-ceiling (/ w measure))))
           (if (eq? kind 'heading) (+ n 2) n)])]))
@@ -833,6 +851,25 @@
   (check-equal? (sort so <) '(1 2 3 4 5 6 7 8))
   (check-false (equal? so '(1 2 3 4 5 6 7 8)))
   (check-equal? (setting-order QUARTO 0 #f) '(1 2 3 4 5 6 7 8))
+
+  ;; A verse line turns over only when it will not go in at the finest space
+  ;; in the case, because that is the compositor's own test. Judged at the
+  ;; ordinary space the casting off held back seven or eight lines of copy a
+  ;; page and two thirds of the book came out spun out.
+  ;; This line is 2,199 units at the hair and 2,424 at the normal space,
+  ;; against a 2,400-unit measure -- so it is exactly the case the two tests
+  ;; disagree on, and `set-verse' squeezes it in.
+  (let* ([line "No, rather I abiure all roofes, and chuse to wage"]
+         [u (copy-unit 'verse line 0 #f)]
+         [measure (* 20 UNITS-PER-EM)]
+         [content (width-of-word (string-replace line " " ""))]
+         [gaps (length (regexp-match* #px" " line))]
+         [segs (cast-off (list u) measure 66 (make-rng 5) 1.0)])
+    (check-true (<= (+ content (* HAIR gaps)) measure) "it goes in at a hair")
+    (check-false (<= (+ content (* NORMAL-SPACE gaps)) measure)
+                 "and not at the normal space")
+    (check-equal? (cast-off-segment-estimated-lines (car segs)) 1
+                  "so the casting off allows it one line, not two"))
 
   ;; ---- Rules ----------------------------------------------------------
   ;; "Five box rules appear, since one is used below as well as one above the

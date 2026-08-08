@@ -304,6 +304,11 @@
                #:witness witness
                #:face face #:font-file font-file
                #:fit (and fit (string->number fit))
+               ;; `--pages' truncated the terminal render and nothing else, so
+               ;; there was no way at all to ask for a facsimile of part of a
+               ;; book -- and on the Folio the facsimile is 79 MB and three and
+               ;; a half minutes of layout. It now means what it says on both.
+               #:pages pages
                ;; The collation gives the format, which is a folding and not a
                ;; size, so the sheet and the leaf it makes are named beside it.
                ;; A reader who is told "4°" and nothing else has been told how
@@ -444,7 +449,7 @@
      [("--prelim-signatures") st
       "how the preliminaries are signed: stars (* ** ***) | symbols (* † ‡ §) | pilcrow (¶ ¶¶) | lower (a b c) | english (text from B, prelims A then a) | continuous (no separate series) | unsigned (McKerrow's π) | auto"
       (set! prelim-style (and (not (string=? st "auto")) (string->symbol st)))]
-     [("--pages") n "show only the first N pages on screen"
+     [("--pages") n "draw only the first N pages: the terminal render and the HTML facsimile. The book is still printed and collated whole."
                   (set! pages (string->number n))]
      [("--no-copy-preparation") "the corrector does not mark up the copy"
                                 (set! prepare? #f)]

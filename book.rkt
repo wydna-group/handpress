@@ -1003,7 +1003,21 @@
         (define page-no (car ps))
         (define seg-index (sub1 page-no))
         (cond
-          [(>= seg-index (length (gathering-plan-segments plan))) (void)]
+          ;; A page of the format's scheme that this gathering has no copy
+          ;; for. SKIP it and go on -- this stopped the loop dead, and the
+          ;; rest of the gathering was never set.
+          ;;
+          ;; It could only bite on a gathering shorter than the format's full
+          ;; scheme, which in practice means every preliminary gathering:
+          ;; `formes-for-gathering' hands back the whole twelve-page folio
+          ;; scheme whatever #:leaves it is given, so a three-leaf preliminary
+          ;; gathering is set in the order 5 8 6 7 3 10 4 9 1 12 2 11, and the
+          ;; second entry -- page 8, which has no segment -- ended it. Page 5
+          ;; was composed and the other five were not, so the First Folio's
+          ;; preliminaries came out as a single leaf, and that leaf was blank
+          ;; because segment 5 is one of the empty ones.
+          [(>= seg-index (length (gathering-plan-segments plan)))
+           (page-loop (cdr ps) (add1 pos) carry)]
           [else
            (define seg (list-ref (gathering-plan-segments plan) seg-index))
            (define r (hash-ref refs page-no))
@@ -1423,6 +1437,28 @@
               sample))
   (check-regexp-match #px"^4°: A⁴" (book-collation plain))
   (check-equal? (length (book-runs plain)) 1)
+
+  ;; Every leaf the collation claims is a leaf the book actually has.
+  ;;
+  ;; A gathering shorter than the format's own scheme -- which is what a
+  ;; preliminary gathering nearly always is -- used to lose all but its first
+  ;; page. `formes-for-gathering' hands back the whole twelve-page folio
+  ;; scheme whatever #:leaves it is given, so a three-leaf preliminary
+  ;; gathering was set in the order 5 8 6 7 3 10 4 9 1 12 2 11, and the second
+  ;; entry, page 8, had no segment; the loop answered `(void)' and stopped
+  ;; instead of skipping. The First Folio's preliminaries came out as one
+  ;; blank leaf -- no dedication, no epistles, no commendatory verses, no
+  ;; Catalogue -- while the collation went on saying a³ and the report went on
+  ;; counting all eight declared divisions.
+  ;;
+  ;; It is checked against the collation because that is the statement a
+  ;; reader trusts, and because nothing else noticed for as long as it stood.
+  (for ([bk (in-list (list b plain))])
+    (define claimed
+      (for/sum ([r (in-list (book-runs bk))])
+        (* 2 (apply + (sig-run-leaves r)))))
+    (check-equal? (length (book-pages bk)) claimed
+                  "the book has every page its collation claims"))
 
   ;; The preliminaries are printed last and bound first, which is the whole
   ;; point of their having a series of their own. Both must hold at once.

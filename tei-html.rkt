@@ -906,8 +906,23 @@
     [(and (string=? src "") (string=? decls "")) ""]
     [else (format "\n~a:root{~a}\n" src decls)]))
 
+;; How many leaves to draw. 0 is all of them.
+;;
+;; The whole First Folio is 990 pages and 864,020 words, and every word is a
+;; span carrying its position, its width, both its forms and the identity of
+;; every distinctive sort in it. That comes to 79 MB of HTML and takes a
+;; browser three and a half minutes to lay out. Neither `--copies 1' nor the
+;; old `--pages' touched it -- the first because the apparatus is a small part
+;; of the file beside the words themselves, and the second because it only
+;; ever truncated the terminal render. 1,200 copies against 1: 79.5 MB against
+;; 78.6. The book is the size, not the edition.
+;;
+;; So the limit belongs here, at the one place that turns pages into a page.
+;; The book is still printed whole, still collated whole, and the report and
+;; the TEI still describe all of it: this draws the first N leaves of it.
 (define (tei->html doc #:lede [lede ""] #:witness [witness "copya"]
-                   #:face [face #f] #:font-file [font-file #f] #:fit [fit #f])
+                   #:face [face #f] #:font-file [font-file #f] #:fit [fit #f]
+                   #:pages [page-limit 0])
   (current-witness witness)
   (define root (document-element doc))
   (define hdr (find root 'teiHeader))
@@ -941,10 +956,16 @@
           (and n (let ([m (regexp-match #px"([0-9]+) l" (text-of n))])
                    (and m (string->number (cadr m))))))
         0))
-  (define pages
+  (define all-pages
     (for/list ([d (in-list (find-all (find root 'body) 'div))]
                #:when (equal? (attr d 'type) "page"))
       d))
+  (define pages
+    (if (positive? page-limit)
+        (take all-pages (min page-limit (length all-pages)))
+        all-pages))
+  (define drawn-part-of-book?
+    (< (length pages) (length all-pages)))
   ;; Bound as openings: a verso and the recto facing it. The first recto has no
   ;; verso before it and stands alone, which is why a book opens on a single
   ;; page and thereafter in pairs.
@@ -1000,7 +1021,23 @@
    ;; the collation are wanted at the foot as much as at the head.
    "<header class=\"masthead\"><div class=\"mh\">"
    "<h1>" (esc title) "</h1>"
+   ;; A part-drawn facsimile has to say so on its face. Every count in the
+   ;; description, the evidence and the copies is over the WHOLE book -- it was
+   ;; printed and collated entire -- and a reader who scrolled to the end of
+   ;; forty leaves and found the book stopping there would draw the wrong
+   ;; conclusion from every one of them.
    (if (string=? lede "") "" (format "<p class=\"lede\">~a</p>" (esc lede)))
+   (if drawn-part-of-book?
+       (format (string-append
+                "<p class=\"lede partial\"><strong>Showing the first ~a leaves "
+                "of ~a.</strong> The whole book was printed and collated: the "
+                "description, the evidence and the copies below count all ~a. "
+                "Only the drawing of the leaves is cut short, because the "
+                "whole of this book is ~a leaves of type and no browser will "
+                "lay that out quickly.</p>")
+               (length pages) (length all-pages) (length all-pages)
+               (length all-pages))
+       "")
    "</div><nav class=\"views\" id=\"views\">"
    "<button data-view=\"book\" class=\"on\">The book</button>"
    "<button data-view=\"makeup\">The make-up</button>"
@@ -1078,10 +1115,11 @@
    "]"))
 
 (define (tei-file->html path #:lede [lede ""] #:witness [witness "copya"]
-                        #:face [face #f] #:font-file [font-file #f] #:fit [fit #f])
+                        #:face [face #f] #:font-file [font-file #f] #:fit [fit #f]
+                        #:pages [pages 0])
   (tei->html (read-xml (open-input-string (file->string path)))
              #:lede lede #:witness witness
-             #:face face #:font-file font-file #:fit fit))
+             #:face face #:font-file font-file #:fit fit #:pages pages))
 
 ;; The stylesheet as it is actually served: the hand-written layout, plus the
 ;; departure marks generated from the vocabulary. Both renderings use this, and
