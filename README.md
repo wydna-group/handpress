@@ -44,7 +44,18 @@ The report opens with a Bowers-style description — the paper and the leaf it
 makes, the collation formula, the type page, the press variants sorted by forme
 and state — and goes on to the analysis: what the spelling tests say about who
 set which page, what the running titles say about the skeletons, where the
-casting off went wrong, how the case fared.
+casting off went wrong, how the case fared, and which rules are marked.
+
+**The rules are objects, not lines on a page.** A rule is type-high and prints,
+so it wears and can be followed like any other piece. Five box rules frame a
+page — one below the head-line as well as one above it, the head-line standing
+inside the frame — and ten make a forme; their *arrangement* is re-drawn every
+few formes and defines a group of formes printed together. The centre rule
+between the columns is not part of that set: it belongs to the type page and
+goes to the case with the type beside it, so its recurrence traces the shop's
+stock rather than the printing sequence. All of it is Hinman i. 51, 130 and
+148. Each rule is written to the TEI with its id, its length and its damage,
+and the facsimile draws the rules the file records.
 
 The HTML facsimile has four views. **The book** is the leaves themselves, with a
 map of the whole run above them and a legend below that filters the apparatus by

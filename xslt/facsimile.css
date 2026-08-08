@@ -192,15 +192,65 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    damaged running title, a bruised rule is evidence of which skeleton was
    used. Drawing them is a first step towards being able to model that.
 
+   What the frame encloses is the whole type page and not the text of it. On
+   Norton 803 (Lear 295) the box takes in the running title above the head
+   rule and the signature and catchword below the last line of type; the head
+   rule runs the full width of the box and stops at it. Drawn round .cols
+   alone, as it was, the running title floated outside its own frame.
+
    Multi-column pages only: a quarto is set in one column and has no centre
    rule to draw, and a page with a frame round a single column would be a
    picture of a book this program does not print. */
-.plate[style*="--cols:2"] .cols { border: 1px solid rgba(40,28,14,.42);
-                                  padding: .55em .7em 0; }
-.plate[style*="--cols:2"] .col + .col {
-  border-left: 1px solid rgba(40,28,14,.42);
-  padding-left: calc(var(--grid) * var(--gut, 2.2) / 2); }
-.plate[style*="--cols:2"] .cols { gap: calc(var(--grid) * var(--gut, 2.2) / 2); }
+/* The frame stands outside the type, so its inset is taken from the margin --
+   which has slack -- and never from the measure, which has none. Hence the
+   negative margin: the box is drawn round the type page and a little beyond
+   it, exactly as the furniture in the chase stands outside the pages it
+   surrounds.
+
+   Each rule is an element the renderer emitted because the file said the rule
+   was there, with its own identity and its own damage; none of them is drawn
+   by this stylesheet on its own authority. The border shorthand that used to
+   draw the box has gone with them: four sides of one CSS border cannot be
+   four objects, and Hinman's whole argument is that they are. */
+.typepage { flex: 1; display: flex; flex-direction: column; position: relative; }
+.plate[style*="--cols:2"] .typepage {
+  margin: 0 calc(var(--grid) * -.85); padding: .45em calc(var(--grid) * .85) .3em; }
+.plate[style*="--cols:2"] .headline { margin-bottom: .3em; }
+.plate[style*="--cols:2"] .direction { margin-top: .8em; }
+
+/* The rules themselves. A rule is type-high and prints; it is drawn as ink and
+   not as a border, so that damage can bend and lighten it the way damage bends
+   and lightens a sort. */
+.rule { border: 0; background: rgba(40,28,14,.62); height: 1px; margin-bottom: 1.1em; }
+.plate .rule.box, .plate .rule.underhead, .plate .rule.centre {
+  margin: 0; background: rgba(40,28,14,.52); }
+.plate .rule.box.top    { position: absolute; top: 0; left: 0; right: 0; height: 1px; }
+.plate .rule.box.bottom { position: absolute; bottom: 0; left: 0; right: 0; height: 1px; }
+.plate .rule.box.side   { position: absolute; top: 0; bottom: 0; width: 1px; height: auto; }
+.plate .rule.box.side.left  { left: 0; }
+.plate .rule.box.side.right { right: 0; }
+.plate .rule.underhead { height: 1px; margin: 0 calc(var(--grid) * -.85) .75em; }
+/* The centre rule stands in the gutter between the columns, and the gutter is
+   furniture: it is not taken out of either measure. See the note on .col. */
+.plate .rule.centre {
+  width: 1px; height: auto; align-self: stretch; flex: none;
+  margin: 0 calc(var(--grid) * var(--gut, 2.2) / 2 - 0.5px); }
+/* A damaged rule prints unevenly. The gradient is the ink failing along its
+   length, which is what a worn or broken rule actually does to the page. */
+.plate .rule.hurt { opacity: .8; cursor: help; }
+.plate .rule.hurt.top, .plate .rule.hurt.bottom, .plate .rule.hurt.underhead {
+  background: linear-gradient(90deg, rgba(40,28,14,.52) 0 38%,
+              rgba(40,28,14,.16) 44% 52%, rgba(40,28,14,.52) 58% 100%); }
+.plate .rule.hurt.side, .plate .rule.hurt.centre {
+  background: linear-gradient(180deg, rgba(40,28,14,.52) 0 30%,
+              rgba(40,28,14,.14) 36% 46%, rgba(40,28,14,.52) 52% 100%); }
+.rule[data-rule] { cursor: help; }
+/* No gap and no border here: the whole gutter is the centre rule's own
+   margins, so that the rule is one object standing in one space rather than a
+   CSS border on the second column plus a flex gap that happen to look like
+   one. It also keeps the gutter out of the measure, which the border did not
+   -- see the note on .col. */
+.plate[style*="--cols:2"] .cols { gap: 0; }
 /* --lines is the lines on the *page*, which is what a bibliographer counts and
    what the description reports: a two-column folio of 66-line columns has 132.
    The depth of the type is therefore --lines divided among the columns, not
@@ -213,14 +263,42 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
         min-height: calc(var(--grid) * var(--lead) * (var(--lines) / var(--cols))); }
 /* The column is exactly the measure, and must not be allowed to shrink to fit:
    every word in it is positioned at an absolute offset the compositor
-   computed, so a squeezed column does not reflow, it clips. */
-.col { position: relative; flex: none; width: calc(var(--grid) * var(--m)); }
+   computed, so a squeezed column does not reflow, it clips.
+
+   content-box, and it matters. The centre rule and the gutter beside it are
+   furniture standing *between* the two measures, not part of either -- but
+   under the sheet-wide `box-sizing: border-box' they were being taken out of
+   the second column's width, which left it 1.16 em short of the measure it
+   was set to. Every line in the right-hand column that filled its measure --
+   1,038 words in King Lear alone, and none in the left-hand column -- printed
+   that much past the rule. The model's own arithmetic was exact throughout:
+   not one of 4,400 lines put a word past the measure. The stylesheet was
+   drawing a narrower column than the compositor had set. */
+.col { position: relative; flex: none; box-sizing: content-box;
+       width: calc(var(--grid) * var(--m)); }
 .tline { position: relative; height: calc(var(--grid) * var(--lead));
          white-space: nowrap; }
 .w { position: absolute; top: 0; white-space: pre;
      left: calc(var(--grid) * var(--x));
      font-size: calc(var(--grid) * var(--fit)); }
 .it { font-style: italic; }
+
+/* The foot of a sort set face down: the compositor's placeholder for a letter
+   he has not got, left to be filled at proof (Blayney i. 161).
+
+   It is drawn as an inked box and not as a character. A character is drawn at
+   whatever width the rendering face gives U+25AE -- 0.97 em in Times against
+   the 0.50 en body metrics.rkt allows for it -- and since every position on
+   the line is the compositor's arithmetic and not the browser's, the extra
+   half-em came straight off the end of the measure. It was the largest single
+   cause of type printing outside the column.
+
+   The width is stated in --grid, the em of the type body, rather than in CSS
+   em, which here is the *face's* em and moves with --fit. The character stays
+   inside the box so the page still copies and searches as text. */
+.qd { display: inline-block; overflow: hidden; text-indent: -20em;
+      width: calc(var(--grid) * .5); height: calc(var(--grid) * .62);
+      vertical-align: baseline; background: currentColor; }
 
 /* Individually identifiable types. Each defect prints differently, which is
    the point: these are the pieces a bibliographer can follow through a book,

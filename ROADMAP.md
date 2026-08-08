@@ -600,12 +600,82 @@ the numbers could not, because none of them changes a rate:
   the same way a damaged running title is;
 - the first line of a speech is indented in the Folio and flush in ours.
 
-The first three are fixed. **The indent is not**: the change was made on the
-prose path and these speeches go through `set-verse`, which has no first-line
-indent at all. Also outstanding, from the same comparison: stripping the
-underscores leaves stage directions reading `Afide.]` with a stray bracket,
-and the bracket is what the copy reader uses to recognise a direction, so it
-needs more than a regex.
+All four are now fixed, and the last two turned out to be larger than they
+looked.
+
+**The speech indent** was applied to the prose path first and did nothing,
+because three-quarters of the Folio goes through `set-verse`, which had no
+first-line indent at all. It is `set-verse #:first-indent?` now, taken only by
+the line that carries the prefix — which is what Lear 295 shows: `Lear.
+Returne to her? and fifty men dismiss'd?` stands in from the margin and the
+five lines under it do not. The indented line is genuinely narrower and so
+turns over sooner, which is why the Folio turns over on prefix lines more than
+on any other.
+
+**The brackets** wanted more than a regex, as expected, and the visible stray
+`]` was the small half of it. `[Aside.] I must obey ...` matched the direction
+test on its first character, so the *entire verse line* was set as a
+direction — italic, ranged right — with the bracket surviving the trim. 611
+lines of the Folio went that way, 350 more broken mid-line, 45 at the end, and
+5 wrapped across two lines with the `[` on one and the `]` on the other. The
+brackets are now lifted in `copytext.rkt` before anything else reads the line:
+a modern edition's square brackets are apparatus, exactly like Gutenberg's
+underscores, and there is not one on any page of the Folio. Each bracketed
+span becomes a direction in its own right — above the line if it stood before
+any speech, below if it interrupted or followed it — and the verse line it was
+sitting in survives whole, which splitting it would not.
+
+### Rules, borders and ornaments are objects
+
+Prompted by the question *what do the sources say about frames and ornaments —
+those are objects too*. They are, and the sources are unanimous and precise:
+
+- **They print.** A rule is type-high, which is exactly what distinguishes it
+  from the furniture (Blayney i. 124 n. 2), and is cast on a body of so many
+  ems — McKerrow infers the existence of wide spaces from the fact that
+  "ornaments and rules of several ems in length were quite common" (p. 108).
+  The Cambridge press bought brass rules from a London joiner at about
+  sixpence each (McKenzie i. 42).
+- **Five to a page, ten to a forme.** "Each page is surmounted by a headline
+  and enclosed in a frame of 'box' rules. Five box rules appear, since one is
+  used below as well as one above the headline. Although it is within the four
+  rules that frame the page as a whole, therefore, the headline is
+  nevertheless separated from the text proper by a rule" (Hinman i. 51).
+- **The two kinds go different ways.** Box rules are the skeleton's, stripped
+  and lifted with the running titles (Gaskell p. 109 counts them among the
+  skeleton's "regularly repeated rules or ornaments"). The centre rule
+  "belongs to the type-page proper rather than to its skeleton, and it was not
+  removed from the type-page during stripping operations" (Hinman i. 130) — it
+  goes to the case with the type beside it.
+- **The arrangement is the fingerprint.** "Almost never, when rules took up
+  new positions in a given forme, did they resume exactly their former
+  positions in some later forme. Hence a given arrangement of rules serves to
+  define a group of formes belonging to the same printing sequence" (i. 148).
+  A whole new set of box rules *is* a new skeleton (i. 44).
+- **They wear, and the wear is datable.** Hinman follows individual centre
+  rules by their degeneration and names three of the worst in the last quire
+  of the Tragedies (i. 148). The satyr tailpiece was damaged during the
+  printing of Z6 and is found in two states in the Folio (i. 20).
+
+So `imposition.rkt` has a `type-rule` struct: an id, a kind, a length in ems or
+lines, accumulated damage, and impressions worked. The skeleton owns ten of
+them and a mutable arrangement re-drawn every few formes; the page owns a
+centre rule drawn from a shop stock sized to the standing formes. They wear at
+one imperfection per 25,000 impressions, which is read off what Hinman treats
+as *remarkable* — extreme degeneration worth a footnote at the end of a book
+of some 500 formes. They are written to the TEI as `<milestone unit="rule">`
+with `@hp:role` saying which stock they belong to, and the facsimile draws the
+rules the file says are there, with damage and a hover naming the piece.
+
+The stylesheet's `border: 1px solid` box is gone with them: four sides of one
+CSS border cannot be four objects, and Hinman's whole argument is that they
+are.
+
+**Still only rules.** Ornaments, factotums, head- and tail-pieces are not
+modelled. The satyr is the obvious next one and is fully specified in the
+sources — a rectangle of about 70 × 120 mm, used as a tailpiece for 24 of the
+36 plays whenever the last lines take up less than about two-thirds of the
+final page, in two states either side of Z6.
 
 **What it showed that is not a defect.** Three mechanisms report nought on the
 Folio — pages crowded, lines of copy dropped, catchwords not answering — and

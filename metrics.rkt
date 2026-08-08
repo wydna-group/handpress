@@ -106,7 +106,16 @@
    #\ā 0.45 #\ē 0.44 #\ī 0.28 #\ō 0.50 #\ū 0.50
    #\Ā 0.68 #\Ē 0.60 #\Ī 0.33 #\Ō 0.74 #\Ū 0.72
    ;; superior letters used in the scribal abbreviations y-e, w-ch
-   #\ᵉ 0.24 #\ᵗ 0.20 #\ᶜ 0.24 #\ʰ 0.26 #\ˢ 0.22 #\ʳ 0.22))
+   #\ᵉ 0.24 #\ᵗ 0.20 #\ᶜ 0.24 #\ʰ 0.26 #\ˢ 0.22 #\ʳ 0.22
+   ;; The foot of a sort set face down -- the compositor's placeholder for a
+   ;; letter he has not got (typecase.rkt). It stands on an en body like any
+   ;; other spare sort, and the width is stated here rather than left to fall
+   ;; through to the default, because the character has to be drawn at exactly
+   ;; this width and both ends of that have to agree. It had fallen through,
+   ;; and the facsimile drew U+25AE at whatever the rendering face gave it --
+   ;; 0.97 em in Times, nearly double the body -- which was the single largest
+   ;; cause of type printing outside the measure.
+   #\▮ 0.50))
 
 (define widths
   (for/hash ([(ch em) (in-hash em-widths)])

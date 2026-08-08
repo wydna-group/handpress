@@ -514,6 +514,26 @@
                    (if (and view (gathering-plan-conjugate? view)) "true" "false")))))
       (list "        </hp:excisions>"))]))
 
+;; A rule is a piece of the forme and prints, so it is in the file. @hp:role
+;; says which stock it belongs to -- the skeleton's or the type page's -- and
+;; that is what decides where it goes at distribution and therefore what its
+;; recurrence is evidence of.
+(define (rule->tei r role)
+  ;; A head or foot rule is cast to the measure and is stated in ems, as it was
+  ;; bought and as McKerrow describes them; a side rule runs the depth of the
+  ;; page and is stated in lines, because that is the only unit in which the
+  ;; depth of a type page is ever given.
+  (format (string-append "      <milestone unit=\"rule\" type=\"~a\" hp:role=\"~a\""
+                         " hp:id=\"~a\" hp:length=\"~a ~a\" hp:worked=\"~a\"~a/>\n")
+          (esc (symbol->string (type-rule-kind r))) role
+          (esc (type-rule-id r)) (type-rule-length r)
+          (if (memq (type-rule-kind r) '(left right centre)) "lines" "ems")
+          (type-rule-impressions r)
+          (if (null? (type-rule-damage r))
+              ""
+              (format " hp:damage=\"~a\""
+                      (esc (string-join (type-rule-damage r) "; "))))))
+
 (define (page->tei p fmt variants [folio #f] [role "text"])
   (define sig (page-sig p))
   (define rt (page-running-title p))
@@ -584,6 +604,17 @@
                            (esc (folio-number-note folio))))
                (esc (folio-number-printed folio)))
        "")
+   ;; The rules of the page, as objects. TEI has no element for a rule that
+   ;; prints, so they go in the hp namespace like the rest of the evidence the
+   ;; encoding carries beyond the text: an id that can be followed from page to
+   ;; page, the length of body it was cast on, and whatever it has picked up.
+   ;; The distinction between the two kinds is the whole reason for recording
+   ;; them separately -- the box rules are the skeleton's and the centre rule
+   ;; is the type page's (Hinman i. 130).
+   (apply string-append
+          (for/list ([r (in-list (page-box-rules p))])
+            (rule->tei r "box")))
+   (if (page-centre-rule p) (rule->tei (page-centre-rule p) "centre") "")
    (apply string-append cols)
    (if (string=? (page-signature p) "") ""
        (format "      <fw type=\"sig\" place=\"bot-left\">~a</fw>\n" (esc (page-signature p))))

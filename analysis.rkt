@@ -345,8 +345,70 @@
                          (length (filter (lambda (s) (pair? (skeleton-used-for s)))
                                          (book-skeletons b))))
                       "  Agreement."
-                      "  The recovery is imperfect — as Hinman's first pass was."))))
+                      "  The recovery is imperfect — as Hinman's first pass was.")))
+    (list "")
+    (rules-lines b))
    "\n"))
+
+;; The rules, which are objects and not lines drawn on a page.
+;;
+;; Two kinds and they go different ways, which is the whole of their evidential
+;; value. The box rules are the skeleton's: stripped from the wrought-off page
+;; and lifted to the next forme, so their ARRANGEMENT dates a group of formes
+;; -- "a given arrangement of rules serves to define a group of formes
+;; belonging to the same printing sequence" (Hinman i. 148). The centre rule is
+;; the type page's: it goes to the case with the type beside it and comes back
+;; with the next page set from that case, so its RECURRENCE traces the stock,
+;; not the sequence.
+(define (rules-lines b)
+  (define box (make-hash))       ; rule id -> pages it stood in
+  (define centre (make-hash))
+  (for ([p (in-list (book-pages b))])
+    (for ([r (in-list (page-box-rules p))])
+      (hash-update! box (type-rule-id r) add1 0))
+    (when (page-centre-rule p)
+      (hash-update! centre (page-centre-rule p)
+                    (lambda (xs) (append xs (list (page-sig p)))) '())))
+  (define hurt
+    (for*/list ([p (in-list (book-pages b))]
+                [r (in-list (cons (page-centre-rule p) (page-box-rules p)))]
+                #:when (and r (pair? (type-rule-damage r))))
+      r))
+  (define distinct-hurt (remove-duplicates hurt))
+  (cond
+    [(zero? (hash-count box)) '()]
+    [else
+     (append
+      (list "THE RULES OF THE TYPE PAGE"
+            ""
+            "  A rule is type-high and prints, so it wears and can be followed"
+            "  like any other piece. Five box rules frame a page — one of them"
+            "  below the head-line as well as one above it — and ten make a"
+            "  forme; the centre rule between the columns is not part of that"
+            "  set and does not travel with it."
+            ""
+            (format "  Box rules in the shop:        ~a, standing in ~a page(s)"
+                    (hash-count box)
+                    (for/sum ([(_ n) (in-hash box)]) n))
+            (format "  Centre rules in the shop:     ~a, used ~a time(s) each on average"
+                    (hash-count centre)
+                    (if (zero? (hash-count centre))
+                        0
+                        (exact-round (/ (for/sum ([(_ ps) (in-hash centre)]) (length ps))
+                                        (hash-count centre)))))
+            (format "  Rules carrying damage:        ~a" (length distinct-hurt))
+            "")
+      (if (null? distinct-hurt)
+          (list "  No rule in this book is marked; a short run does not wear brass.")
+          (append
+           (list "  The marked rules, which are the ones worth following:")
+           (for/list ([r (in-list (take distinct-hurt (min 8 (length distinct-hurt))))])
+             (format "      ~a ~a  ~a"
+                     (pad (type-rule-id r) 6)
+                     (pad (format "~a, ~a impressions" (type-rule-kind r)
+                                  (type-rule-impressions r)) 34)
+                     (string-join (type-rule-damage r) "; ")))))
+      (list ""))]))
 
 ;; The scheme of imposition, set out so it can be checked against McKerrow.
 ;;

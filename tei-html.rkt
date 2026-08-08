@@ -220,9 +220,23 @@
 ;; Wrap the characters set from an individually identifiable piece, so that the
 ;; damage is on the page and not merely in the record. Each defect gets its own
 ;; treatment in the stylesheet: a bent sort leans, a worn one prints faint.
+;; The foot of a sort set face down prints as a solid rectangle the width of
+;; its body, and metrics.rkt says that width is an en. Left as a character it
+;; is drawn at whatever U+25AE happens to be in the rendering face -- 0.97 em
+;; in Times, against the 0.50 the compositor allowed for it -- so every word
+;; carrying one ran half an em past where the line said it ended, and 156 of
+;; the 400 worst-overrunning words in King Lear had one in them.
+;;
+;; So it is not drawn as a character at all: the glyph is pushed out of the box
+;; and the box is inked. That is nearer the truth as well as nearer the
+;; measure, since what prints is the foot of the type and not a picture of one.
+;; The character stays in the DOM, so the text still copies and searches.
+(define (esc-body s)
+  (string-replace (esc s) "▮" "<span class=\"qd\">▮</span>"))
+
 (define (mark-damage text sorts damage-names)
   (cond
-    [(zero? (hash-count sorts)) (esc text)]
+    [(zero? (hash-count sorts)) (esc-body text)]
     [else
      (apply string-append
             (for/list ([c (in-string text)] [i (in-naturals)])
@@ -232,8 +246,8 @@
                           (esc (cdr s))
                           (esc (hash-ref damage-names (cdr s) (cdr s)))
                           (esc (car s))
-                          (esc (string c)))
-                  (esc (string c)))))]))
+                          (esc-body (string c)))
+                  (esc-body (string c)))))]))
 
 ;; Ring the letter the case got wrong. A turned letter and a foul-case letter
 ;; are both single characters differing between what was composed and what
@@ -256,9 +270,9 @@
      (apply string-append
             (for/list ([a (in-string composed)] [b (in-string printed)])
               (if (char=? a b)
-                  (esc (string b))
+                  (esc-body (string b))
                   (format "<span class=\"acc\" title=\"~a set for ~a\">~a</span>"
-                          (esc (string b)) (esc (string a)) (esc (string b))))))]))
+                          (esc (string b)) (esc (string a)) (esc-body (string b))))))]))
 
 (define (word->html w sig damage-names)
   (define-values (printed reading type-applies?) (word-forms w))
@@ -398,6 +412,30 @@
   (define head (let ([f (fw-of page "head")]) (if f (esc (text-of f)) "")))
   (define sig-fw (let ([f (fw-of page "sig")]) (if f (esc (text-of f)) "")))
   (define catch (let ([f (fw-of page "catch")]) (if f (esc (text-of f)) "")))
+  ;; The rules are drawn from the file, because they are objects the file
+  ;; records and not ornament the stylesheet was free to invent. A rule that
+  ;; has taken damage prints crooked or light, and says on hover which rule it
+  ;; is and what has happened to it -- the same treatment as a damaged sort,
+  ;; for the same reason: it is a piece of evidence a reader can follow.
+  (define rules
+    (for/list ([m (in-list (find-all page 'milestone))]
+               #:when (equal? (attr m 'unit) "rule"))
+      m))
+  (define (rule-of kind)
+    (for/first ([r (in-list rules)] #:when (equal? (attr r 'type) kind)) r))
+  (define (rule-html r extra)
+    (cond
+      [(not r) (format "<div class=\"rule ~a\"></div>" extra)]
+      [else
+       (define dmg (attr r '|hp:damage| ""))
+       (format (string-append "<div class=\"rule ~a~a\"~a"
+                              " data-rule=\"~a\"></div>")
+               extra (if (string=? dmg "") "" " hurt")
+               (format " title=\"~a, ~a ems, ~a impressions~a\""
+                       (esc (attr r '|hp:id| "?")) (esc (attr r (string->symbol "hp:length") "?"))
+                       (esc (attr r '|hp:worked| "0"))
+                       (if (string=? dmg "") "" (format " — ~a" (esc dmg))))
+               (esc (attr r '|hp:id| "?")))]))
   (define leaf (attr page '|hp:leaf| ""))
   (define sheet (attr page '|hp:sheet| ""))
   (define forme (attr page '|hp:forme| ""))
@@ -421,14 +459,21 @@
            "  <div class=\"unit\"><span data-unit=\"leaf\">leaf ~a</span>"
            "<span data-unit=\"sheet\">sheet ~a</span>"
            "<span data-unit=\"forme\">forme</span></div>\n"
+           ;; The type page: everything inside the frame of rule. The running
+           ;; title and the direction line are inside it on the plate -- on
+           ;; Lear 295 the box encloses head, both columns, the signature and
+           ;; the catchword alike -- so the frame cannot be drawn round the
+           ;; columns alone, which is what it was and what the plate showed up.
+           "  <div class=\"typepage\">~a\n"
            "  <div class=\"headline\">\n"
            "    <span class=\"fol left\">~a</span>\n"
            "    <span class=\"runhead\">~a</span>\n"
            "    <span class=\"fol right\">~a</span>\n"
            "  </div>\n"
-           "  <div class=\"rule\"></div>\n"
+           "  ~a\n"
            "  <div class=\"cols\">~a</div>\n"
            "  <div class=\"direction\"><span>~a</span><span>~a</span></div>\n"
+           "  ~a</div>\n"
            "</div>")
           ;; A gathering is a whole sheet and must be completed, so a book whose
           ;; text runs out partway through its last one ends in blank leaves.
@@ -462,12 +507,24 @@
                        (esc (cdr leaf-note)) (esc (car leaf-note)))
                ""))
           (esc leaf) (esc sheet)
+          ;; Five box rules to a page: head, one under the head-line, foot,
+          ;; left and right. "Five box rules appear, since one is used below as
+          ;; well as one above the headline" (Hinman i. 51), and the head-line
+          ;; stands inside the frame.
+          (string-append (rule-html (rule-of "head") "box top")
+                         (rule-html (rule-of "left") "box side left")
+                         (rule-html (rule-of "right") "box side right"))
           (folio-html page recto? #f)
           head
           (folio-html page recto? #t)
+          (rule-html (rule-of "under-head") "underhead")
           (apply string-append
-                 (for/list ([c (in-list cols)]) (column->html c sig damage-names)))
-          sig-fw catch))
+                 (for/list ([c (in-list cols)] [i (in-naturals)])
+                   (string-append
+                    (if (> i 0) (rule-html (rule-of "centre") "centre") "")
+                    (column->html c sig damage-names))))
+          sig-fw catch
+          (rule-html (rule-of "foot") "box bottom")))
 
 ;; ---------------------------------------------------------------------------
 ;; The header: description, key, statistics

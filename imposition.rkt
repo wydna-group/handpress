@@ -18,12 +18,14 @@
          "metrics.rkt" "copytext.rkt" "rng.rkt")
 
 (provide (struct-out book-format) (struct-out page-ref) (struct-out forme)
-         (struct-out running-title) (struct-out skeleton)
+         (struct-out running-title) (struct-out skeleton) (struct-out type-rule)
          (struct-out cast-off-segment) (struct-out sig-series) (struct-out sig-run)
          FOLIO FOLIO-IN-SIXES QUARTO OCTAVO FORMATS
          book-format-pages signature-letter page-refs signed-leaves
          sheet-scheme formes-for-gathering setting-order
          collation-formula cast-off make-skeletons title-for
+         make-rule work-rule! rule-fingerprint rule-damage-kinds
+         skeleton-rules-in-order rearrange-rules! BOX-POSITIONS
          page-ref-signature page-ref-signed page-ref-mark skeleton-add-use!
          SIG-LETTERS JAGGARD-LETTERS
          MAIN-SERIES LOWER-SERIES STAR-SERIES SYMBOL-SERIES PILCROW-SERIES
@@ -512,23 +514,144 @@
       "no damage noted"
       (string-join (running-title-damage t) "; ")))
 
-(struct skeleton (name titles [used-for #:mutable]) #:transparent)
+;; ---------------------------------------------------------------------------
+;; Rules
+;; ---------------------------------------------------------------------------
+;; A rule is an object, not a line drawn on a page. It is a strip of brass or
+;; cast metal, type-high so that it prints -- Blayney makes the distinction
+;; against the furniture, which is not and does not (i. 124 n. 2) -- and cast
+;; on a body of so many ems like any other sort; McKerrow infers the wide
+;; spaces from exactly that, "ornaments and rules of several ems in length were
+;; quite common" (p. 108). The Cambridge press bought them by the dozen from a
+;; London joiner at about sixpence each (McKenzie i. 42).
+;;
+;; The Folio's page carries two kinds of rule and they behave differently,
+;; which is the whole reason for modelling them:
+;;
+;;   BOX RULES frame the page. "Each page is surmounted by a headline and
+;;   enclosed in a frame of 'box' rules. Five box rules appear, since one is
+;;   used below as well as one above the headline. Although it is within the
+;;   four rules that frame the page as a whole, therefore, the headline is
+;;   nevertheless separated from the text proper by a rule" (Hinman i. 51).
+;;   Five to a page, ten to a forme. They are part of the SKELETON: stripped
+;;   from the wrought-off page and lifted to the next forme with the running
+;;   titles, and Gaskell counts them among the skeleton's "regularly repeated
+;;   rules or ornaments" (p. 109). A new set of box rules IS a new skeleton --
+;;   Hinman treats the two as the same event at quire F (i. 44).
+;;
+;;   The CENTRE RULE divides the two columns and "belongs to the type-page
+;;   proper rather than to its skeleton, and it was not removed from the
+;;   type-page during stripping operations" (Hinman i. 130). It goes to the
+;;   distributing case with the type it stands beside.
+;;
+;; Both take damage as they are worked, and both are therefore evidence of
+;; order. Hinman names individual centre rules and follows them -- "the same
+;; centre rule appears in both qq6 and rr3, and it shows [more damage in the
+;; second]" (i. 148) -- exactly as he follows a distinctive type. What makes
+;; the box rules more powerful still is that ten of them are in play at once:
+;; "almost never, when rules took up new positions in a given forme, did they
+;; resume exactly their former positions in some later forme. Hence a given
+;; arrangement of rules serves to define a group of formes belonging to the
+;; same printing sequence" (i. 148). The arrangement is the fingerprint, not
+;; the individual rule.
+(define rule-damage-kinds
+  (list "nicked near the head" "bent at one end" "a break a third of the way down"
+        "worn light in the middle" "the foot battered" "bruised at the corner"
+        "printing heavy at one end" "a hair-line split"))
+
+;; kind is 'head 'under-head 'foot 'left 'right -- the five of a box -- or
+;; 'centre. `length' is in ems, since that is how a rule was bought and cast.
+(struct type-rule (id kind length [damage #:mutable] [impressions #:mutable])
+  #:transparent)
+
+(define BOX-POSITIONS '(head under-head foot left right))
+
+(define (make-rule id kind len g)
+  ;; A rule out of the founder's is clean; it earns its imperfections at press.
+  (type-rule id kind len (if (< (rnd g) 0.25) (list (rnd-choice g rule-damage-kinds)) '()) 0))
+
+;; Ten rules to a forme, five to a page, and they are the skeleton's own.
+(define (make-box-rules mark measure lines g)
+  (for/list ([i (in-range 10)])
+    (define kind (list-ref BOX-POSITIONS (modulo i 5)))
+    (make-rule (format "~a~a" mark (add1 i)) kind
+               (if (memq kind '(left right)) lines measure) g)))
+
+;; Work a rule, and let it take its knocks.
+;;
+;; The rate is Hinman's, read off what he treats as remarkable. Centre rules
+;; "take on new imperfections as time goes by", and for "fairly extreme
+;; degeneration" he sends the reader to four pages in the *final* quire of the
+;; Tragedies (i. 148) -- that is, extreme wear is worth a footnote at the end
+;; of a book of some five hundred formes at 1,200 impressions each. A rule in
+;; steady use is therefore in play for tens of thousands of impressions between
+;; imperfections, not hundreds.
+;;
+;; One new defect per 25,000 impressions puts a well-used rule at two or three
+;; by the end of a Folio and leaves most rules with one or none, which is what
+;; makes the badly-worn ones worth Hinman's pointing at. The first rate here
+;; was 250 times faster and every rule in the book reached the cap within ten
+;; formes -- so every rule looked like every other rule, which destroys the one
+;; property that makes them evidence.
+(define IMPRESSIONS-PER-IMPERFECTION 25000)
+
+(define (work-rule! r n g)
+  (set-type-rule-impressions! r (+ (type-rule-impressions r) n))
+  (when (and (< (length (type-rule-damage r)) 4)
+             (< (rnd g) (/ n IMPRESSIONS-PER-IMPERFECTION)))
+    ;; A rule cannot take the same injury twice; a second nick in the same
+    ;; place is the same nick. Without this the record read "worn light in the
+    ;; middle; worn light in the middle", which is not a fingerprint but a
+    ;; stutter.
+    (define fresh
+      (filter (lambda (d) (not (member d (type-rule-damage r)))) rule-damage-kinds))
+    (unless (null? fresh)
+      (set-type-rule-damage! r (cons (rnd-choice g fresh) (type-rule-damage r))))))
+
+(define (rule-fingerprint rs)
+  (string-join (for/list ([r (in-list rs)]) (type-rule-id r)) " "))
+
+(struct skeleton (name titles box-rules [arrangement #:mutable]
+                       [used-for #:mutable]) #:transparent)
 
 (define (title-for sk position)
   (list-ref (skeleton-titles sk) (modulo position (length (skeleton-titles sk)))))
 
+;; The ten box rules in the order they stand in this forme. Made ready afresh,
+;; they almost never go back where they were, so the order is re-drawn and the
+;; new order marks a new group of formes.
+(define (skeleton-rules-in-order sk)
+  (for/list ([i (in-list (skeleton-arrangement sk))])
+    (list-ref (skeleton-box-rules sk) i)))
+
+(define (rearrange-rules! sk g)
+  (set-skeleton-arrangement! sk (shuffle-list g (build-list 10 values))))
+
+(define (shuffle-list g xs)
+  (let loop ([v (list->vector xs)] [i (sub1 (vector-length (list->vector xs)))])
+    (cond
+      [(<= i 0) (vector->list v)]
+      [else
+       (define j (rnd-int g (add1 i)))
+       (define t (vector-ref v i))
+       (vector-set! v i (vector-ref v j))
+       (vector-set! v j t)
+       (loop v (sub1 i))])))
+
 (define (skeleton-add-use! sk name)
   (set-skeleton-used-for! sk (append (skeleton-used-for sk) (list name))))
 
-(define (make-skeletons count titles-each head g)
+(define (make-skeletons count titles-each head g [measure 20] [lines 66])
   (for/list ([s (in-range count)])
+    (define mark (integer->char (+ (char->integer #\I) s)))
     (skeleton
      (format "Skeleton ~a" (make-string (add1 s) #\I))
      (for/list ([t (in-range titles-each)])
        (running-title head
                       (rnd-sample g damage-kinds (+ 1 (rnd-int g 3)))
-                      (format "~a~a" (integer->char (+ (char->integer #\I) s))
-                              (add1 t))))
+                      (format "~a~a" mark (add1 t))))
+     (make-box-rules mark measure lines g)
+     (build-list 10 values)
      '())))
 
 (provide title-fingerprint forme-name)
@@ -700,4 +823,52 @@
   (define so (setting-order QUARTO 0 #t))
   (check-equal? (sort so <) '(1 2 3 4 5 6 7 8))
   (check-false (equal? so '(1 2 3 4 5 6 7 8)))
-  (check-equal? (setting-order QUARTO 0 #f) '(1 2 3 4 5 6 7 8)))
+  (check-equal? (setting-order QUARTO 0 #f) '(1 2 3 4 5 6 7 8))
+
+  ;; ---- Rules ----------------------------------------------------------
+  ;; "Five box rules appear, since one is used below as well as one above the
+  ;; headline" (Hinman i. 51), and ten to the forme -- he reads the ten as a
+  ;; set: "all the formes showing exactly the same arrangement of their ten
+  ;; box rules" (i. 148).
+  (define gg (make-rng 4))
+  (define sks (make-skeletons 2 4 "THE TRAGEDIE" gg 20 66))
+  (define sk (car sks))
+  (check-equal? (length (skeleton-box-rules sk)) 10)
+  (check-equal? (length (remove-duplicates
+                         (map type-rule-kind (skeleton-box-rules sk))))
+                5)
+  (check-equal? (sort (map symbol->string
+                           (remove-duplicates
+                            (map type-rule-kind (skeleton-box-rules sk))))
+                      string<?)
+                '("foot" "head" "left" "right" "under-head"))
+  ;; Head and foot are cast to the measure; the sides run the depth of the page.
+  (for ([r (in-list (skeleton-box-rules sk))])
+    (check-equal? (type-rule-length r)
+                  (if (memq (type-rule-kind r) '(left right)) 66 20)))
+  ;; Every rule is a distinct object, and the two skeletons share none: a new
+  ;; set of box rules IS a new skeleton (Hinman i. 44).
+  (define ids (append (map type-rule-id (skeleton-box-rules (first sks)))
+                      (map type-rule-id (skeleton-box-rules (second sks)))))
+  (check-equal? (length (remove-duplicates ids)) 20)
+
+  ;; The arrangement is the fingerprint, and re-laying the forme changes it.
+  (define before (rule-fingerprint (skeleton-rules-in-order sk)))
+  (rearrange-rules! sk gg)
+  (check-not-equal? before (rule-fingerprint (skeleton-rules-in-order sk)))
+  ;; but the rules themselves are the same ten pieces of brass
+  (check-equal? (sort (string-split before) string<?)
+                (sort (string-split (rule-fingerprint (skeleton-rules-in-order sk)))
+                      string<?))
+
+  ;; A rule takes its knocks slowly, and never the same knock twice. At
+  ;; Hinman's rate a rule worked through a whole Folio -- some 500 formes at
+  ;; 1,200 impressions, of which one rule sees a fraction -- picks up a
+  ;; handful of imperfections, not a fresh one every forme.
+  (define r0 (make-rule "T1" 'head 20 (make-rng 11)))
+  (for ([_ (in-range 200)]) (work-rule! r0 1200 (make-rng 11)))
+  (check-equal? (type-rule-impressions r0) 240000)
+  (check-true (<= (length (type-rule-damage r0)) 4))
+  (check-equal? (length (remove-duplicates (type-rule-damage r0)))
+                (length (type-rule-damage r0))
+                "a rule cannot take the same injury twice"))

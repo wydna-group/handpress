@@ -815,10 +815,24 @@
 
 ;; A verse line is one line of type, quadded out; if it will not go in it is
 ;; squeezed, and if it still will not go in it is turned over.
-(define (set-verse c text spec pressure #:lead [lead '()])
+;; `first-indent?' is the line that carries the speech prefix.
+;;
+;; The Folio indents it by a quad and sets the rest of the speech flush, which
+;; is plain on any plate: on Lear 295 `Lear. Returne to her? and fifty men
+;; dismiss'd?' stands in from the margin and the five lines under it do not.
+;; This had the indent on the prose path only, and a speech in verse -- which
+;; is three-quarters of the book -- came out flush, so the reader could not see
+;; where one speech ended and the next began except by the prefix itself.
+;;
+;; The indented line is also genuinely narrower, so it turns over sooner. That
+;; is not a side effect to be worked around: it is why the Folio turns over on
+;; prefix lines far more often than on any other.
+(define (set-verse c text spec pressure #:lead [lead '()]
+                   #:first-indent? [first-indent? #f])
   (define cv (comp-conventions c))
   (define measure (page-spec-measure spec))
-  (define indent (page-spec-verse-indent spec))
+  (define indent (+ (page-spec-verse-indent spec)
+                    (if first-indent? (page-spec-prose-indent spec) 0)))
   (define room (- measure indent))
   (define made0
     (append lead (for/list ([p (in-list (read-copy c text))]) (make-word c p))))
@@ -858,6 +872,9 @@
        (cond
          [(null? rest) (reverse out)]
          [else
+          ;; only the first line is indented; a turn-over is ranged right
+          ;; against the full measure and has the whole of it to fill.
+          (define line-room (if first? room (- measure (page-spec-verse-indent spec))))
           (define span
             (let fill ([xs rest] [acc '()] [width 0])
               (cond
@@ -865,7 +882,7 @@
                 [else
                  (define extra (+ (word-width (car xs))
                                   (if (null? acc) 0 THIN)))
-                 (if (and (pair? acc) (> (+ width extra) room))
+                 (if (and (pair? acc) (> (+ width extra) line-room))
                      (reverse acc)
                      (fill (cdr xs) (cons (car xs) acc) (+ width extra)))])))
           (define span* (if (null? span) (list (car rest)) span))

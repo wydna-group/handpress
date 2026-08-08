@@ -36,6 +36,65 @@
 
 (define (looks-like-verse? line) (< (string-length line) 78))
 
+;; ---------------------------------------------------------------------------
+;; Editorial brackets
+;; ---------------------------------------------------------------------------
+;; A modern edition supplies its stage directions in square brackets, and puts
+;; them wherever the sense wants them: on their own line, at the head of a
+;; speech, in the middle of one. The Folio does none of this. Its directions
+;; are set in italic on a line of their own or ranged right at the end of one,
+;; and there is not a square bracket on the page -- the brackets are the
+;; editor's apparatus, exactly like the underscores Gutenberg marks italic
+;; with, and no compositor ever set either.
+;;
+;; This was reading only the whole-line case. A line beginning `[Aside.] I
+;; must obey. His art is of such power,' matched the direction test on its
+;; first character, so the ENTIRE verse line was set as a direction -- italic,
+;; ranged right -- and the trailing bracket survived the trim to print as
+;; `Afide.] I must obey ...'. 611 lines of the Folio went that way, with 350
+;; more broken mid-line and 45 at the end. The visible stray bracket was the
+;; small half of it.
+;;
+;; So the brackets are taken out here, before anything else looks at the line,
+;; and each bracketed span becomes a direction in its own right. A span that
+;; stands before any speech text is set above the line, and one that interrupts
+;; or follows it below: the compositor cannot set a direction inside a line of
+;; verse, and moving it off the line keeps the verse line whole, which
+;; splitting it would not.
+(define bracket-rx #px"\\[([^\\[\\]]*)\\]")
+
+;; The speaker's name does not count as speech: in `ARIEL. [Aside.] I must
+;; obey', the direction still stands at the head of the speech and belongs
+;; above it, not below.
+(define (only-a-prefix? s)
+  (regexp-match? #px"^\\s*[A-Z][A-Za-z'’]{1,14}(?:\\s+[A-Z][a-z]{1,12})?\\.\\s*$" s))
+
+;; -> (values text-without-directions directions-before directions-after)
+(define (lift-directions line)
+  (cond
+    [(not (string-contains? line "[")) (values line '() '())]
+    [else
+     (define before '())
+     (define after '())
+     (define text
+       (let loop ([s line] [out ""])
+         (define m (regexp-match-positions bracket-rx s))
+         (cond
+           [(not m) (string-append out s)]
+           [else
+            (define head (string-append out (substring s 0 (caar m))))
+            (define d (string-trim (substring s (car (cadr m)) (cdr (cadr m)))))
+            (define seen-text?
+              (and (non-empty-string? (string-trim head))
+                   (not (only-a-prefix? head))))
+            (unless (string=? d "")
+              (if seen-text?
+                  (set! after (cons d after))
+                  (set! before (cons d before))))
+            (loop (substring s (cdar m)) head)])))
+     (values (string-trim (regexp-replace* #px"\\s{2,}" text " "))
+             (reverse before) (reverse after))]))
+
 ;; Who actually speaks in this copy.
 ;;
 ;; A verse line may perfectly well read "Affront Ophelia. Her father and
@@ -103,11 +162,36 @@
        [(and (> shortish (* n 0.8)) (> capitalled (* n 0.6))) 'verse]
        [else 'prose])]))
 
+;; A long direction may be wrapped over two or three lines, leaving the `[' on
+;; one and the `]' on another; taken a line at a time the second half prints as
+;; `and Claudio.]'. Join them up before anything else reads the copy.
+(define (close-brackets lines)
+  (define (opens s)
+    (- (length (regexp-match* #px"\\[" s)) (length (regexp-match* #px"\\]" s))))
+  (let loop ([ls lines] [out '()])
+    (cond
+      [(null? ls) (reverse out)]
+      [(<= (opens (car ls)) 0) (loop (cdr ls) (cons (car ls) out))]
+      [else
+       ;; take following lines until the bracket closes, but never across a
+       ;; blank line and never more than three -- an unclosed bracket is
+       ;; likelier to be a defect in the copy than a very long direction.
+       (let take ([rest (cdr ls)] [acc (car ls)] [n 0])
+         (cond
+           [(or (null? rest) (= n 3) (string=? (string-trim (car rest)) ""))
+            (loop (cdr ls) (cons (car ls) out))]
+           [else
+            (define joined (string-append acc " " (string-trim (car rest))))
+            (if (<= (opens joined) 0)
+                (loop (cdr rest) (cons joined out))
+                (take (cdr rest) joined (add1 n)))]))])))
+
 ;; Break a plain text into the units a compositor would recognise.
 (define (parse-copy text [kind 'auto])
   (define lines
-    (string-split (string-replace (string-replace text "\r\n" "\n") "\r" "\n")
-                  "\n" #:trim? #f))
+    (close-brackets
+     (string-split (string-replace (string-replace text "\r\n" "\n") "\r" "\n")
+                   "\n" #:trim? #f)))
   (define k (if (eq? kind 'auto) (sniff lines) kind))
   (define speakers (find-speakers lines))
 
@@ -135,26 +219,34 @@
        (flush!)
        (emit! 'heading (string-trim (string-trim stripped "#" #:right? #f)))]
 
-      [(stage-direction? stripped)
-       (flush!)
-       (emit! 'stage (string-trim (string-trim stripped "[") "]"))]
-
       [else
-       (define-values (prefix rest) (split-speech-prefix stripped speakers))
+       (define-values (body before after) (lift-directions stripped))
+       (define (direction! d) (flush!) (emit! 'stage d))
+       (for-each direction! before)
        (cond
-         [prefix
+         [(string=? body "") (void)]       ; the line was direction and nothing else
+
+         [(stage-direction? body)
           (flush!)
-          (emit! 'prefix prefix #f)
-          (unless (string=? rest "")
-            ;; A speech is not verse merely because it is a speech. Hamlet
-            ;; abuses Ophelia in prose, and the compositor can see that as
-            ;; well as we can: the line runs past where a verse line stops.
-            (define verse? (and (memq k '(verse drama)) (looks-like-verse? rest)))
-            (emit! (if verse? 'verse 'prose) rest prefix))]
-         [(and (memq k '(verse drama)) (looks-like-verse? stripped))
-          (flush!)
-          (emit! 'verse stripped)]
-         [else (set! para (cons stripped para))])]))
+          (emit! 'stage body)]
+
+         [else
+          (define-values (prefix rest) (split-speech-prefix body speakers))
+          (cond
+            [prefix
+             (flush!)
+             (emit! 'prefix prefix #f)
+             (unless (string=? rest "")
+               ;; A speech is not verse merely because it is a speech. Hamlet
+               ;; abuses Ophelia in prose, and the compositor can see that as
+               ;; well as we can: the line runs past where a verse line stops.
+               (define verse? (and (memq k '(verse drama)) (looks-like-verse? rest)))
+               (emit! (if verse? 'verse 'prose) rest prefix))]
+            [(and (memq k '(verse drama)) (looks-like-verse? body))
+             (flush!)
+             (emit! 'verse body)]
+            [else (set! para (cons body para))])])
+       (for-each direction! after)]))
 
   (flush!)
   (reverse units))
@@ -313,6 +405,37 @@
       (copy-unit-text u)))
   (check-not-false (member "King" prefixes))
   (check-not-false (member "Queen" prefixes))
+
+  ;; A modern edition's square brackets are apparatus, not copy: not one of
+  ;; them appears in the Folio, and a direction inside one is a direction
+  ;; wherever the editor put it. Nothing bracketed may reach the case.
+  (define bracketed
+    (parse-copy
+     (string-append
+      "Prospero. Come forth, I say.\n\n"
+      "Ariel. All hail, great master, grave sir, hail.\n\n"
+      "Ariel. [Aside.] I must obey. His art is of such power,\n"
+      "It would controll my dam's god Setebos.\n\n"
+      "Prospero. Free thee for this. [To Ferdinand.] A word, good sir.\n\n"
+      "Miranda. Let's see your song. [Taking the letter.]\n\n"
+      "[Dance. Then exeunt all but Don John, Borachio\nand Claudio.]\n")
+     'drama))
+  (check-false (for/or ([u (in-list bracketed)])
+                 (regexp-match? #px"[][]" (copy-unit-text u))))
+  (define staged
+    (for/list ([u (in-list bracketed)] #:when (eq? (copy-unit-kind u) 'stage))
+      (copy-unit-text u)))
+  (check-equal? staged
+                (list "Aside." "To Ferdinand." "Taking the letter."
+                      "Dance. Then exeunt all but Don John, Borachio and Claudio."))
+  ;; The verse line the direction was sitting in survives whole ...
+  (check-not-false
+   (for/or ([u (in-list bracketed)])
+     (equal? (copy-unit-text u) "I must obey. His art is of such power,")))
+  ;; ... and a direction at the head of a speech is set above the prefix, not
+  ;; below the line: the speaker's name is not yet speech.
+  (define ks (map copy-unit-kind bracketed))
+  (check-equal? (take (drop ks 6) 3) '(stage prefix verse))
 
   ;; Misreading preserves the copy reading alongside what he took it for,
   ;; and never invents or loses a word except by recorded eyeskip.

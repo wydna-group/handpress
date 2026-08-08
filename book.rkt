@@ -31,8 +31,16 @@
 ;; The field is `pref', not `ref': `page-ref' is already the struct that names
 ;; a leaf and side in imposition.rkt, and two bindings of that name in one
 ;; module is a morning wasted.
+;; `box-rules' are the five that frame this page and `centre-rule' the one that
+;; divides its columns. They are objects in the forme and not decoration on a
+;; page: see the note on rules in imposition.rkt. The two are held separately
+;; because they belong to different things and go different ways at
+;; distribution -- the box rules are stripped off with the skeleton and lifted
+;; to the next forme, the centre rule stays with the type and goes to the case
+;; with it (Hinman i. 130).
 (struct page (pref columns compositor running-title catchword signature
-                   pressure cast-off-note forme-name omitted)
+                   pressure cast-off-note forme-name omitted
+                   box-rules centre-rule)
   #:transparent)
 
 (define (page-sig p) (page-ref-signature (page-pref p)))
@@ -281,8 +289,12 @@
             [else
              (define o (flush-run-on out))
              (loop rest #f '()
+                   ;; A verse speech arrives one line to a copy-unit, so unlike
+                   ;; prose only the line actually carrying the prefix is the
+                   ;; first line of a speech, and only that one is indented.
                    (append (reverse (set-verse c (copy-unit-text u) spec pressure
-                                               #:lead lead))
+                                               #:lead lead
+                                               #:first-indent? (pair? lead)))
                            o))])]
 
          [else
@@ -855,7 +867,8 @@
   (define skeletons
     (make-skeletons (house-n-skeletons h)
                     (max 2 (quotient (book-format-pages fmt) 2))
-                    (house-title h) g))
+                    (house-title h) g
+                    (book-format-measure-ems fmt) (book-format-lines fmt)))
 
   (define all-formes '())
   (define pages (make-hash))
@@ -1086,7 +1099,8 @@
   (define ordered (append* (map pages-of plans)))
 
   (define with-catchwords (add-catchwords ordered))
-  (define with-titles (add-running-titles with-catchwords all-formes fmt))
+  (define with-titles
+    (add-running-titles with-catchwords all-formes fmt g (house-formes-standing h)))
 
   ;; The paging is set last because it belongs to the headline rather than to
   ;; the text: a piece of type beside the running title, carried from forme to
@@ -1159,7 +1173,10 @@
                 (if (and (page-ref-recto? r)
                          (<= (page-ref-leaf r) signs))
                     (page-ref-signed r) "")
-                pressure note (forme-name fm) omitted)
+                pressure note (forme-name fm) omitted
+                ;; The rules are put to the page when the forme is made ready,
+                ;; which is after composition; see `with-titles'.
+                '() #f)
           (if (null? leftover) '() (leftover-units man units spec capacity))))
 
 ;; Which units of copy did not fit, for carrying to the next page when the
@@ -1218,11 +1235,32 @@
                 (word-printed (car (set-line-words l))))))
        (struct-copy page p [catchword (or from-copy from-page "")])])))
 
-(define (add-running-titles pages formes fmt)
+;; Making ready: the running titles, the box rules and the centre rule are all
+;; put to the composed type here, because none of them is the compositor's
+;; work. He sets the text; the forme is dressed at the imposing stone.
+(define (add-running-titles pages formes fmt g standing)
   (define by-key
     (for*/hash ([fm (in-list formes)] [p (in-list (forme-page-numbers fm))])
       (values (cons (forme-gathering fm) p) fm)))
   (define counters (make-hash))
+  ;; The house's stock of centre rules. A centre rule goes to the case with the
+  ;; type it stood beside and comes back with the next page set from that case,
+  ;; so the number in play is the number of pages that can stand at once --
+  ;; which is why Hinman finds that "additional centre rules now appear" at
+  ;; quire F, in the same breath as the larger stock of type (i. 44). A shop
+  ;; with few of them uses each oftener, and each accordingly shows its damage
+  ;; sooner and in more places: that recurrence is the evidence.
+  (define n-centre (max 4 (* standing (book-format-columns fmt))))
+  (define centre-rules
+    (for/list ([i (in-range n-centre)])
+      (make-rule (format "C~a" (add1 i)) 'centre (book-format-lines fmt) g)))
+  ;; How many formes a given arrangement of the ten box rules survives. Hinman:
+  ;; "almost never, when rules took up new positions in a given forme, did they
+  ;; resume exactly their former positions in some later forme", and an
+  ;; arrangement holds "for a few formes before being succeeded by a new
+  ;; arrangement" (i. 148).
+  (define since-rearrange (make-hash))
+  (define page-no (box 0))
   ;; The play now being set. A heading line on a page is the start of one, and
   ;; every page after it carries that name until the next heading.
   (define current-head (box ""))
@@ -1255,7 +1293,27 @@
        ;; pages where the real book has The Tempest, then The Two Gentlemen of
        ;; Verona, and so on. Comparing our page against the Norton plate is
        ;; what showed it.
+       ;; The box rules come with the skeleton, and are re-laid every few
+       ;; formes. Five to a page: the first page of a forme takes the first
+       ;; five of the arrangement and the second the other five, so that the
+       ;; ten of a forme are a set and change together, which is the unit
+       ;; Hinman actually reads.
+       (define n (hash-ref since-rearrange (skeleton-name sk) 0))
+       (when (>= n 6)
+         (rearrange-rules! sk g)
+         (hash-set! since-rearrange (skeleton-name sk) 0))
+       (hash-update! since-rearrange (skeleton-name sk) add1 0)
+       (define ten (skeleton-rules-in-order sk))
+       (define five (if (even? k) (take ten 5) (drop ten 5)))
+       (set-box! page-no (add1 (unbox page-no)))
        (struct-copy page p
+                    [box-rules five]
+                    ;; Only a page set in more than one column has a centre
+                    ;; rule; a quarto has nothing between columns to divide.
+                    [centre-rule
+                     (and (> (book-format-columns fmt) 1)
+                          (list-ref centre-rules
+                                    (modulo (unbox page-no) n-centre)))]
                     [running-title
                      (if (string=? (unbox current-head) "")
                          t

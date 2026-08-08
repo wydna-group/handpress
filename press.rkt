@@ -219,6 +219,17 @@
                 (list-ref (set-line-words l) (event-word e))))))
 
   (for ([(forme-name pages) (in-hash pages-by-forme)])
+    ;; The rules are worked as the type is. A rule is a long thin strip under
+    ;; the platen for the whole edition, and it takes its knocks there: Hinman
+    ;; follows individual centre rules by their degeneration, and names three
+    ;; of the worst in the last quire of the Tragedies (i. 148). The box rules
+    ;; take the same wear plus the handling of being stripped off and re-laid
+    ;; every few formes, which is where the type beside them gets displaced.
+    (for* ([p (in-list pages)]
+           [r (in-list (cons (page-centre-rule p) (page-box-rules p)))]
+           #:when r)
+      (work-rule! r edition g))
+
     ;; Proof-reading was not spread evenly. Hinman found it "in considerable
     ;; measure confined to some six or eight plays in one section of the book,
     ;; and especially to material set by a particular compositor" (i. 227) --
