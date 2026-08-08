@@ -415,14 +415,62 @@
 ;; The greater of Lear's measured maximum and a tenth of Smith's bill; see
 ;; above. J and U are near-absent by the conventions of the case, not by
 ;; accident of supply.
+;;
+;; THE FIGURES ARE NOT FROM A BILL, because no bill of the period gives them.
+;; That was checked rather than assumed, and the checking is the useful part:
+;;
+;;   * Blayney's table (i. 146) tabulates lower case, ligatures, capitals,
+;;     accented sorts and points against Smith and van den Keere. There is no
+;;     numerals row in any of the three columns.
+;;   * Gaskell (p. 37) gives the full bill only as ratios -- 3,000 m, 7,000 a,
+;;     12,000 e, 400 x, 800 A -- and refers the figures to Smith pp. 38-48.
+;;   * Blayney's own numerals, in Appendix IVc, are worthless for this. He
+;;     says so himself: three of the sorts are in his list only because they
+;;     appear on the titlepage, "despite the fact that they were not used in
+;;     the text itself ('6', '8', and P)". _Lear_ is a play. No numbered
+;;     chapters, no arabic pagination, no marginal citations; its demand for
+;;     figures was near nought, so its maximum is no evidence about the fount.
+;;
+;; So the figures follow the space-metal above: measured from the demand,
+;; because the bills are silent. And the criterion is Blayney's own -- his
+;; maxima are "the number of types of each sort that were in type just before
+;; each distribution", which is the PEAK, not the mean.
+;;
+;; That distinction is the whole of it. Averaged over Floyd's _Common Wealth_
+;; the demand for a `2' is sixteen standing types against a bill of 34, which
+;; says the case is ample; it is not, because a book's figures do not spread
+;; evenly. They gather in a contents table, a set of marginal citations, a
+;; chronology. Measured as a peak instead -- the densest twelve pages of copy
+;; that can stand locked up together -- the same book wants:
+;;
+;;        0   1   2   3   4   5   6   7   8   9   &
+;;   need 19  56  60  45  37  23  21  18  17  12  53
+;;   was  30  40  34  30  28  28  26  26  26  26  40
+;;
+;; and the five sorts short of their peak are exactly the five the run
+;; reported exhausted, in the same order: 2 wanted 25 times, & 16, 1 15, 3 11,
+;; 4 10. Nothing else in the bill emptied.
+;;
+;; Provisioned at a third above the peak, as the thick space is (3,000
+;; standing, 4,000 in the box). The whole increase is 170 sorts on a net total
+;; near 22,000 -- under one per cent by count, and less by weight, since a
+;; figure stands on an en. It is not a bigger fount, it is a fount whose upper
+;; case is no longer laid out as though every book were a play.
+;;
+;; Two checks that these are not absurd. They sit in the same band as the
+;; capitals beside them, 16 to 80 against Smith/10's 20 to 80 -- and figures
+;; and capitals share the upper case, in boxes of comparable size (McKerrow,
+;; p. 6). And for the one sort here that a real 1571 fount does record, van den
+;; Keere gives 160 ampersands where this gives 72, so the provision is well
+;; short of generous.
 (define upper-bill
   (hash #\A 80  #\B 50  #\C 60  #\D 50  #\E 80  #\F 50  #\G 60
         #\H 60  #\I 160 #\K 50  #\L 50  #\M 50  #\N 60  #\O 60
         #\P 60  #\Q 30  #\R 60  #\S 60  #\T 107 #\V 50  #\W 63
         #\X 20  #\Y 50  #\Z 20  #\J 6   #\U 8
-        #\& 40  #\— 30 #\¶ 10 #\§ 10 #\* 14
-        #\0 30 #\1 40 #\2 34 #\3 30 #\4 28
-        #\5 28 #\6 26 #\7 26 #\8 26 #\9 26))
+        #\& 72  #\— 30 #\¶ 10 #\§ 10 #\* 14
+        #\0 30 #\1 80 #\2 80 #\3 60 #\4 50
+        #\5 32 #\6 30 #\7 26 #\8 24 #\9 20))
 
 ;; ---------------------------------------------------------------------------
 ;; Reach: why foul case is not uniform across the alphabet
@@ -710,7 +758,34 @@
 (define CANNIBAL-SHARE 0.06)
 
 ;; The chance of the fourth expedient rather than the fifth, once robbing has
-;; failed. Rare by construction: Blayney demonstrates one instance in a book.
+;; failed: a sort set face down, against a wrong-fount sort borrowed.
+;;
+;; This stood as a bare guess, with a note that Blayney demonstrates one
+;; instance in a book -- which invited tuning it down until the model produced
+;; one. That would be fitting to the wrong number, for two reasons.
+;;
+;; First, one is a LOWER BOUND, not a census. A placeholder that was filled at
+;; proof leaves nothing behind: the finished page shows the right letter. It
+;; is visible only where the fill can be dated, and Blayney's proof at I4v36
+;; works precisely because "the type that eventually filled the space cannot
+;; have been available until a later sheet had been set". Where the shop had a
+;; spare by the time the proof came back, the whole episode is invisible. The
+;; observable count is therefore bounded below by 1 and above by nothing.
+;;
+;; Second, his prose points the other way from the demonstration. _Lear_
+;; "bristles with deliberately-turned types and other improvised
+;; substitutions", and what he finds notable is "the relative infrequency of
+;; accidental foul-case errors, WRONG-FOUNT TYPES, and turned letters"
+;; (i. 179). The improvisation is the common thing in that book and the
+;; wrong-fount borrow is the rare one -- so this parameter, which chooses
+;; between exactly those two, should not be pushed toward the borrow.
+;;
+;; Left at 0.25, and now with a stated consequence rather than a guess. With
+;; the figures in the bill mended, a prose quarto (Floyd) produces none of
+;; these at all across five seeds, and a play set as a quarto -- Okes's own
+;; case -- produces seven. That is the right shape: above the one he can
+;; prove, well inside "bristles", and nought where the strain is not there.
+;; It was 129 in a 48-page quarto while the figure boxes were emptying.
 (define BLANK-FOR-PROOF 0.25)
 
 ;; How much of this sort is standing in type: everything the fount holds that
@@ -1168,6 +1243,33 @@
       n))
   (check-true (< 55 (* 1311 (/ (hash-ref (tcase-initial tc) #\i) 1.0 letters)) 80)
               "about 66 i to a page, as Blayney counted")
+
+  ;; The figures carry the peak demand of a book that uses figures, not the
+  ;; near-nought demand of a play. No bill of the period tabulates them, so
+  ;; they are measured: the densest twelve pages of copy that can stand locked
+  ;; up together in Floyd's _Common Wealth_ want 19 56 60 45 37 23 21 18 17 12
+  ;; of `0'-`9' and 53 ampersands. The box has to survive that peak with
+  ;; something over, as the thick space does.
+  ;;
+  ;; Pinned because the failure it fixes was silent and specific: while the
+  ;; figures were set from _Lear_ -- a play, with no pagination, no numbered
+  ;; chapters and no marginal citations -- five boxes emptied on a prose
+  ;; quarto and the compositor set 129 sorts face down in 48 pages, where
+  ;; Blayney can prove one in a whole book.
+  (let ([need (hash #\0 19 #\1 56 #\2 60 #\3 45 #\4 37
+                    #\5 23 #\6 21 #\7 18 #\8 17 #\9 12 #\& 53)])
+    (for ([(ch peak) (in-hash need)])
+      (check-true (>= (hash-ref upper-bill ch 0) peak)
+                  (format "the ~a box holds the peak that can stand at once" ch))))
+  ;; and they stay in the band the capitals beside them occupy: figures and
+  ;; capitals share the upper case, in boxes of comparable size.
+  (check-true (>= (apply min (for/list ([c (in-string "0123456789")])
+                               (hash-ref upper-bill c)))
+                  16))
+  (check-true (<= (apply max (for/list ([c (in-string "0123456789")])
+                               (hash-ref upper-bill c)))
+                  (hash-ref upper-bill #\A))
+              "no figure is commoner than the commonest capital")
 
   ;; The turn that leaves the reading alone. Short s inverted is still short s.
   (check-equal? (hash-ref INVERSION-RATES #\s) (/ 1.0 150))

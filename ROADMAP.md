@@ -340,25 +340,71 @@ the comma box belongs to the house), and **space-metal shared the same way**
       printer for excision." Printing unrelated matter on them is the one option
       to leave alone: McKerrow raises it and calls it "merely a suggestion".
 
-- [ ] **The fount has too few figures, and it is Lear's fault.** In Floyd's
-      *Common Wealth* the arabic figures run to *zero*: `1` bill 38 → 0, `2`
-      33 → 0, `3` 29 → 0, `4` 27 → 0, `&` 38 → 0. That is why 129 face-down
-      placeholders appear in a 48-page quarto where Blayney proves one in a whole
-      book (i. 161, at I4v36).
+- [x] **The fount has too few figures, and it is Lear's fault.** *Done.* In
+      Floyd's *Common Wealth* the arabic figures ran to *zero* — and the run
+      confirmed it sort for sort: `2` wanted 25 times, `&` 16, `1` 15, `3` 11,
+      `4` 10, and nothing else in the bill emptied.
 
-      The rate was never the first question. `upper-bill` gives each figure 26–40
-      sorts on the rule "the greater of Lear's measured maximum and a tenth of
-      Smith's bill". But *Lear* is a play: no numbered chapters, no arabic
-      pagination, no marginal citations. Its demand for figures was near zero, so
-      its maximum is no evidence about the fount, and Blayney's Smith/10
-      yardstick was a statement about **capitals**. A book with a two-hundred-entry
-      numbered table of contents cannot be set out of that case.
+      The rate was never the first question. `upper-bill` gave each figure
+      26–40 sorts on the rule "the greater of Lear's measured maximum and a
+      tenth of Smith's bill". But *Lear* is a play: no numbered chapters, no
+      arabic pagination, no marginal citations. Blayney says as much himself —
+      three of the numerals in his list are there only because they appear on
+      the titlepage, "despite the fact that they were not used in the text
+      itself (`6`, `8`, and P)".
 
-      Find what a real bill gives for figures — Smith's standard bill in Gaskell
-      p. 37, and van den Keere's 1571 registre, which Blayney prints alongside
-      the Lear column. Only then is `BLANK-FOR-PROOF` (0.25, a guess) worth
-      looking at. The misclassification is already fixed: the placeholder has its
-      own category `#sort-wanting` rather than being reported as foul case.
+      **The instruction to find a real bill could not be carried out, and that
+      is the finding.** Blayney's table (i. 146) has no numerals row in any of
+      its three columns: it tabulates lower case, ligatures, capitals, accented
+      sorts and points, and stops. Gaskell (p. 37) gives the full bill only as
+      ratios — 3,000 m, 7,000 a, 12,000 e, 400 x, 800 A — and refers the rest
+      to Smith pp. 38–48. Neither Smith as Blayney reproduces him nor van den
+      Keere's 1571 registre gives figures at all.
+
+      So they are measured from the demand, like the space-metal above, and by
+      Blayney's own criterion — his maxima are "the number of types of each
+      sort that were in type just before each distribution", which is the
+      **peak, not the mean.** That distinction is the whole of it. Averaged,
+      Floyd wants sixteen `2`s standing against a bill of 34, and the case
+      looks ample. It is not: figures gather in a contents table, a set of
+      citations, a chronology. The densest twelve pages that can stand locked
+      up together want
+
+      | | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | & |
+      |---|---|---|---|---|---|---|---|---|---|---|---|
+      | peak | 19 | 56 | 60 | 45 | 37 | 23 | 21 | 18 | 17 | 12 | 53 |
+      | was | 30 | 40 | 34 | 30 | 28 | 28 | 26 | 26 | 26 | 26 | 40 |
+      | now | 30 | 80 | 80 | 60 | 50 | 32 | 30 | 26 | 24 | 20 | 72 |
+
+      and the five short of their peak are exactly the five the run reported
+      exhausted, in the same order. The whole increase is 170 sorts on a net
+      total near 22,000 — under one per cent by count, less by weight. It is
+      not a bigger fount, it is a fount whose upper case is no longer laid out
+      as though every book were a play. Two sanity checks: the figures now sit
+      in the same band as the capitals beside them (16–80 against Smith/10's
+      20–80), which is where they sit in the case; and for the one sort a real
+      1571 fount does record, van den Keere gives **160** ampersands where this
+      gives 72.
+
+      **`BLANK-FOR-PROOF` is left at 0.25**, and the reason is worth stating
+      because the obvious move is wrong. Tuning it until the model produces
+      Blayney's one instance would fit a number that is not a census: a
+      placeholder filled at proof leaves nothing behind, and his proof at
+      I4v36 works only because the type that filled it "cannot have been
+      available until a later sheet had been set". The count is bounded below
+      by one and above by nothing. His prose points the other way in any case —
+      *Lear* "bristles with deliberately-turned types and other improvised
+      substitutions", and what he finds notable is "the relative infrequency of
+      accidental foul-case errors, **wrong-fount types**, and turned letters"
+      (i. 179), which is the very branch this parameter chooses against.
+
+      Measured consequence, which is what it now carries instead of a guess:
+      **129 face-down sorts in a 48-page prose quarto before; none at all
+      across five seeds after; seven in a play set as a quarto**, which is
+      Okes's own case. Above the one he can prove, well inside "bristles", and
+      nought where the strain is not there. In the play the boxes that empty
+      are em-quads, `!`, `?` and the capitals — which is precisely Blayney's
+      account of what a play did to Okes's fount.
 
       Their *widths* are fixed, which is a separate thing from their number. The
       table used to give every figure 0.50 em "so that tables would range", which
