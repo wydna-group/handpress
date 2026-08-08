@@ -143,7 +143,7 @@ book set twice sixty years apart, so you can see what the shop contributes.
 
 ```sh
 raco pkg install --link .     # require modules as handpress/compositor
-raco test test-all.rkt        # 1,072 checks, about fifteen seconds
+raco test test-all.rkt        # 1,133 checks, about fifteen seconds
 raco scribble --html --dest doc scribblings/handpress.scrbl
 ```
 
@@ -243,14 +243,25 @@ facsimile found more. Where it now stands against the record:
 | | model | recorded | source |
 |---|---|---|---|
 | verse share of the text | 73.2% | 73% | solved from the Norton plates |
-| word divisions per 100 lines | 1.77 | 2.03 | measured, 790 plates |
-| press variants in the book | 561 | "just over 500" | Hinman, Norton, p. xx |
-| formes corrected mid-run | 144 of 510 | ~100 of ~450 | ibid. |
+| word divisions per 100 lines | 1.66 | 2.03 | measured, 790 plates |
+| press variants in the book | 773 | "just over 500" | Hinman, Norton, p. xx |
+| formes corrected mid-run | 137 of 493 | ~100 of ~450 | ibid. |
 | impressions before correction | median 8% | "about 100" of 1,200 | ibid. |
 | identifiable types per page | 12.7 | 11–12 | Blayney i. 96 on Hinman |
 | characters to a line of type | 37.7 mean, 41 median | 39.6 mean, 42 median | measured, 220 plates / 27,884 lines |
 | type page | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
-| pages | 1,020 | 908 | the book |
+| pages | 990 | 908 | the book |
+
+**These are the run of commit `45b75fc`, and four fixes have landed since**
+(`f7af4d3`): the preliminaries, which were never printed at all; the page loop,
+which dropped every gathering shorter than the format's scheme; the casting
+off, which judged verse turn-overs at the wrong space and left the average page
+12.8 lines short of its depth; and `proof-rate`, which is the diagnosis of the
+press-variant excess in the table above. **Every figure here will have moved and
+none has been re-measured at Folio scale.** What is measured, on a
+preliminaries-and-Tempest slice: mean page depth 119.2 → 127.5 of 132 lines,
+full pages 4 of 25 → 21 of 23, and the same copy set in 23 pages where it took
+25. Re-run before quoting any of it.
 
 Nothing was tuned to close a gap; where one is open it is open on purpose, and
 ROADMAP §6a says which and why.
@@ -292,7 +303,8 @@ the fount, perfectly labelled.
 | `--modern-uv` | keep modern u/v and i/j |
 | `--modern-spelling` | show the same setting in modern spelling |
 | `--year` | the date, which governs the scribal marks — they have a slope |
-| `--pages`, `--quiet` | how much to print to the terminal |
+| `--pages` | draw only the first N pages — terminal render and HTML facsimile alike. The book is still printed and collated whole, and the page says so. |
+| `--quiet` | how much to print to the terminal |
 
 ## What is modelled
 
@@ -587,6 +599,15 @@ Gaskell's forms (p. 52). Leaves that carry nothing are cited as McKerrow's `π`.
 short preliminary gathering is half a sheet worked and turned — one forme, not
 two — which is `A2`, the commonest preliminary arrangement in Blayney's checklist
 by a wide margin.
+
+A preliminary gathering is nearly always **shorter than the format's own
+scheme**, and that is worth saying because it hid a bad one. `formes-for-gathering`
+hands back the whole twelve-page folio scheme whatever it is asked for, so a
+three-leaf preliminary gathering is set in the order 5 8 6 7 3 10 4 9 1 12 2 11
+— and the page loop stopped dead at the first entry with no copy behind it
+instead of skipping to the next. Every preliminary gathering came out as a
+single leaf, and a blank one. The collation went on claiming three, so the test
+that now guards it asks the book for every page its collation says it has.
 
 The signing is a house habit rather than a lottery, so it can be fixed with
 `--prelim-signatures`. Gaskell's order of frequency (p. 52) is the order below;

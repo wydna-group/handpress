@@ -611,28 +611,103 @@ now lands. Nothing was tuned to close a gap — where one is left, it is left.
 
 | | before | after | recorded | source |
 |---|---|---|---|---|
+| | first | `45b75fc` | recorded | source |
+|---|---|---|---|---|
 | verse share of the text | 94% | **73.2%** | 73% | solved from the Norton plates |
-| word divisions per 100 lines | 0.15 | **1.77** | 2.03 | measured, 790 plates |
-| press variants in the book | 1,035 | **561** | "just over 500" | Hinman, Norton, p. xx |
-| formes corrected mid-run | 258 of 511 | **144 of 510** | ~100 of ~450 | ibid. |
+| word divisions per 100 lines | 0.15 | **1.66** | 2.03 | measured, 790 plates |
+| press variants in the book | 1,035 | **773** | "just over 500" | Hinman, Norton, p. xx |
+| formes corrected mid-run | 258 of 511 | **137 of 493** | ~100 of ~450 | ibid. |
 | impressions before correction | median 8% | median 8% | "about 100" of 1,200 | ibid. |
-| identifiable types per page | 18.9 | **12.7** | 11–12 | Blayney i. 96 on Hinman |
+| identifiable types per page | 18.9 | 12.7 | 11–12 | Blayney i. 96 on Hinman |
 | characters to a line of type | — | **37.7 mean, 41 median** | 39.6 mean, 42 median | measured, 220 plates / 27,884 lines |
 | type page | — | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
-| leaves cancelled | 349 of 511 | **69 of 510** | one famous cancel | McKerrow, Hinman |
-| pages | 1,386 | **1,020** | 908 | the book |
+| leaves cancelled | 349 of 511 | 69 of 510 | one famous cancel | McKerrow, Hinman |
+| pages | 1,386 | **990** | 908 | the book |
 
 The uncorrected-impressions figure is the one nothing was fitted to: it falls
 out of the edition size and Hinman's own four pulls a minute, and it was right
 before anyone looked.
+
+**The middle column is the run of `45b75fc` and four fixes have landed since**
+— see *The preliminaries were never printed* below. Every figure in it will
+have moved and none has been re-measured at Folio scale; the two unbolded ones
+are older still, from the run before that. Re-run before quoting any of it.
 
 Two gaps are deliberately open. The **quarto type-density check no longer
 passes** at the folio's re-anchored discrimination — about 4.3 against
 Blayney's 5–6 — because his reasoning assumes a quarto page holds half a folio
 page's type-area where ours holds 30%; tuning until both fit would bury the
 discrepancy that says one of the two measures is still wrong. And **pages run
-12% over**, which is accounted for: Gutenberg prints a scene list and Dramatis
-Personæ at the head of every play that the Folio does not.
+over**, which is partly accounted for: Gutenberg prints a scene list and
+Dramatis Personæ at the head of every play that the Folio does not.
+
+### The preliminaries were never printed
+
+Found by opening the front end and scrolling, not by reading code — which is
+the point of building the front end. Four faults, every one silent: the report
+went on stating the right thing about a book that did not have it.
+
+**The front matter was thrown away by the fetch script.** It wrote
+`blocks(body)[1:]`, reasoning that block [0] was the heading. Block [0] *is*
+the heading, but it is not separated from what follows by a blank line, so
+`blocks` returned the title and the whole piece as one block and the slice
+discarded it.
+
+| | words | kept |
+|---|---|---|
+| Jonson's poem | 668 | **0** |
+| To the great Variety of Readers | 477 | **0** |
+| the Catalogue and the Actors | 30 | **0** |
+| the dedication | 487 | 8 |
+
+The whole preliminaries of the First Folio came to **98 words of headings**,
+and the report said "8 preliminary divisions declared by the TEI markup and
+taken from it, not guessed" throughout — true of the divisions, and of not one
+word inside them. Now 2,188 words, the four commendatory poems and the two
+lists emitted as verse rather than run together as prose.
+
+**And then the page loop dropped them anyway.** `formes-for-gathering` hands
+back the whole twelve-page folio scheme whatever `#:leaves` it is given, so a
+three-leaf preliminary gathering is set in the order 5 8 6 7 3 10 4 9 1 12 2
+11 — and the second entry, page 8, has no segment. The loop answered `(void)`
+and **stopped** instead of skipping, so page 5 was composed and the other five
+were not. The preliminaries were one leaf, and blank, because segment 5 is one
+of the empty ones. It could only bite on a gathering shorter than the format's
+scheme, which in practice means every preliminary gathering.
+
+**Two thirds of the pages were spun out** — 646 of 990, with white at the foot
+of the second column. The casting off judged whether a verse line turns over at
+the *ordinary* space, where the compositor's own test is content plus a hair to
+each gap: `set-verse` works down the ladder and squeezes the words themselves
+before it gives up. On the same copy the caster-off predicted **363** turn-overs
+in 2,188 verse lines where the compositor set **166** — 197 lines of copy held
+back over 25 pages, 7.9 a page, against a 12.8-line average shortfall. At a
+hair it predicts 130, erring the other way by 1.4 a page, which leaves the
+crowded pages and the omission branch something to fire on. Mean depth 119.2 →
+**127.5** of 132; full pages 4 of 25 → **21 of 23**; the same copy set in 23
+pages where it took 25.
+
+**`proof-rate` 0.28 → 0.224.** It is the rate formes are *proofed* and was
+calibrated against Hinman's count of formes *corrected*, which is not the same
+number: 86% of proofed formes have something worth altering, and E's are
+proofed 1.9 times as often, lifting the effective rate to 32.3%. That gave 137
+corrected of 493 — 27.8% against Hinman's 22.2% — and 773 variants against his
+"just over 500". It was wrong when it was set (the previous Folio gave the same
+28%) and went unnoticed because variants per corrected forme were 3.90 against
+his 5.00, so the product landed near 500 by accident. Setting a white line
+between speeches was what held that figure down; with the page solid it is 5.64
+and the compensation is gone. **Two errors cancelling is the failure mode this
+project keeps finding, and it is the argument for reporting a rate beside its
+components rather than alone.**
+
+**`--pages` truncated the terminal render and nothing else**, so there was no
+way to ask for a facsimile of part of a book. The Folio's is 79 MB and three
+and a half minutes of layout, and nothing else touched it: 1,200 copies gives
+79.5 MB and one copy 78.6, because the book is the size and not the edition —
+864,020 words, each a span carrying its position, its width, both its forms and
+every distinctive sort in it. `--pages 40` now gives 3.1 MB, and the page says
+on its face that it shows 40 leaves of 985 so the counts above it are not
+misread.
 
 ### What a plate showed that no statistic did
 
