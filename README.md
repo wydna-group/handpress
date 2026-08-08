@@ -248,6 +248,7 @@ facsimile found more. Where it now stands against the record:
 | formes corrected mid-run | 144 of 510 | ~100 of ~450 | ibid. |
 | impressions before correction | median 8% | "about 100" of 1,200 | ibid. |
 | identifiable types per page | 12.7 | 11–12 | Blayney i. 96 on Hinman |
+| characters to a line of type | 37.7 mean, 41 median | 39.6 mean, 42 median | measured, 220 plates / 27,884 lines |
 | type page | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
 | pages | 1,020 | 908 | the book |
 
@@ -376,6 +377,21 @@ racket main.rkt --html --font Junicode --font-file JunicodeVF-Roman.woff2 book.m
 Measured on a 24-leaf quarto, Junicode at `--fit 1.00` leaves 4 touching word
 pairs in 8,636 — 0.046%, against the 0.08% the stylesheet records for Times. It
 needs no retuning.
+
+The same comparison on a two-column folio — *King Lear*, 37 leaves, 27,689
+words — says the same thing more sharply. **Words drawn past the measure: 8
+under Junicode against 49 under Times.** Junicode draws 4.3% narrower than the
+width table, and that is left alone rather than tuned out with `--fit`: one em
+of the face is meant to be one em of the type body, which it is, so the 4.3% is
+the face disagreeing with an invented table ([ROADMAP §4](ROADMAP.md)) and not
+a scale to correct. It does not accumulate along a line either, because the
+word positions are the compositor's and only the glyphs are the font's — a full
+line ends 1.85px (0.115 em) short of the measure on average, over 1,193 of them.
+
+Times is worse for a reason worth stating: every digit in it measures 0.499 em.
+Those are the ranging figures of the eighteenth century, and `metrics.rkt`
+rejects them on evidence — the ten figures of a sixteenth-century fount run
+from 0.39 to 0.65.
 
 What a revival cannot give you is the *measure*. Its fitting is the reviser's,
 not the fount's — Marini autospaced IM Fell with his own algorithm, and Blokland

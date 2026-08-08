@@ -571,6 +571,7 @@ now lands. Nothing was tuned to close a gap — where one is left, it is left.
 | formes corrected mid-run | 258 of 511 | **144 of 510** | ~100 of ~450 | ibid. |
 | impressions before correction | median 8% | median 8% | "about 100" of 1,200 | ibid. |
 | identifiable types per page | 18.9 | **12.7** | 11–12 | Blayney i. 96 on Hinman |
+| characters to a line of type | — | **37.7 mean, 41 median** | 39.6 mean, 42 median | measured, 220 plates / 27,884 lines |
 | type page | — | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
 | leaves cancelled | 349 of 511 | **69 of 510** | one famous cancel | McKerrow, Hinman |
 | pages | 1,386 | **1,020** | 908 | the book |

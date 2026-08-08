@@ -82,7 +82,30 @@ body {
      face on this body makes the words collide, because the positions come
      from the simulation and only the glyphs come from the font. Times-like
      faces are the closest common approximation to the set widths modelled
-     in metrics.rkt. */
+     in metrics.rkt.
+
+     Closest common, but not close. Junicode -- a digitisation of early modern
+     types, and what `--font-file' is for -- was measured against Times on the
+     same setting of King Lear, 27,689 words:
+
+       face      words drawn past the measure   median word / model width
+       Times                              49                      0.991
+       Junicode                            8                      0.957
+
+     Six times fewer, and the reason is that Junicode is genuinely narrower.
+     Its figures are old-style and of differing widths, where Times has the
+     ranging figures of the eighteenth century that metrics.rkt rejects on
+     evidence -- every digit in Times measures 0.499 em. So the fallback stack
+     is a fallback: it puts something on the screen, and the embedded fount is
+     what the page is meant to be read in.
+
+     `--fit' stays at 1.00 for Junicode and is not tuned up to close that
+     0.957. One em of the face is meant to be one em of the type body, which
+     is a pica here, and it is. The 4.3% is the face disagreeing with an
+     invented width table (ROADMAP §4), not a scale to be corrected -- and it
+     does not accumulate along a line, because the word positions are the
+     compositor's and only the glyphs are the font's: a full line ends 1.85px
+     (0.115 em) short of the measure on average, over 1,193 of them. */
   /* --face is set by the renderer when a fount is named or embedded; the
      fallback is the stack described above. */
   font-family: var(--face, "Times New Roman", Times, "Liberation Serif",
