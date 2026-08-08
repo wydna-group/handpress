@@ -16,7 +16,7 @@
 (require racket/string racket/list racket/match racket/set "rng.rkt")
 
 (provide (struct-out copy-unit) (struct-out misreading)
-         parse-copy misread
+         parse-copy misread EDITORIAL
          MINIM-CONFUSIONS HAND-CONFUSIONS MEMORIAL)
 
 ;; kind is one of 'verse 'prose 'prefix 'stage 'heading 'blank
@@ -249,7 +249,43 @@
        (for-each direction! after)]))
 
   (flush!)
-  (reverse units))
+  (mark-editorial-blanks (reverse units) k))
+
+;; A blank line between two speeches is the editor's, not the copy's.
+;;
+;; The Folio sets a play solid. On Lear 295 `Lear. You? Did you?' follows
+;; `Deferu'd much leffe aduancement.' with nothing between them, `Reg. I pray
+;; you Father ...' follows that, and the two columns run sixty-six lines each
+;; without a white line anywhere in them; the white and the rules come at
+;; `Actus Tertius. Scena Prima.' and nowhere else. A modern edition puts a
+;; blank line between speeches because a modern reader expects one, and the
+;; reader of this program was setting every one of them as a white line of
+;; quads -- a line of the page spent on each of the copy's paragraph breaks.
+;;
+;; The unit is still emitted, because it IS in the copy and the reader's job is
+;; to say what the copy contains. It is marked instead, and `compose' declines
+;; to set white for it. That keeps the decision where it belongs: the reader
+;; reports, the compositor lays out.
+;;
+;; Only in dramatic copy, and only where no heading is next to it. A blank
+;; between stanzas of a poem is the poet's and is set; so is the white round an
+;; act heading, which `compose' supplies for itself in any case.
+(define EDITORIAL "editorial break")
+
+(define (mark-editorial-blanks us k)
+  (cond
+    [(not (eq? k 'drama)) us]
+    [else
+     (define v (list->vector us))
+     (define (kind-at i)
+       (and (>= i 0) (< i (vector-length v)) (copy-unit-kind (vector-ref v i))))
+     (for/list ([u (in-list us)] [i (in-naturals)])
+       (cond
+         [(and (eq? (copy-unit-kind u) 'blank)
+               (not (eq? (kind-at (sub1 i)) 'heading))
+               (not (eq? (kind-at (add1 i)) 'heading)))
+          (struct-copy copy-unit u [speaker EDITORIAL])]
+         [else u]))]))
 
 ;; ---------------------------------------------------------------------------
 ;; Misreading the copy

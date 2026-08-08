@@ -372,7 +372,16 @@
   (define (estimate u)
     (define kind (copy-unit-kind u))
     (cond
-      [(eq? kind 'blank) 1]
+      ;; A blank the compositor will not set takes no room, and the man
+      ;; casting off knows that as well as the man at the frame -- they are
+      ;; the same trade and often the same man. The two have to agree: while
+      ;; `compose' stopped setting a white line between speeches and this went
+      ;; on allowing one, every page in a play came up a line short for every
+      ;; speech on it, and the compositor spun out what he had to fill the
+      ;; depth. It showed as gaping word spaces and as `diuifion' printing
+      ;; `diuifione' -- a real mechanism, fired by an arithmetic disagreement
+      ;; between two stages rather than by anything in the copy.
+      [(eq? kind 'blank) (if (equal? (copy-unit-speaker u) EDITORIAL) 0 1)]
       [(eq? kind 'prefix) 0]
       [else
        (define text (copy-unit-text u))

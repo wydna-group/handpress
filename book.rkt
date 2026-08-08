@@ -241,10 +241,18 @@
        (define u (car us))
        (define rest (cdr us))
        (case (copy-unit-kind u)
+         ;; A white line is a line of quads and costs a line of the page. The
+         ;; compositor sets one where the copy asks for a space; he does not
+         ;; set one merely because the editor of a modern text put a blank line
+         ;; between two speeches. The Folio sets a play solid -- sixty-six
+         ;; lines to the column with no white in them, the white kept for the
+         ;; act divisions -- and this was spending a line on every speech.
          [(blank)
           (define o (flush-run-on out))
           (loop rest pending '()
-                (if crowded? o (cons (white-line spec) o)))]
+                (if (or crowded? (equal? (copy-unit-speaker u) EDITORIAL))
+                    o
+                    (cons (white-line spec) o)))]
 
          [(heading)
           (define o (flush-run-on out))

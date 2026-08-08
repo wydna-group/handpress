@@ -626,6 +626,33 @@ span becomes a direction in its own right — above the line if it stood before
 any speech, below if it interrupted or followed it — and the verse line it was
 sitting in survives whole, which splitting it would not.
 
+### The white line between speeches was the editor's
+
+The Folio sets a play **solid**. On Lear 295 `Lear. You? Did you?` follows
+`Deferu'd much leffe aduancement.` with nothing between them, `Reg. I pray you
+Father …` follows that, and the two columns run sixty-six lines each without a
+white line anywhere in them — the white and the rules come at `Actus Tertius.
+Scena Prima.` and nowhere else.
+
+A modern edition puts a blank line between speeches because a modern reader
+expects one, and the reader here was setting every one of them as a white line
+of quads. On *King Lear* that was **229 lines of type in 4,400 — a line of the
+page for every speech.**
+
+The blank unit is still emitted, because it is in the copy and the reader's job
+is to report what the copy contains. It is *marked*, and `compose` declines to
+set white for it. Only in dramatic copy, and only where no heading is beside
+it: a blank between stanzas of a poem is the poet's and is set, and the white
+round an act heading `compose` supplies for itself anyway.
+
+**And the casting off had to be told.** `cast-off` went on allowing a line for
+a blank that `compose` no longer set, so every page in a play came up a line
+short for every speech on it and the compositor spun out what he had to fill
+the depth — gaping word spaces, and `diuifion` printing `diuifione`. A real
+mechanism, fired by two stages disagreeing about arithmetic rather than by
+anything in the copy. This is the third time that particular fault has appeared
+here and it is always the same shape: one property settled in two places.
+
 ### Rules, borders and ornaments are objects
 
 Prompted by the question *what do the sources say about frames and ornaments —
