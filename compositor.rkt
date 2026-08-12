@@ -476,15 +476,22 @@
   (cond
     [(<= gaps 0) '()]
     [else
-     (define ladder (list EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
+     ;; `SPACE-LADDER', not a second copy of it. This was written out again
+     ;; here, so the case had its bodies listed in two places and the two could
+     ;; drift -- the failure this project has met three times and named "one
+     ;; property, one decision point". It matters now rather than later:
+     ;; roadmap §4 will change what bodies exist, since Moxon's fount has four
+     ;; where this has six, and a private list would have gone on offering a
+     ;; middle space after the case stopped holding one.
      (define target (quotient white gaps))
      ;; the largest single body that will not overshoot the average gap
      (define base
-       (or (for/or ([b (in-list ladder)]) (and (<= b target) b)) HAIR))
+       (or (for/or ([b (in-list SPACE-LADDER)]) (and (<= b target) b))
+           (last SPACE-LADDER)))
      (define v (make-vector gaps base))
      ;; then the surplus, in whole pieces, spread over successive gaps
      (let loop ([left (- white (* base gaps))] [i 0] [guard 0])
-       (define piece (for/or ([b (in-list ladder)]) (and (<= b left) b)))
+       (define piece (for/or ([b (in-list SPACE-LADDER)]) (and (<= b left) b)))
        (when (and piece (< guard (* gaps 8)))
          (define j (modulo i gaps))
          (vector-set! v j (+ (vector-ref v j) piece))

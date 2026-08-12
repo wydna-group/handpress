@@ -835,13 +835,33 @@ Rebuilt from clean, the whole cost of the move was two things:
 
 1,190 tests pass.
 
-**What remains is the bodies themselves**, and it is now an isolated change: the
-ladder is still Jacobi's — thick 1/3, middle 1/4, thin 1/5, hair 1/8 — and Moxon's
-is thick 1/4 (or 1/6) and thin 1/7, with no middle and no hair at all. The unit
-can now express either, so whatever moves when the ladder changes is the ladder
-and not the arithmetic. That separation was the whole purpose of doing the unit on
-its own, and the 13.2% above is the number to watch: Moxon's quarter predicts
-10.2% against Blayney's 9%.
+**What remains is the bodies themselves.** The ladder is still Jacobi's — thick
+1/3, middle 1/4, thin 1/5, hair 1/8 — where Moxon's is thick 1/4 (or 1/6) and thin
+1/7, **with no middle and no hair at all**. The unit can now express either, so
+whatever moves when the ladder changes is the ladder and not the arithmetic, and
+13.2% is the number to watch: Moxon's quarter predicts 10.2% against Blayney's
+measured 9%.
+
+**Three obstacles, found by sizing the change rather than by attempting it.**
+
+- **It cannot be done by halves.** Moxon's thick is 1/4 em, which is *exactly*
+  this program's middle space. Convert the thick and the middle collides with it;
+  so the thick, the middle and the hair move together or not at all. There is no
+  partial version to test.
+- **`HAIR` is not a rung, it is a role.** `compositor.rkt` uses it at ten places
+  as the floor of justification — the finest thing in the case, the point at which
+  `justify` gives up and the line will not go. Moxon's finest is the thin at 1/7,
+  close to Jacobi's hair at 1/8 but not the same. Before the body can be removed
+  the role needs a name of its own, or ten call sites silently start meaning
+  something else.
+- **The ladder was written out twice.** `compositor.rkt` built its own copy rather
+  than using `SPACE-LADDER`, so the bodies were declared in two places — the
+  failure this file has named three times as *one property, one decision point*.
+  **Fixed now rather than later**, because a private list would have gone on
+  offering a middle space after the case stopped holding one, and that is a bug
+  that would have looked like a finding about justification.
+
+The first two are the real work and neither is large; the third is done.
 
 ### 4a. And the quantities disagree with the only bill there is
 
