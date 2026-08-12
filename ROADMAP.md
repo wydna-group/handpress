@@ -801,37 +801,43 @@ would do it (em 840, en 420, thick 210 or 140, thin 120). That is a real design
 decision with blast radius across every justification the program makes, and it
 would invalidate the calibration table, which is why it is here rather than done.
 
-**Attempted as a free refactor, and it is not one.** The reasoning was that every
-body below is a fraction of an em, 840 divides all six exactly (840, 420, 280,
-210, 168, 105), so moving the unit changes the precision of the arithmetic and not
-the widths it expresses. That is true of the *bodies* and false of the *sorts*:
-`em-widths` is a table of decimal ems rounded to whole units, so at 120 a sort is
-rounded to 1/120 em and at 840 to 1/840, and a word of forty sorts can differ by a
-sixth of an em between the two. Line breaking moves with it.
+**Attempted, and the first attempt's verdict was wrong.** It was recorded here
+that the move broke three tests across `imposition.rkt` and `compositor.rkt`, that
+one failure "could not be reconciled with the arithmetic", and that the unit was
+therefore inseparable from a full recalibration. **All of that was stale
+bytecode.** `metrics.rkt` had been edited twice in quick succession and dependent
+modules were compiled against different versions of it; the failing check at
+`imposition.rkt:868` passes when run on its own, at the very figures the hand
+arithmetic gives — 15,361 units against a measure of 16,800.
 
-Three tests failed — a verse line that fitted the measure at a hair and no longer
-did, a cast-off allowing it one line instead of two, and a prose fixture whose
-word count went from 24 to 25 because a word divided that had not divided before.
-**All three are fixtures encoding the old rounding**, not defects, and the finer
-arithmetic is the more accurate one. Reverted all the same, for two reasons: one
-of the failures could not be reconciled with the arithmetic in the time available
-— by hand the line fits at 15,361 units against a measure of 16,800 and the check
-still failed, which means something in that path is not what it appears — and
-patching a fixture one does not understand is how a calibration quietly stops
-meaning anything.
+Rebuilt from clean, with every `compiled/` directory removed, the actual state of
+`UNITS-PER-EM 840` is:
 
-**So the order of work is now known.** The unit change is not separable from the
-recalibration; it must be one piece of work that moves `UNITS-PER-EM`, re-derives
-`em-widths` at the finer unit, re-checks Smith's 11-em alphabet (§7), re-runs the
-9% area check above, and only then touches the bodies. The unexplained failure at
-`imposition.rkt:868` is the first thing to sit down with, and it is a lead rather
-than an obstacle: a width path that disagrees with hand arithmetic is worth
-finding whatever happens to §4.
+| | |
+|---|---|
+| tests | **1,189 of 1,190 pass** |
+| the one failure | `render.rkt:189`, a plain-text line 46 characters against a tolerance of 45 |
+| the line | `"  Printed by Henrie Ballard for Edward Blount."` — centred, on the title-page |
 
-**The period question underneath it.** Smith (1755) *does* have four spaces —
-thick, middle, thin, hair — in his bill, so the six-body ladder is right for the
-eighteenth century and doubtful for the seventeenth. The program's period is
-1580–1640 and Moxon is the nearest manual to it.
+**One character, on a centred line, from the centring indent rounding
+differently.** It is not type overrunning its measure; it is the plain-text
+approximation of a centred line, and the `+4` slack in that check is arbitrary.
+
+So the unit move is very nearly free after all, and the six literal body
+assertions in `metrics.rkt` are the only real work in it — they should assert the
+property (each body is its stated fraction of the em) rather than six numbers that
+have to be rewritten whenever the denominator changes.
+
+**Left unmerged all the same**, and for a reason that is not the one given before:
+the roadmap requires that moving the unit be accompanied by re-deriving
+`em-widths` at the finer rounding, re-checking Smith's eleven-em alphabet (§7) and
+re-running the 9% area check (§4a). None of that is done, and shipping the unit
+alone would leave the calibration unverified at a rounding it has never been
+tested at. **The difference is that this is now a piece of work with a known cost,
+rather than a wall.**
+
+*Lesson recorded below: a stale compile can manufacture a failure that reads
+exactly like a finding, and it did.*
 
 ### 4a. And the quantities disagree with the only bill there is
 
@@ -1968,6 +1974,15 @@ to run backwards within every gathering, the score did not move by a single quir
 within-quire figures were printed over an inside-out order, and it surfaced only
 when something that *does* care about ends was built on top. **Ask what each test
 is constitutionally unable to see, and build one thing that sees it.**
+
+**A stale compile manufactures failures that read like findings.** Editing
+`metrics.rkt` twice in quick succession left dependent modules compiled against
+different versions of it, and produced three test failures in two other files —
+one of which was written up here as an unexplained disagreement between the code
+and hand arithmetic, and used to justify abandoning a change. It passed on its own
+all along. **When a failure resists explanation, clear `compiled/` before
+believing it**; the arithmetic was right and the bytecode was not, which is the
+one possibility the reasoning never considered.
 
 **A figure measured in one format will be quoted against another, and nothing in
 its name will stop you.** "Consecutive formes share 40% of the time" was a quarto
