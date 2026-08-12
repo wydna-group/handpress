@@ -346,14 +346,44 @@ shrinks the admissible set from 14.35 to 9.85 without turning more quires into
 singletons. More evidence prohibits more arrangements, and the last few
 prohibitions are the expensive ones.
 
-**Two things are his and are not built**, recorded rather than faked. The
-*direction*: an admissible order reversed is admissible, he says so outright, and
-he settles it by chaining quires — the last forme of the preceding quire shares
-type with one end of the next and not the other, so one anchor carries through
-the book. Every figure above is scored up to reversal. And the *exception*: where
-a shop distributed sooner than the criterion assumes, no order is admissible at
-all; the report counts those quires separately and quotes him on the initial
-quires of the Folio, rather than reporting them as failures to determine.
+### The chaining is built, it never fires, and that is a fault in the shop
+
+`chain-quires`. The last forme of one quire was set immediately before the first
+forme of the next, so the prohibition reaches across the boundary: an end that
+shares type with the previous quire's last forme cannot be this quire's first
+(i. 81). **It says nothing in 24 boundaries of 24**, because *both* ends share.
+
+The cause is not the method. The last forme of one quire shares **six to ten**
+identifiable types with the first forme of the next, where Hinman's premise says
+they cannot share at all — and the measurement two entries above already showed
+it book-wide: consecutive formes here share about 40% of the time (offset 1 is
+empty in only 54 of 91 pairs at one forme standing). **This shop does not obey the
+premise Hinman's method rests on.**
+
+`book.rkt` distributes on the type ceiling as well as on the count of formes
+standing, so a forme can go back to the case early and its type reach the very
+next forme. Hinman's shop evidently did not do that.
+
+**Which cuts the opposite way to every correction in this file.** The rule at the
+top is that each parameter checked against a book has made the shop poorer or the
+evidence thinner. Here the simulation is making a *bibliographer's method* look
+worse than it was: the 50–80% strike rate is depressed by the model's own eager
+distribution, and a shop honouring the premise would determine more quires than
+this one does. The figure to quote is therefore a floor, not an estimate.
+
+**What to do about it is not obvious and is deliberately not done.** The type
+ceiling is not decoration — it is what makes a small fount bite, and it produced
+the shortage ladder that is among the better things here. Hinman's premise says
+the Folio shop had enough type that the ceiling rarely fired, which is consistent
+with §9's note that Moxon's smallest respectable fount is two to three times
+Blayney's measured one. So the right experiment is to raise the fount until
+consecutive formes stop sharing, and see what else moves — not to special-case
+distribution.
+
+**The exception is his and is kept**: where a shop distributed sooner than the
+criterion assumes, no order is admissible at all; the report counts those quires
+separately and quotes him on the initial quires of the Folio, rather than
+reporting them as failures to determine.
 
 **Quarto is not merely hard for this method, it is outside it.** A quarto
 gathering is one sheet and two formes, and two formes have exactly one order up

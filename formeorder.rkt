@@ -25,24 +25,41 @@
 ;;; by the signatures, and never poses the book-wide ordering the three failed
 ;;; attempts were trying to solve. That alone was most of what was wrong.
 ;;;
-;;; TWO THINGS THIS DOES NOT DO, both his and both recorded rather than faked:
+;;; THE DIRECTION is settled by chaining quires (i. 81) and `chain-quires' does
+;;; it: the last forme of one quire was set immediately before the first forme of
+;;; the next, so the prohibition reaches across the boundary and an end that
+;;; shares type with the previous quire's last forme cannot be this quire's
+;;; first. IT NEVER FIRES HERE, and the reason is a fact about this simulation
+;;; rather than about the method -- see below.
 ;;;
-;;; - The direction. An admissible order reversed is admissible, and Hinman says
-;;;   so: "this could be true of no other order save one -- the exact reverse of
-;;;   the one shown". He resolves it by chaining quires (i. 81) -- the last forme
-;;;   of the preceding quire shares type with one end of the next and not the
-;;;   other -- so one anchor propagates through the book. Not built; everything
-;;;   below is scored up to reversal and says so.
-;;; - The exception. "In the initial quires of the Folio, and occasionally (but
-;;;   very rarely) elsewhere, the same types do appear in consecutive formes --
-;;;   but for special reasons which can be satisfactorily explained." Here such a
-;;;   quire simply admits no order at all, and is counted as admitting none.
+;;; THE EXCEPTION he allows: "In the initial quires of the Folio, and
+;;; occasionally (but very rarely) elsewhere, the same types do appear in
+;;; consecutive formes -- but for special reasons which can be satisfactorily
+;;; explained." Such a quire admits no order at all and is counted as admitting
+;;; none rather than as undetermined.
+;;;
+;;; AND THE PREMISE IS ONLY PARTLY TRUE OF THIS SHOP, which is the most useful
+;;; thing the criterion has found. Hinman's whole method rests on consecutive
+;;; formes not sharing type. Measured here, consecutive formes share about 40%
+;;; of the time (offset 1 is empty in 54 of 91 pairs at one forme standing), and
+;;; at a quire boundary the last forme of one quire shares six to ten
+;;; identifiable types with the first forme of the next -- so both ends of the
+;;; following quire are ruled out, the link is ambiguous, and it says nothing in
+;;; 24 boundaries of 24.
+;;;
+;;; The cause is in `book.rkt': distribution fires on the type ceiling as well as
+;;; on the count of formes standing, so a forme can go back to the case early and
+;;; its type reach the very next forme. Hinman's Folio shop evidently did not do
+;;; that. Which cuts the opposite way to every other correction in this project:
+;;; the simulation is making his method look WORSE than it was, and a shop that
+;;; honoured the premise would determine more quires than the 50-80% below.
 
 (require racket/list racket/set racket/string racket/format
          "book.rkt" "recurrence.rkt" "imposition.rkt")
 
-(provide (struct-out quire-reading)
-         forme-pieces quire-formes admissible-orders read-quires forme-order-report)
+(provide (struct-out quire-reading) (struct-out quire-link)
+         forme-pieces quire-formes admissible-orders read-quires chain-quires
+         forme-order-report)
 
 ;; formes  -- the quire's formes, in the order the press actually set them
 ;; orders  -- every admissible arrangement, counted up to reversal
@@ -100,6 +117,46 @@
                    (and os (= 1 (length os)))
                    (and os (= 1 (length os))
                         (or (equal? (car os) formes) (equal? (car os) (reverse formes)))))))
+
+;; ---------------------------------------------------------------------------
+;; Hinman's cross-quire link, which fixes the direction
+;; ---------------------------------------------------------------------------
+;; The last forme of one quire was set immediately before the first forme of the
+;; next, so the same prohibition reaches across the boundary. Hinman (i. 81):
+;;
+;;   "the last forme of the preceding quire has types in common with Gg1:6ᵛ but
+;;   not with Gg3ᵛ:4. So Gg1:6ᵛ cannot have been the first forme of its quire,
+;;   though Gg3ᵛ:4 can have."
+;;
+;; An end of a quire that shares type with the previous quire's last forme
+;; cannot be that quire's first forme, so it must be its last -- and the quire's
+;; direction is settled. It fires only when exactly one end shares: if neither
+;; does the link is silent, and if both do the criterion has been violated
+;; somewhere and it says nothing rather than guessing.
+;;
+;; What this settles is a quire's direction RELATIVE to its neighbour. Chained
+;; along the book it orients every quire against the first, and the direction of
+;; the first is not in the type evidence -- one global flip survives, exactly as
+;; it does for the press variants in perfecting.rkt. There it needed a fact from
+;; outside; here the fact is the uncontroversial one that a book was set roughly
+;; front to back, and the signatures give that order.
+(struct quire-link (from to fired? right?) #:transparent)
+
+;; `qs' are readings in the order the quires were gathered, which the analyst
+;; has from the signatures. Only quires the criterion determined can be linked.
+(define (chain-quires qs pieces)
+  (define determined (filter quire-reading-unique? qs))
+  (for/list ([a (in-list determined)] [b (in-list (if (null? determined) '() (cdr determined)))])
+    (define last-of-a (last (quire-reading-formes a)))
+    (define ends (list (first (quire-reading-formes b)) (last (quire-reading-formes b))))
+    ;; the true first forme of b is (first ends); the link is right when it
+    ;; rules out the OTHER end and leaves this one standing
+    (define shares-first? (shares? pieces last-of-a (first ends)))
+    (define shares-last? (shares? pieces last-of-a (second ends)))
+    (define fired? (not (eq? shares-first? shares-last?)))
+    (quire-link (quire-reading-quire a) (quire-reading-quire b)
+                fired?
+                (and fired? shares-last? (not shares-first?)))))
 
 ;; ---------------------------------------------------------------------------
 
@@ -161,14 +218,38 @@
                    "  for reasons he can explain. Here it means the shop"
                    "  distributed sooner than the criterion assumes."
                    ""))
-         (list "  THE DIRECTION IS NOT DETERMINED HERE. An admissible order"
-               "  reversed is admissible, and Hinman says so -- \"this could be"
-               "  true of no other order save one, the exact reverse of the one"
-               "  shown\". He settles it by chaining quires: the last forme of"
-               "  the preceding quire has types in common with one end of the"
-               "  next and not the other, so a single anchor carries through"
-               "  the book. That is not built, and every figure above is"
-               "  therefore scored up to reversal.")))
+         (let* ([pieces (forme-pieces b)]
+                [ls (chain-quires (sort rs < #:key quire-reading-quire) pieces)]
+                [fired (filter quire-link-fired? ls)]
+                [ok (filter quire-link-right? ls)])
+           (append
+            (list "  THE DIRECTION, by Hinman's link across the boundary. The last"
+                  "  forme of one quire was set immediately before the first forme"
+                  "  of the next, so the same prohibition reaches between them: an"
+                  "  end sharing type with the previous quire's last forme cannot"
+                  "  be this quire's first (i. 81)."
+                  "")
+            (if (null? ls)
+                (list "  No two determined quires stand next to each other, so there"
+                      "  is no boundary to read. Every order above is up to reversal.")
+                (append
+                 (for/list ([l (in-list ls)])
+                   (format "    ~a into ~a: ~a"
+                           (quire-link-from l) (quire-link-to l)
+                           (cond [(quire-link-right? l) "direction fixed, and rightly"]
+                                 [(quire-link-fired? l) "direction fixed, and WRONGLY"]
+                                 [else "silent; both ends alike"])))
+                 (list ""
+                       (format "  ~a of ~a boundaries spoke; ~a of those were right."
+                               (length fired) (length ls) (length ok))
+                       ""
+                       "  That orients each quire against its neighbour, and chained"
+                       "  along the book it orients them all against the first. The"
+                       "  direction of the FIRST is not in the type evidence, so one"
+                       "  flip survives -- the same residue perfecting.rkt reports"
+                       "  for the press variants. Here the fact that settles it is"
+                       "  the uncontroversial one that a book was set roughly front"
+                       "  to back, and the signatures supply that.")))))))
     (list ""))
    "\n"))
 

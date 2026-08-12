@@ -825,9 +825,14 @@ than the method — four quires in five at one forme standing, half at two. A pe
 eye does *not* raise the strike rate; it shrinks the admissible set from 14.35 to
 9.85 without turning more quires into singletons.
 
-**The direction is not determined**, and Hinman says so: an admissible order
-reversed is admissible. He settles it by chaining quires, which is not built, so
-every figure above is scored up to reversal. **Quarto is outside the method
+**The chaining that fixes direction is built and never fires.** The last forme of
+one quire shares six to ten identifiable types with the first forme of the next,
+where Hinman's premise says they cannot share at all — so both ends are ruled out
+and the link is ambiguous in 24 boundaries of 24. That is a fault in this shop,
+not in his method: `book.rkt` distributes on the type ceiling as well as on formes
+standing, so type returns to the case early. **The simulation is making a
+bibliographer's method look worse than it was**, which is the reverse of every
+other correction here, and the strike rate above should be read as a floor. **Quarto is outside the method
 entirely** — a quarto gathering is two formes, which have one order up to reversal,
 so the criterion is vacuously satisfied and says nothing. The report says that
 rather than printing a hollow 100%. [ROADMAP §1](ROADMAP.md).
