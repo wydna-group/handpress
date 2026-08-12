@@ -409,13 +409,45 @@ making it also the moment of *action* is what lets a forme reach the case before
 its successor is finished, and puts six to ten shared types across a boundary
 Hinman says must be empty.
 
-**The corrected experiment**, and it is now a sourced target rather than a
-search: give the shop twice the type its standing requirement needs, distribute
-at forme completion rather than mid-page, and check three things together — that
-consecutive formes stop sharing, that the link fires, and **that the shortage
-ladder survives**. If the ladder collapses, the margin is wrong; if it survives,
-Hinman's premise and Blayney's shortages are consistent at 2× the minimum, which
-would be worth more than either alone.
+**The experiment was run, and the change was reverted.** Moving distribution to
+forme completion — the timing half of Hinman's account, without the fount half —
+was tried and measured on all three counts at once. Folio in sixes,
+*Areopagitica*, 20 seeds for the criterion and 6 for the shortages:
+
+| | consecutive formes sharing | quires determined | shortage events |
+|---|---|---|---|
+| as it stands, 1 forme standing | — | 80% | 9,749 |
+| **at forme completion**, 1 standing | — | 80% | 9,749 |
+| as it stands, 2 formes standing | ~40% | 50% | 17,875 |
+| **at forme completion**, 2 standing | **9%** | **0%** | **25,313** |
+
+At one forme standing nothing moves at all, to the event: with a single forme
+standing, distribution already happens at every forme completion, so the shop was
+conformant and the change is a no-op. **That is the check that the two things are
+the same thing**, and it passed.
+
+At two formes standing the premise improves exactly as predicted — consecutive
+sharing falls from about 40% to 9% — and the model gets worse in both other
+respects. Shortages rise **42%**, and the criterion stops determining any quire at
+all: fewer pieces circulate, so fewer pairs are prohibited, so more orders survive
+and none is unique. Hinman's premise and Hinman's method pull in opposite
+directions here, and the reason is the half of his account that was left out.
+
+**The fount margin is not optional, and this fount has not got it.** He specifies
+both numbers: four pages standing is the minimum for setting by formes, and the
+Folio shop held about eight. Our shop at two formes standing in folio-in-sixes has
+four pages standing and a ceiling at two-thirds of the fount — no 2× margin — so
+forbidding mid-forme distribution simply runs the cases dry, and the 42% is what
+that looks like. Blayney's shortage ladder does not collapse, but it swells past
+anything his books show.
+
+**Reverted rather than shipped**, because a change that halves one number to
+improve another is the failure this project keeps catching. What it establishes is
+sharper than what it was meant to test: **the timing and the margin are one
+change, not two**, and the next attempt must raise the fount and move the trigger
+together, then check the shortage rate against Blayney rather than against itself.
+Whether this fount can carry 2× at all is the open question, and it is the same
+question §9 raises from Moxon's side.
 
 **The exception is his and is kept**: where a shop distributed sooner than the
 criterion assumes, no order is admissible at all; the report counts those quires
