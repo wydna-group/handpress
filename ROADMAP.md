@@ -346,120 +346,54 @@ shrinks the admissible set from 14.35 to 9.85 without turning more quires into
 singletons. More evidence prohibits more arrangements, and the last few
 prohibitions are the expensive ones.
 
-### The chaining is built, it never fires, and that is a fault in the shop
+### The chaining fires, and is right 12 times in 12 — the bug was in the truth
 
-`chain-quires`. The last forme of one quire was set immediately before the first
-forme of the next, so the prohibition reaches across the boundary: an end that
-shares type with the previous quire's last forme cannot be this quire's first
-(i. 81). **It says nothing in 24 boundaries of 24**, because *both* ends share.
+`chain-quires` was silent in 24 boundaries of 24, and three explanations were
+offered and recorded before the real one: that the shop distributed too eagerly,
+that the fount was too small, that consecutive formes shared 40% of the time. All
+three were wrong, and the last two were withdrawn. **`forme-order` is not the
+order the formes were set in.**
 
-The cause is not the method. The last forme of one quire shares **six to ten**
-identifiable types with the first forme of the next, where Hinman's premise says
-they cannot share at all.
+The counter is assigned by walking `formes-for-gathering` forwards, while the
+pages are set from `setting-order`, which is built from that same list
+**reversed** (`imposition.rkt`). For a folio in sixes, `forme-order` 0 is the
+inner forme of the inner sheet holding pages 2 and 11 — and the pages actually
+set first are 5 and 8, which belong to `forme-order` 5. **The setting order within
+a gathering is the exact reverse of the counter that names it.**
 
-**But the book-wide figure first quoted here was the wrong format's**, and the
-correction matters because two sessions of work were aimed at it. "Consecutive
-formes share about 40% of the time" is a **quarto** measurement — 84 of 182 pairs.
-At folio in sixes, which is Hinman's format and the only one the criterion can
-speak of at all, consecutive formes share **9% of the time (12 of 130)**. The
-premise is largely honoured at folio already, and the shop is not generally in
-breach of it.
+Two things follow, and the second is why it survived so long.
 
-**So the silence is specific to the boundary, not general.** Adjacent formes
-inside a quire mostly do not share; the pair spanning two quires shares every
-time, at both ends, in 24 boundaries of 24. That is a much narrower fault than
-"this shop disobeys the premise", and it points somewhere definite: the gathering
-boundary is where the model distributes hardest, so the first forme of a new quire
-is set out of a case that has just received a flood of returned type. **That is
-the thing to look at next**, and it was invisible while the quarto figure stood in
-for the folio one.
+- **The link was being handed the wrong pair.** It took the last forme of a quire
+  by `forme-order`, which is the *first* forme set, and compared it against the
+  next quire across a gap of five formes instead of none. Six to ten shared types
+  is exactly what the measured profile predicts at that distance. The link was
+  never failing; it was being asked a question about two formes that were not
+  adjacent.
+- **The criterion could not detect it, by construction.** Hinman's reading is
+  scored up to reversal, and a reversed truth is as right as an unreversed one, so
+  the 26-of-26 was untouched. **A test that is deliberately blind to direction is
+  blind to a direction bug**, and every within-quire figure this file has printed
+  was correct while the order underneath was inside out.
 
-`book.rkt` distributes on the type ceiling as well as on the count of formes
-standing, so a forme can go back to the case early and its type reach the very
-next forme. Hinman's shop evidently did not do that.
+Corrected in `quire-formes`, which now reverses within each gathering. Folio in
+sixes, *Areopagitica*, 20 seeds:
 
-**A one-line fix was proposed for this and is a no-op.** The reasoning was that
-the ceiling loop, having distributed the forme two back, went on to distribute the
-one immediately before — so the guard was to let it empty the queue to one forme
-and never to none. Measured with and without: **identical on every figure**,
-because once one forme has gone back the standing sorts are already under the
-ceiling and the loop stopped there of its own accord. It was a fix for a mechanism
-that was not misbehaving, proposed on the strength of the misattributed 40%.
-Reverted rather than kept, since it changes nothing and would read as though it
-did.
+| | quires | determined | right | boundaries | spoke | right |
+|---|---|---|---|---|---|---|
+| 1 forme standing | 40 | 32 | **32** | 12 | **12** | **12** |
+| 2 formes standing | 39 | 20 | **20** | 0 | — | — |
 
-**The experiment first proposed here was the wrong one, and Hinman says so
-himself two chapters earlier.** It was "raise the fount until consecutive formes
-stop sharing", on the strength of §9's note that Moxon's smallest respectable
-fount is larger than Blayney's measured one. That is not his account at all
-(i. 73–4):
+**Hinman's method is now built entire and works entire**: the criterion names the
+order of a quire and is right whenever it speaks, and the link across the boundary
+fixes the direction and is right whenever it speaks. At two formes standing no
+boundary is testable, because determined quires rarely fall next to each other.
 
-> "Jaggard's supply of type was inadequate for setting the Folio in the customary
-> way … Setting by formes, on the other hand, would demand relatively little type.
-> **The types used in forme I could be distributed as soon as forme II had been
-> set** (provided, of course, that presswork on forme I had been completed
-> meanwhile, during the composition of forme II) and at once used again to set
-> forme III. Thus **only enough type to set four pages would be absolutely
-> required** — although, as before, something above the bare minimum would be
-> desirable."
-
-And the stock he later establishes: "the supply was large enough to set about
-**eight Folio pages**, and hence that it was **barely adequate, at best, for
-setting by successive pages**."
-
-**So the premise has nothing to do with an abundant fount.** The Folio shop was
-short of type — that is Hinman's reason for setting by formes in the first place.
-The premise holds because of *when* the shop distributed: forme I goes back to
-the case **as soon as forme II has been set**, between formes and never during
-one. Two consecutive formes cannot share because both are standing while the
-second is composed, and that is true at any fount size.
-
-His two numbers make it exact: four pages standing is the absolute minimum for
-setting by formes, and the shop held about eight — **twice the minimum**, which
-is the margin that keeps a case from running dry in the middle of a forme.
-
-**What is wrong here is therefore the distribution trigger, not the fount.**
-`book.rkt` fires distribution mid-forme whenever `standing-sorts` passes
-`type-ceiling`, checked after every page. That check is right for *measuring* the
-peak — the comment there is correct that the cases run thinnest mid-forme — but
-making it also the moment of *action* is what lets a forme reach the case before
-its successor is finished, and puts six to ten shared types across a boundary
-Hinman says must be empty.
-
-**The experiment was run, and the change was reverted.** Moving distribution to
-forme completion — the timing half of Hinman's account, without the fount half —
-was tried and measured on all three counts at once. Folio in sixes,
-*Areopagitica*, 20 seeds for the criterion and 6 for the shortages:
-
-| | consecutive formes sharing | quires determined | shortage events |
-|---|---|---|---|
-| as it stands, 1 forme standing | — | 80% | 9,749 |
-| **at forme completion**, 1 standing | — | 80% | 9,749 |
-| as it stands, 2 formes standing | ~40% | 50% | 17,875 |
-| **at forme completion**, 2 standing | **9%** | **0%** | **25,313** |
-
-At one forme standing nothing moves at all, to the event: with a single forme
-standing, distribution already happens at every forme completion, so the shop was
-conformant and the change is a no-op. **That is the check that the two things are
-the same thing**, and it passed.
-
-At two formes standing the premise improves exactly as predicted — consecutive
-sharing falls from about 40% to 9% — and the model gets worse in both other
-respects. Shortages rise **42%**, and the criterion stops determining any quire at
-all: fewer pieces circulate, so fewer pairs are prohibited, so more orders survive
-and none is unique. Hinman's premise and Hinman's method pull in opposite
-directions here, and the reason is the half of his account that was left out.
-
-**The fount margin is not optional, and this fount has not got it.** He specifies
-both numbers: four pages standing is the minimum for setting by formes, and the
-Folio shop held about eight. Our shop at two formes standing in folio-in-sixes has
-four pages standing and a ceiling at two-thirds of the fount — no 2× margin — so
-forbidding mid-forme distribution simply runs the cases dry, and the 42% is what
-that looks like. Blayney's shortage ladder does not collapse, but it swells past
-anything his books show.
-
-**Reverted rather than shipped**, because a change that halves one number to
-improve another is the failure this project keeps catching.
+`forme-order` itself is left alone deliberately. It also drives the skeleton cycle
+in `book.rkt`, so renumbering it would move which skeleton went with which forme
+and change the running-title evidence — a separate change wanting its own
+measurement. **Recorded here rather than fixed quietly**, because anything else
+reading `forme-order` as a setting order is wrong in the same way and nothing yet
+says which those are.
 
 ### And the fount was not the problem — it is right, from two sources at once
 
@@ -1862,6 +1796,15 @@ rather than statistical" — and it was buried under a weighting function anyway
 **Having the finding is not the same as using it.** When the literature contains
 practitioners, read how they actually proceeded before designing a method for
 them.
+
+**A test deliberately blind to one thing is blind to a bug in that thing.**
+Hinman's criterion is scored up to reversal, on purpose and correctly, because the
+evidence cannot give direction. So when the setting order underneath it turned out
+to run backwards within every gathering, the score did not move by a single quire
+— a reversed truth is as right as an unreversed one. Three sessions of correct
+within-quire figures were printed over an inside-out order, and it surfaced only
+when something that *does* care about ends was built on top. **Ask what each test
+is constitutionally unable to see, and build one thing that sees it.**
 
 **A figure measured in one format will be quoted against another, and nothing in
 its name will stop you.** "Consecutive formes share 40% of the time" was a quarto

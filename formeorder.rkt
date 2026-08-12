@@ -78,8 +78,29 @@
 ;; quire -> its formes in the true setting order. The grouping is the analyst's
 ;; -- a quire is given by the signatures on the leaf -- but the order within it
 ;; is the answer, and is used only for grading.
+;;
+;; `forme-order' IS NOT THAT ORDER, and the reverse of it is. The counter is
+;; assigned by walking `formes-for-gathering' forwards, while the pages are set
+;; in `setting-order', which is built from that same list REVERSED
+;; (imposition.rkt) -- so for a folio in sixes `forme-order' 0 is the inner forme
+;; of the inner sheet, holding pages 2 and 11, and the pages actually set first
+;; are 5 and 8, which belong to `forme-order' 5.
+;;
+;; Reversing per gathering costs the grading nothing, since the criterion is
+;; scored up to reversal and a reversed truth is as right as an unreversed one --
+;; which is exactly why the 26-of-26 above survived the error unscathed and the
+;; error survived three sessions. What it did break is everything that reads an
+;; END of a quire: `chain-quires' took the last forme by `forme-order', which is
+;; the FIRST forme set, and compared it with the next quire across a gap of five
+;; formes rather than none. Six to ten shared types is what the profile predicts
+;; at that distance; the link was not failing, it was being asked the wrong pair.
+;;
+;; The counter itself is left alone here on purpose. It also drives the skeleton
+;; cycle in `book.rkt', so renumbering it would move which skeleton went with
+;; which forme and change the running-title evidence. That is a separate change
+;; and belongs with a separate measurement.
 (define (quire-formes b)
-  (for/fold ([h (hash)]) ([fm (in-list (sort (book-formes b) < #:key forme-order))])
+  (for/fold ([h (hash)]) ([fm (in-list (sort (book-formes b) > #:key forme-order))])
     (hash-update h (forme-gathering fm)
                  (lambda (xs) (append xs (list (forme-name fm)))) '())))
 

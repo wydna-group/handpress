@@ -825,14 +825,15 @@ than the method — four quires in five at one forme standing, half at two. A pe
 eye does *not* raise the strike rate; it shrinks the admissible set from 14.35 to
 9.85 without turning more quires into singletons.
 
-**The chaining that fixes direction is built and never fires.** The last forme of
-one quire shares six to ten identifiable types with the first forme of the next,
-where Hinman's premise says they cannot share at all — so both ends are ruled out
-and the link is ambiguous in 24 boundaries of 24. The fault is narrow and specific
-to the boundary: *inside* a quire consecutive formes share only 9% of the time at
-folio, so the premise is largely honoured, but the gathering boundary is where the
-model distributes hardest and the next quire's first forme is set out of a case
-that has just been refilled. [ROADMAP §1](ROADMAP.md) has the measurements. **Quarto is outside the method
+**The chaining that fixes direction works too**, and finding out why it did not
+took three wrong explanations. `forme-order`, the counter that names a forme's
+place, runs **backwards within a gathering** — it is assigned from
+`formes-for-gathering` while the pages are set from that list reversed. The link
+was taking the last forme of a quire and getting the first one set, comparing two
+formes five apart instead of none. Corrected, it fixes the direction rightly in
+**12 boundaries of 12**. The criterion never caught it because it is scored up to
+reversal, and **a test blind to direction is blind to a direction bug**.
+[ROADMAP §1](ROADMAP.md). **Quarto is outside the method
 entirely** — a quarto gathering is two formes, which have one order up to reversal,
 so the criterion is vacuously satisfied and says nothing. The report says that
 rather than printing a hollow 100%. [ROADMAP §1](ROADMAP.md).
