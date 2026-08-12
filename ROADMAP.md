@@ -1075,11 +1075,36 @@ white gets a few very wide gaps rather than many slightly wide ones. A composito
 short of measure has other recourse: divide a word, respell, or reach for the next
 line. This one only pads.
 
-**That is the last piece, and it is a mechanism rather than a constant.** What to
-compare it against is in `description.rkt` already — Moxon's "three spaces and no
-more" between words, which at his thick is 3/4 em and which a 0.63-em gap does not
-break but a padded line full of them makes suspicious. The count of gaps exceeding
-that threshold is the check, and it is already reported.
+**But the padding is not a tail, and the diagnosis needed checking before anyone
+acted on it.** Grouping the same lines by how many gaps they have:
+
+| gaps per line | lines | mean gap |
+|---|---|---|
+| 4–6 | 595 | **0.395 em** |
+| 7–9 | **4,208** | 0.312 em |
+| 10–12 | 1,007 | **0.248 em** |
+| 13+ | 7 | 0.172 em |
+
+The wide gaps do concentrate where there are fewest of them to share the
+remainder, which is arithmetic and not a defect. But **the bulk of the book — 4,208
+lines of 5,951 — sits at 0.312 with seven to nine gaps**, so this is not a tail of
+outliers dragging an otherwise sound mean. Only the lines carrying ten gaps or more
+reach Moxon's thick.
+
+**Which says the lines are ending short of what they could hold.** At eight gaps of
+0.312 a 21-em line spends 2.50 em on white and 18.5 on type; Blayney's ratio wants
+1.89 on white and 19.1 on type. **The difference is about 0.6 em a line — roughly a
+quarter of a word.** Our compositor stops a syllable early and spreads the
+remainder, where a real one would divide the word, respell it, or crowd the line.
+
+**So the last piece is not `space-bodies` at all, it is what happens when a line
+will not quite go**, and that is §5's subject: Moxon's and Smith's crowding
+devices, and Smith's warning that they are conditional on the casting-off regime.
+§4 and §5 have converged the way §4 and §7 did, and this time on a mechanism the
+program already has and may simply not be reaching for often enough. The check
+already exists — `description.rkt` counts gaps against Moxon's "three spaces and no
+more", 3/4 em at his thick — and at 0.312 the ordinary line is nowhere near it,
+which is why the fault has never shown there.
 
 **What is settled** is that the question no longer wants a source. The data are on
 disk, they are measured rather than invented, and the objection that blocked them
