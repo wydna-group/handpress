@@ -103,6 +103,59 @@ inference rather than with the eye:
   Hinman's own answer was that "thorough investigation will certainly require
   the use of more than one copy."
 
+### The matrix was measured before the inference was designed, and it is the wrong shape for seriation
+
+Step zero of the inference, and it changed the plan. The obvious way to recover
+an order from a table of shared types is seriation — permute until similarity
+falls away from the diagonal, which assumes a Robinson matrix. **The recurrence
+matrix is not one.** Measured over 8 seeds, quarto, pairs counted only where both
+formes hold identifiable type:
+
+| forward offset | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---|---|---|---|---|---|---|
+| **standing 2** — mean shared | 2.21 | **0** | 1.03 | 3.14 | 4.09 | 2.56 | 2.36 |
+| pairs sharing nothing | 50/90 | **82/82** | 44/74 | 6/66 | 3/58 | 8/50 | 6/42 |
+
+Similarity does not decrease with distance. It is **zero next door and highest
+four or five formes away**, because a forme cannot share a type with one standing
+beside it — the metal is locked up in a chase — and its type only reaches the
+case when it is distributed, a lag behind.
+
+**The strongest evidence in the matrix is an absence, and it is absolute rather
+than statistical.** At two formes standing, every one of 82 pairs at offset 2
+shares nothing at all, while pairs four apart share nothing in 6 of 66. A pair of
+type-rich formes with no type in common is not weak evidence of anything; it is
+proof they stood together.
+
+And the width of that zero band reads off the shop's discipline directly:
+
+| `--formes-standing` | offset 1 | offset 2 | peak at |
+|---|---|---|---|
+| 1 | 54/91 zero | 4/83 zero | offset 2 |
+| 2 | 50/90 zero | **82/82 zero** | offset 5 |
+| 3 | **90/90 zero** | **82/82 zero** | offset 4 |
+
+So **`--formes-standing` is recoverable from the evidence**, which is a different
+inference from Hinman's and was not on this list. It also puts a number on the
+condition Turner's rule depends on and never states: whether the rule can speak
+of a book is a fact about that shop's standing-type discipline, and that fact is
+itself readable.
+
+**Consequences for the inference, which is still to build:**
+
+- Build it on the zeros, not on a similarity gradient. The problem is closer to
+  recovering a band structure than to ordering points on a line.
+- Expect the global-flip ambiguity of §2 to reappear: shared type is symmetric
+  and says two formes were near, never which came first. The signature sequence
+  or Turner's rule would anchor it, and if the flip does recur then "structurally
+  certain and globally unanchored" is a property of this evidence generally and
+  not of one module.
+- **The quarto sample is too short for the folio test.** At folio in sixes the
+  same 12,000 words give three formes with *no* identifiable type at all, so
+  Hinman's density threshold (§1 above) cannot be tested on it. That needs the
+  Folio copy from §10 or a longer text, and finding it out now is cheaper than
+  finding it out after the inference is written.
+
 ### Turner's rule is built and graded
 
 The principle is that "in a quarto set by formes, type from the first forme of
