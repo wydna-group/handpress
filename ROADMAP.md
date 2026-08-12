@@ -955,6 +955,48 @@ and it is the one candidate no measurement here has yet been able to rule out.
 The search for a per-sort measured text-size roman, §7's standing want, is
 therefore not a nicety. It is now the only route left to the 4.8%.
 
+### Blokland mined for the shape, and the shape is wrong in a way that points the other way
+
+No new book was needed: `blokland1.pdf` is on disk at 458 pages, and appendix a5.5,
+"Measurement results", gives seventeen lower-case widths of Garamont / Van den
+Keere's Moyen Canon Romain in millimetres, taken with a digital calliper at the
+Museum Plantin-Moretus. His thesis is the shape claim itself — "one set letter per
+group of letters with the same width" — and he cast type from the original matrices
+"with a limited number of register settings adjusting to groups of matrices",
+naming one group outright: *g, n, o, q* with *d*.
+
+**The absolute widths are still unusable** for the reason §7 gives and the
+`width-experiment` branch demonstrated — he measured a display size, and before
+Benton's pantograph every size was cut separately. **The proportions are not**, and
+proportions are what the open question is about. Both tables normalised to their
+own mean over the sixteen letters they share:
+
+| | Blokland | this table | |
+|---|---|---|---|
+| `f` | 0.47 | **0.73** | ours far too wide |
+| `i` | 0.48 | **0.62** | ours too wide |
+| `v` | 1.11 | **1.00** | ours too narrow |
+| `y` | 1.11 | **1.00** | ours too narrow |
+| `z` | 1.04 | **0.89** | ours too narrow |
+| `a c e h n p r t u` | | | agree within 0.05 |
+
+**So the table is wrong in shape, as suspected — and it is not obvious that this
+is the 4.8%.** The two sorts most out are `f` and `i`, both far too *wide* here,
+and `i` is among the commonest letters in English. A table whose common narrow
+sorts are too wide sets *wider* words, which need *less* white, not more. The
+error is real and may push the opposite way to the one wanted.
+
+**That has to be settled by frequency-weighting before anything is changed**, and
+§7 already records why: substituting a width table while holding the unweighted
+mean smuggled in a density change, because `i` and `s` are 13.5% of the text
+between them. The same trap is waiting here. The next step is to weight both
+normalised tables by the letter frequencies of the actual copy and see which sets
+the narrower line — and only then to ask whether shape explains the white.
+
+**What is settled** is that the question no longer wants a source. The data are on
+disk, they are measured rather than invented, and the objection that blocked them
+applies to their scale and not to their shape.
+
 **Where `--fit` comes in**, and why it is not a free knob: it scales the widths
 against the body, so it moves content and measure together and cannot on its own
 change the ratio the white depends on. Whatever explains the 4.8% has to be a
