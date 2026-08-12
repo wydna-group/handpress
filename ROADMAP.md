@@ -890,10 +890,48 @@ the proposition the code asserted from arithmetic — thick 12,000 against `e`
 where a number comes from and moves no measurement is worth making and worth
 labelling as such**, so nobody reads it as having bought an improvement.
 
-The question it leaves is sharper than the one it answered: **why does a play
-empty the en quad**, and is 0.4 of `e` wrong for Smith and the demand model alike,
-or is this model's appetite for en quads wrong? Blayney's *Lear* is where to
-settle it, space-metal under a play being the hinge of his whole reconstruction.
+### Blayney cannot settle the en quad, and gives a different check instead
+
+Sent to *Lear* to answer why a play empties the en quad. **He has no per-body
+figure at all.** Appendix IV's note on how the space-metal was measured:
+
+> "**Figures are given in ems**, and the total excludes the titlepage. Marginal
+> space has been measured in millimetres within what appears to be the 'standard'
+> prose measure (for *Lear*) of 22.76 ems … **Ten random 20-line samples yielded a
+> figure of approximately 9% as the average amount of internal space in a given
+> area of visible type**, and that figure has been used for all calculations of
+> non-marginal space."
+
+He measured space-metal as **ems of total space**, marginal and internal counted
+apart, and never as thick-against-en-against-hair. So the question this file
+raised cannot be answered from the richest source there is, and no amount of
+further reading in him will help. **Recorded so that nobody spends another session
+looking.**
+
+Two things do come back from the trip.
+
+**The en quad emptying on a play is probably right, not a defect.** It is what his
+own account predicts — a play is short lines, quadded-out ends and marginal
+prefixes, and he notes marginal stage directions of just over 4 ems on C2ᵛ and
+D3ᵛ and 3 ems on F3ʳ. Quadding out and margins are en and em work. The model
+reproducing that strain is the asymmetry being modelled, and the open question is
+only whether the box is the right depth — which is precisely what he gives no
+number for.
+
+**And there is an unused anchor: 9% internal space by area.** That is a measured
+figure from a real quarto and this program has never been tested against it. It is
+not the 16% the code quotes, which is a count of sorts rather than an area: the
+comparable quantity is the summed width of the space bodies set inside the measure
+divided by the width of everything set inside it, excluding marginal space and the
+titlepage, on prose pages. **That is the next concrete piece of §4a**, it is
+cheap, and unlike the en-quad question it has an answer.
+
+One caution he supplies about the change just made: Smith's bill "is inapplicable
+to the early seventeenth century" **in some respects** — and the respects he names
+are capitals and punctuation, eighteenth-century orthography wanting far more of
+both, not the spaces. He offers van den Keere's 1571 registre as nearer in date at
+3,400 m's. So the space proportions taken from Smith stand, and the caution is
+noted where the next person will meet it.
 
 One confirmation while here: "**Letter Founders call 3000 Lower case m's a
 Bill**, and proportion all the other Sorts by them; so that a whole Bill of Pica
