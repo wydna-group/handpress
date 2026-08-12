@@ -895,10 +895,36 @@ line breaks, and a heap test whose variants move with them. None is a defect and
 none was touched, because patching a fixture one has not examined is how a
 calibration stops meaning anything.
 
-**Where to look next for the missing 3 points**: the measure (21 ems, and §9 already
-doubts the type page against foolscap), the `--fit` of the set widths, or
-`justify`'s willingness to stretch. One of those, and not the spaces, is why this
-program sets more white than Okes did.
+**Where the missing 3 points are not.** Three candidates were named — the measure
+at 21 ems, the `--fit` of the set widths, and `justify`'s willingness to stretch.
+The realised gaps, 47,947 of them on prose:
+
+| | |
+|---|---|
+| mean gap | **0.343 em** |
+| nominal thick | 0.333 em |
+| median gap | **0.333 em — exactly the thick** |
+| ninetieth percentile | 0.5 em, an en quad |
+| gaps at or below the thick | **80.6%** |
+
+**`justify` is barely stretching: the median gap is the body itself and the mean
+is 3% above it.** So on `main` the white is what the ladder says it is, and the
+13.2% is not a justification effect. That candidate is out.
+
+Put beside the branch, the two measurements say something neither says alone.
+Narrowing the body to a quarter did *not* take the share to 10.2%, and here the
+body is what the gaps actually are — so narrowing it must have forced `justify` to
+start stretching, which it does not have to do at a third. **The measure demands a
+certain total of white and the body only decides how it is parcelled out.** Set
+the body too narrow and the pieces multiply; too wide and they do not.
+
+So the remaining gap to Blayney is a matter of **content against measure**: either
+the measure is wrong for the page, or the set widths are too narrow for it, and
+the lines need more white than his did to come out even. §9 already doubts the
+type page against foolscap on independent grounds — 160×89 mm at a ratio of 1.80
+on a leaf of 1.31 — and §7 has the set widths anchored only by Smith's eleven-em
+alphabet, which constrains their *sum* and says nothing about the measure they are
+set to. **Those two are now one question, and it is the live one for §4.**
 
 **And sizing it turned up a fourth, which the unit move had already broken.**
 `typecase.rkt` held its own copy of the six body widths as literals in 1/120 em —
