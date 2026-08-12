@@ -316,16 +316,52 @@ is an absence, and it is absolute rather than statistical" — and it was then
 buried under a weighting function. **The finding was in hand and the wrong tool
 was reached for anyway.**
 
-**The fourth attempt, therefore:** per quire, enumerate the orders in which no
-two adjacent formes share an identifiable type; report the count of admissible
-orders as the measure of confidence, since Hinman's own claim is conditional on
-uniqueness; take the unique one where there is one; chain quires to fix
-direction. The gradeable questions become his, not an invented tau — *how often
-is the admissible order unique*, and *how often is the unique one right*. And
-Blayney's threshold acquires its real meaning: at quarto density the admissible
-set should stop being a singleton, which is precisely what "not nearly enough to
-allow the page-order of a quarto to be determined with any great precision"
-predicts, and it is now a countable quantity rather than a correlation.
+### And built, on his criterion, and it does not miss
+
+`formeorder.rkt`. Per quire, enumerate every order in which no two adjacent
+formes share an identifiable type, count them up to reversal, and report the size
+of that set rather than a score — Hinman's confidence being conditional on there
+being one. A quire of six is 720 arrangements and is enumerated outright.
+
+Folio in sixes, *Areopagitica*, 10 seeds. A quire is tested only if it has four
+formes or more, since fewer cannot tell an order from its reverse, and only if
+every forme in it carries some identifiable type:
+
+| | quires | determined | of those, right | mean admissible |
+|---|---|---|---|---|
+| 2 formes standing | 20 | 50% | **10 of 10** | 14.35 |
+| 2 standing, a perfect eye | 20 | 50% | **10 of 10** | 9.85 |
+| **1 forme standing** | 20 | **80%** | **16 of 16** | 1.65 |
+| a copy a third shorter | 10 | 0% | — | 38 |
+
+**Where one order survives it is the true order, 26 times out of 26.** That is
+Hinman's claim — "this order may confidently be taken as the one actually
+followed" — and it holds exactly as stated. What varies is not his accuracy but
+how often he can speak, and that turns on the shop and the copy rather than on
+the method: at one forme standing the criterion determines four quires in five,
+at two only half, and on a copy a third shorter it determines none at all.
+
+Note which way the perfect eye cuts. It does **not** raise the strike rate; it
+shrinks the admissible set from 14.35 to 9.85 without turning more quires into
+singletons. More evidence prohibits more arrangements, and the last few
+prohibitions are the expensive ones.
+
+**Two things are his and are not built**, recorded rather than faked. The
+*direction*: an admissible order reversed is admissible, he says so outright, and
+he settles it by chaining quires — the last forme of the preceding quire shares
+type with one end of the next and not the other, so one anchor carries through
+the book. Every figure above is scored up to reversal. And the *exception*: where
+a shop distributed sooner than the criterion assumes, no order is admissible at
+all; the report counts those quires separately and quotes him on the initial
+quires of the Folio, rather than reporting them as failures to determine.
+
+**Quarto is not merely hard for this method, it is outside it.** A quarto
+gathering is one sheet and two formes, and two formes have exactly one order up
+to reversal, so the criterion is vacuously satisfied and says nothing. That is a
+sharper statement than Blayney's — his "not nearly enough to allow the page-order
+of a quarto to be determined with any great precision" is about evidence density,
+where this is about there being no question of the right shape to ask. The
+report says so instead of printing a hollow 100%.
 
 ### Turner's rule is built and graded
 

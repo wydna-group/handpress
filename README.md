@@ -23,7 +23,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [What it produces](#what-it-produces) · [Quick start](#quick-start) · [Command line](#command-line)
 - [What is modelled](#what-is-modelled) — [the type](#the-type-as-physical-objects), [the paper](#the-paper-format-is-not-size), [casting off](#casting-off), [imposition](#imposition), [justification](#justification), [stints](#stints), [the case](#the-lay-of-the-case)
 - [Reading the copy](#reading-the-copy) · [The preliminaries](#the-preliminaries) · [The last sheet](#the-last-sheet) · [Cancels](#cancels)
-- [The heaps](#the-heaps-and-the-copies-gathered-from-them) · [The perfecting order](#the-perfecting-order-inferred) · [Binding](#gathering-folding-and-binding) · [The lexicon](#the-lexicon)
+- [The heaps](#the-heaps-and-the-copies-gathered-from-them) · [Forme order](#the-order-of-formes-from-the-types) · [The perfecting order](#the-perfecting-order-inferred) · [Binding](#gathering-folding-and-binding) · [The lexicon](#the-lexicon)
 - [Calibration](#calibration) · [The First Folio](#the-first-folio) · [Running it backwards](#running-it-backwards)
 - [What it does not do](#what-it-does-not-do) · [Sources](#sources) · [Roadmap](ROADMAP.md)
 
@@ -147,7 +147,7 @@ set twice sixty years apart, so you can see what the shop contributes.
 
 ```sh
 raco pkg install --link .     # require modules as handpress/compositor
-raco test test-all.rkt        # 1,155 checks, about fifteen seconds
+raco test test-all.rkt        # 1,162 checks, about fifteen seconds
 raco scribble --html --dest doc scribblings/handpress.scrbl
 ```
 
@@ -800,6 +800,37 @@ heap**, and the blindness is total rather than partial. That is measurable here,
 out of Moxon's mechanism rather than being fitted, and it is not as far as I know
 anywhere in the literature. It also carries a warning for §2: an inference about
 perfecting order drawn from four copies is reading a heap it cannot resolve.
+
+## The order of formes, from the types
+
+Hinman's criterion, and his alone: "the second of two consecutive formes was set
+before the first was distributed, and hence the two cannot ordinarily have types in
+common" (i. 80). **Sharing a type forbids adjacency.** The order of a quire is
+whatever arrangement breaks no prohibition, and he takes the reading as proved only
+where one arrangement survives — so what the report prints is the size of the
+admissible set, not a score. Six formes is 720 arrangements and is enumerated
+outright; there is no search.
+
+Folio in sixes, *Areopagitica*, 10 seeds:
+
+| | quires | determined | of those, right | mean admissible |
+|---|---|---|---|---|
+| 2 formes standing | 20 | 50% | **10 of 10** | 14.35 |
+| 2 standing, a perfect eye | 20 | 50% | **10 of 10** | 9.85 |
+| 1 forme standing | 20 | **80%** | **16 of 16** | 1.65 |
+
+**Where one order survives it is the true order, 26 times out of 26.** What varies
+is not his accuracy but how often he can speak, and that turns on the shop rather
+than the method — four quires in five at one forme standing, half at two. A perfect
+eye does *not* raise the strike rate; it shrinks the admissible set from 14.35 to
+9.85 without turning more quires into singletons.
+
+**The direction is not determined**, and Hinman says so: an admissible order
+reversed is admissible. He settles it by chaining quires, which is not built, so
+every figure above is scored up to reversal. **Quarto is outside the method
+entirely** — a quarto gathering is two formes, which have one order up to reversal,
+so the criterion is vacuously satisfied and says nothing. The report says that
+rather than printing a hollow 100%. [ROADMAP §1](ROADMAP.md).
 
 ## The perfecting order, inferred
 

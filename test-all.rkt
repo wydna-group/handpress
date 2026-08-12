@@ -50,6 +50,7 @@
            (submod "book.rkt" test)
            (submod "press.rkt" test)
            (submod "perfecting.rkt" test)
+           (submod "formeorder.rkt" test)
            (submod "analysis.rkt" test)
            (submod "deviation.rkt" test)
            (submod "description.rkt" test)
