@@ -199,10 +199,62 @@ is likely there rather than in the hill-climbing — a bump with a hand-chosen
 width and a hand-chosen penalty, fitted to nothing.
 
 **The rule for the next attempt: run the density sweep before reporting any
-score.** A flat line across densities means the algorithm; a line that climbs and
-then plateaus is where Hinman's threshold actually is, and that plateau is the
-number §1 exists to find. Nothing about the quarto's difficulty can be claimed
-until the method has been shown to work somewhere.
+score.** Nothing about the quarto's difficulty can be claimed until the method
+has been shown to work somewhere.
+
+### Two more attempts, and the diagnosis above was not deep enough
+
+*The density sweep is necessary and it is not sufficient*, which is a correction
+to what this section said first. Raising `--discrimination` adds pieces; it does
+not sharpen the offset-profile, because the flatness of that profile comes from
+how type circulates and not from how much of it the eye can name. A flat sweep
+therefore cannot by itself separate a bad instrument from thin evidence.
+
+**Attempt two: spectral seriation on the Gram matrix.** The raw matrix is a band
+at offset 4–5 — anti-Robinson — so seriating it directly asks similarity to fall
+with distance when it rises. Its Gram matrix `M·Mᵗ` is an autocorrelation, peaked
+at zero and decaying, which is what seriation wants; two formes close in the
+order share type with the *same third formes* whether or not they share with each
+other. Ordered by the Fiedler vector of that matrix: tau 0.14 at the default
+density and −0.01 to 0.08 at every finer one. No better than the bump.
+
+**The diagnostic that should have come first**, and asks about the evidence with
+no algorithm in the way. Score an order by the mean-shared-per-offset profile
+fitted from the *true* order — the most generous yardstick an analyst could have
+— and compare the truth against 2,000 random permutations:
+
+| `--discrimination` | pieces per forme | random orders beating the truth |
+|---|---|---|
+| 0.26 | 14.5 | **0 of 2,000** |
+| 0.10 | 23.1 | **0 of 2,000** |
+| 0.0 | 34.2 | **0 of 2,000** |
+
+**The order is in the evidence, decisively, and at every density.** Both searches
+were failing to find a maximum that is there. Note the circularity honestly: the
+yardstick is fitted to the truth, so this shows the landscape has the truth at
+its peak *given the right profile* — not that a profile-free method can reach it.
+The margin is exactly the variance of the profile across offsets, which is real
+but is carried almost entirely by the hard zero.
+
+**Attempt three: estimate profile and order together.** The obvious escape from
+that circularity — fit the profile to the current order, hill-climb the order
+under it with full 2-opt, repeat, keep the best-scoring from eight restarts. Mean
+|tau| 0.22, 0.22, 0.19 across the three densities, against about 0.3 for a random
+order on thirteen formes. It fails, and it fails for a reason worth stating:
+**`score(o, profile(o))` is degenerate.** The profile adapts to whatever order it
+is given, so the objective rewards any arrangement whose profile happens to be
+spiky, and the truth has no special claim on it. Alternating optimisation cannot
+identify an order when the yardstick is refitted at every step.
+
+**So the missing ingredient is not a better search.** It is a profile shape
+constrained by the mechanism rather than fitted freely: zero while two formes
+stand together, rising to a peak a lag later, decaying after — two or three
+parameters, not one free value per offset. Attempt one had such a shape and chose
+its width and penalty by hand, fitted to nothing; the measured profile in the
+section above is what it should have been fitted to. That is where a fourth
+attempt starts, and it should carry the permutation test as its own control:
+**if the truth is not beaten by a random order, the search is the thing at
+fault.**
 
 ### Turner's rule is built and graded
 
@@ -1494,6 +1546,21 @@ omission branch, and the crowding devices. Turn-over was wrongly added to that l
 and taken off again. To which that episode adds a corollary: **a report that prints
 a bare zero cannot distinguish a thing that did not happen from a thing that could
 not.** Both look like evidence and only one is.
+
+**Test whether the answer is in the evidence before blaming either the evidence
+or the instrument.** Three searches for the forme order all returned chance, and
+two rounds of reasoning about *why* were spent before the cheap decisive
+experiment was run: score the true order against 2,000 random ones. It was beaten
+by none of them at any density, so the signal was there the whole time and every
+argument about thin evidence had been about nothing. A permutation test costs
+twenty lines and settles what a week of algorithm-tuning cannot.
+
+**An objective that refits its own yardstick cannot identify anything.**
+Estimating the offset-profile from the current order and then optimising the
+order under that profile rewards any arrangement whose profile is spiky, and the
+truth has no special claim on it. The fix is a shape constrained by the mechanism
+with two or three parameters, not one free value per offset. Degeneracy of this
+kind looks like a search failure and is not one.
 
 **When a result matches the literature's prediction, that is the moment to build
 the control.** The first forme-order inference scored a flat 0.15 on quarto,
