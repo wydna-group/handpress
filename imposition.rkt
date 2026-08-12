@@ -406,7 +406,7 @@
          ;; the omission branch something to fire on.
          [(eq? kind 'verse)
           (define tight (+ (width-of-word (string-replace text " " ""))
-                           (* HAIR (length (regexp-match* #px" " text)))))
+                           (* FINEST-SPACE (length (regexp-match* #px" " text)))))
           (if (<= tight measure) 1 2)]
          [else
           (define n (max 1 (exact-ceiling (/ w measure))))
@@ -865,7 +865,7 @@
          [content (width-of-word (string-replace line " " ""))]
          [gaps (length (regexp-match* #px" " line))]
          [segs (cast-off (list u) measure 66 (make-rng 5) 1.0)])
-    (check-true (<= (+ content (* HAIR gaps)) measure) "it goes in at a hair")
+    (check-true (<= (+ content (* FINEST-SPACE gaps)) measure) "it goes in at a hair")
     (check-false (<= (+ content (* NORMAL-SPACE gaps)) measure)
                  "and not at the normal space")
     (check-equal? (cast-off-segment-estimated-lines (car segs)) 1

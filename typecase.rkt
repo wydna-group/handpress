@@ -13,7 +13,7 @@
 ;;; locked up until that forme has been printed off and distributed; and the
 ;;; wrong-fount sort borrowed from another case when no shift will serve.
 
-(require racket/list racket/math racket/string "rng.rkt" (only-in "metrics.rkt" EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
+(require racket/list racket/math racket/string "rng.rkt" (only-in "metrics.rkt" EM-QUAD EN-QUAD THICK THIN))
 
 (provide (struct-out draw) (struct-out tcase) (struct-out sort-piece)
          make-type-case pick! distribute! distribute-pieces! scarcest
@@ -404,9 +404,13 @@
         #\u2001 450   ; em quad     -- indents, and quadding out a short line
         #\u2000 1120  ; en quad     -- the half, and figures range on it
         #\u2004 2680  ; thick space -- the normal word space of the house
-        #\u2005 2240  ; middle space
-        #\u2006 1790  ; thin space
-        #\u200A 450   ; hair space
+        ;; The thin inherits the metal of the middle and the hair, which Moxon's
+        ;; fount has not got (2,240 + 1,790 + 450). Not an invented quantity --
+        ;; he tabulates none, and the rule is that the work still has to be done
+        ;; by the bodies that exist. Smith's three fine spaces did it between
+        ;; them; Moxon has one, so it does it alone, and the total space-metal
+        ;; is unchanged. Roadmap §4.
+        #\u2006 4480  ; thin space -- and the finest thing in the case
         ;; Points, from van den Keere's registre rather than from Lear, and for
         ;; a reason Blayney gives: "Early printers evidently considered many
         ;; roman and italic points to be interchangeable (with each other and to
@@ -934,9 +938,7 @@
   (list (cons EM-QUAD #\u2001)
         (cons EN-QUAD #\u2000)
         (cons THICK   #\u2004)
-        (cons MIDDLE  #\u2005)
-        (cons THIN    #\u2006)
-        (cons HAIR    #\u200A)))
+        (cons THIN    #\u2006)))
 
 ;; Fill `width' from the boxes, taking the largest bodies that will serve and
 ;; that are actually in stock. Returns (values pieces short?) -- `short?' when
@@ -1379,9 +1381,9 @@
     (define-values (ps short?) (take-space! tc6 EM-QUAD))
     (check-equal? ps (list #\u2001) "an em of white is one em quad")
     (check-false short?)
-    ;; a thick and a hair, whatever the unit happens to be
-     (define-values (ps2 s2) (take-space! tc6 (+ THICK HAIR)))
-    (check-equal? ps2 (list #\u2004 #\u200A) "a thick and a hair make one gap")
+     ;; a thick and a thin -- the two spaces Moxon knows
+     (define-values (ps2 s2) (take-space! tc6 (+ THICK THIN)))
+     (check-equal? ps2 (list #\u2004 #\u2006) "a thick and a thin make one gap")
     (check-false s2)
     ;; Empty the thick box and the same white is made of smaller pieces, which
     ;; is what a compositor does and what leaves a tell-tale row of thins.

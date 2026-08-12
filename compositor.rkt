@@ -516,14 +516,14 @@
      (define-values (tight-ws tight-notes)
        (let loop ([ws ws] [notes '()] [rounds 0])
          (cond
-           [(or (>= (per ws) HAIR) (>= rounds 8)) (values ws notes)]
+           [(or (>= (per ws) FINEST-SPACE) (>= rounds 8)) (values ws notes)]
            [else
-            (define need (exact-ceiling (* (- HAIR (per ws)) gaps)))
+            (define need (exact-ceiling (* (- FINEST-SPACE (per ws)) gaps)))
             (define-values (new note) (squeeze cv ws g need))
             (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
 
      (cond
-       [(< (per tight-ws) HAIR) #f]     ; it will not go; caller must retry
+       [(< (per tight-ws) FINEST-SPACE) #f]     ; it will not go; caller must retry
        [else
         ;; So loose the line will gape: fill it out with fuller spellings
         ;; before resorting to great gouts of white between the words. Only
@@ -543,7 +543,7 @@
         ;; can use. `stretch' is asked for `need' units and may hand back more
         ;; -- there is no spelling of an arbitrary length, so it overshoots --
         ;; and nothing checked the result. Squeezing has always been bounded,
-        ;; by re-testing `per' every round and giving up at HAIR; stretching
+        ;; by re-testing `per' every round and giving up at FINEST-SPACE; stretching
         ;; was not, so a line filled out with longer forms could come back
         ;; wider than the measure and reach `make-line' with nowhere to go.
         ;;
@@ -557,7 +557,7 @@
         ;; on: habit proposes and the measure disposes. It is not a clamp on
         ;; the arithmetic, it is the compositor declining a spelling he has no
         ;; room for.
-        (define fitted-ws (if (< (per final-ws) HAIR) tight-ws final-ws))
+        (define fitted-ws (if (< (per final-ws) FINEST-SPACE) tight-ws final-ws))
         (define white (- measure indent (content-width fitted-ws)))
         (define spaces (apportion white gaps))
         ;; Moxon's account of justifying is quantised: the compositor sets with
@@ -584,7 +584,7 @@
   (define gaps (max 0 (sub1 (length ws))))
   (cond
     [(zero? gaps) NORMAL-SPACE]
-    [else (max HAIR (min NORMAL-SPACE (quotient (- room (content-width ws)) gaps)))]))
+    [else (max FINEST-SPACE (min NORMAL-SPACE (quotient (- room (content-width ws)) gaps)))]))
 
 (define (quad-out ws measure indent kind)
   (define space (fitting-space ws (- measure indent)))
@@ -849,14 +849,14 @@
   ;; space in the box will not save him does he begin altering words.
   (define-values (made notes)
     (let loop ([ws made0] [notes '()] [rounds 0])
-      (define needed (+ (content-width ws) (* HAIR gaps)))
+      (define needed (+ (content-width ws) (* FINEST-SPACE gaps)))
       (cond
         [(or (<= needed room) (>= rounds 10)) (values ws notes)]
         [else
          (define-values (new note) (squeeze cv ws (comp-rng c) (- needed room)))
          (if new (loop new (cons note notes) (add1 rounds)) (values ws notes))])))
 
-  (define needed (+ (content-width made) (* HAIR gaps)))
+  (define needed (+ (content-width made) (* FINEST-SPACE gaps)))
   (cond
     [(<= needed room)
      (define line (quad-out made measure indent 'verse))
@@ -1152,7 +1152,7 @@
   ;; taken up by the pressure of the lock-up as it was in a chase.
   (for ([l (in-list (drop-right prose 1))])
     (define short (- (page-spec-measure spec) (line-set-width l)))
-    (check-true (and (>= short 0) (< short HAIR))
+    (check-true (and (>= short 0) (< short FINEST-SPACE))
                 (format "line off the measure by ~a of 1/120 em: ~s"
                         short (line-text l))))
 

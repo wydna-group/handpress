@@ -21,11 +21,11 @@
 ;;; eighths together, so Jacobi's ladder and Moxon's can both be stated exactly
 ;;; and compared without either being rounded to suit the other. Roadmap §4.
 
-(require racket/math)
+(require racket/math racket/list)
 
 (provide UNITS-PER-EM
-         EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR
-         SPACE-LADDER NORMAL-SPACE
+         EM-QUAD EN-QUAD THICK THIN
+         SPACE-LADDER NORMAL-SPACE FINEST-SPACE
          width-of width-of-word ems describe-space space-bodies
          AVERAGE-LOWERCASE measure-in-characters)
 
@@ -36,14 +36,45 @@
 ;; Spaces and quads, as they lie in the lower case.
 (define EM-QUAD (u 1))
 (define EN-QUAD (u 1/2))
-(define THICK   (u 1/3))
-(define MIDDLE  (u 1/4))
-(define THIN    (u 1/5))
-(define HAIR    (u 1/8))
+;; Moxon's, not Jacobi's. "Besides Letters, there is to be Cast for a perfect
+;; Fount (properly a Fund) Spaces Thick and Thin, n Quadrats, m Quadrats and
+;; Quadrats" (p. 170) -- four bodies, where the six-rung ladder that stood here
+;; is Jacobi's of 1890 and was being used for 1600. Davis & Carter: "Moxon knows
+;; of only two spaces: the thick and the thin ... The present convention for the
+;; thickness of spaces (thick, 3 to the em; mid, 4 to the em; thin, 5 to the em)
+;; is of uncertain age", Jacobi giving them their present value.
+;;
+;; The thin is "the seventh part of the Body; though Founders make them
+;; indifferently Thicker or Thinner" (Dictionary, p. 353). The thick is "one
+;; quarter so thick as the Body is high" (p. 103); Davis & Carter derive a sixth
+;; from his casting instructions, so Moxon supports 1/4 or 1/6 and the 1/3 that
+;; stood here is outside both.
+;;
+;; Blayney's ruler agrees with his prose. Ten 20-line samples off _Lear_ give
+;; about 9% internal space by area; this program gave 13.2% at a third of an em
+;; and Moxon's quarter predicts 10.2%. Two sources, two methods, two centuries
+;; apart, against the constant that was here. Roadmap §4 and §4a.
+(define THICK (u 1/4))
+(define THIN  (u 1/7))
 
 ;; Coarsest to finest; the compositor works down this list when a line will
 ;; not justify.
-(define SPACE-LADDER (list EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
+(define SPACE-LADDER (list EM-QUAD EN-QUAD THICK THIN))
+
+;; The finest thing in the case, and a role rather than a body.
+;;
+;; `justify' works down the ladder and gives up here: below this width there is
+;; no piece of metal to make the white out of, so the line will not go and the
+;; compositor must respell, divide a word, or turn it over. Ten places in
+;; `compositor.rkt' and one in `imposition.rkt' meant exactly that and said
+;; HAIR, which was true only so long as the hair space was the last rung.
+;;
+;; Moxon's fount has no hair space at all -- four bodies, thick and thin and the
+;; two quadrats, his thin being "the seventh part of the Body" -- so the floor
+;; there is the thin at 1/7, near Jacobi's hair at 1/8 and not the same thing.
+;; Naming the role separately is what lets the ladder change without ten call
+;; sites quietly coming to mean something else. Roadmap §4.
+(define FINEST-SPACE (last SPACE-LADDER))
 
 ;; The pieces of metal that make up a gap of this width, largest first. There
 ;; is no space narrower than a hair, so a width the ladder cannot reach leaves
@@ -60,9 +91,7 @@
   (hash EM-QUAD "em quad"
         EN-QUAD "en quad"
         THICK   "thick space"
-        MIDDLE  "middle space"
-        THIN    "thin space"
-        HAIR    "hair space"))
+        THIN    "thin space"))
 
 ;; The normal word space of the house. Wider and the line is loose; narrower
 ;; and it is squeezed.
@@ -174,10 +203,9 @@
   ;; rewritten again for the next one.
   (check-equal? EM-QUAD UNITS-PER-EM)
   (check-equal? (* 2 EN-QUAD) EM-QUAD)
-  (check-equal? (* 3 THICK) EM-QUAD)
-  (check-equal? (* 4 MIDDLE) EM-QUAD)
-  (check-equal? (* 5 THIN) EM-QUAD)
-  (check-equal? (* 8 HAIR) EM-QUAD)
+  (check-equal? (* 4 THICK) EM-QUAD "Moxon's thick is a quarter of the em")
+  (check-equal? (* 7 THIN) EM-QUAD "and his thin a seventh")
+  (check-equal? (length SPACE-LADDER) 4 "four bodies, as his fount has")
   ;; And the unit must carry a seventh, which 120 could not. Moxon's thin is
   ;; "the seventh part of the Body", so a unit unable to express one cannot
   ;; state his fount at all, let alone compare it with the one in use.
