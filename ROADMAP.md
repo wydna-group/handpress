@@ -926,6 +926,27 @@ on a leaf of 1.31 — and §7 has the set widths anchored only by Smith's eleven
 alphabet, which constrains their *sum* and says nothing about the measure they are
 set to. **Those two are now one question, and it is the live one for §4.**
 
+**And the arithmetic already names a number.** The lines here are 86.8% type and
+13.2% white; Blayney's are 91% and 9%. To match him the content must rise against
+the measure by 0.91 ÷ 0.868 = **4.8%**, or the measure must fall by as much. The
+set widths are anchored in *sum* to within 0.5% — Smith's eleven-em alphabet
+against this table's 10.95 (§7) — so it is not the widths, unless they are wrong
+in a way that preserves their total.
+
+Which leaves the measure, and gives a falsifiable figure: **20 ems rather than 21**
+(21 ÷ 1.048 = 20.04). That is a prediction about a real book and it is checkable
+in the same place the 9% came from — Blayney's Okes quartos, measuring type pages
+against leaves rather than adjusting until the white comes out right. Note the
+direction is *away* from *Lear*'s own 22.76-em prose measure, which makes it a
+real test rather than a fit: if Okes's pica quartos measure 22 or 23 ems, the
+measure is not the answer and the widths must be wrong in shape while right in
+sum.
+
+**Where `--fit` comes in**, and why it is not a free knob: it scales the widths
+against the body, so it moves content and measure together and cannot on its own
+change the ratio the white depends on. Whatever explains the 4.8% has to be a
+change in one and not the other.
+
 **And sizing it turned up a fourth, which the unit move had already broken.**
 `typecase.rkt` held its own copy of the six body widths as literals in 1/120 em —
 `(cons 40 # )` for the thick and so on — and did not require `metrics.rkt`
