@@ -371,14 +371,51 @@ worse than it was: the 50–80% strike rate is depressed by the model's own eage
 distribution, and a shop honouring the premise would determine more quires than
 this one does. The figure to quote is therefore a floor, not an estimate.
 
-**What to do about it is not obvious and is deliberately not done.** The type
-ceiling is not decoration — it is what makes a small fount bite, and it produced
-the shortage ladder that is among the better things here. Hinman's premise says
-the Folio shop had enough type that the ceiling rarely fired, which is consistent
-with §9's note that Moxon's smallest respectable fount is two to three times
-Blayney's measured one. So the right experiment is to raise the fount until
-consecutive formes stop sharing, and see what else moves — not to special-case
-distribution.
+**The experiment first proposed here was the wrong one, and Hinman says so
+himself two chapters earlier.** It was "raise the fount until consecutive formes
+stop sharing", on the strength of §9's note that Moxon's smallest respectable
+fount is larger than Blayney's measured one. That is not his account at all
+(i. 73–4):
+
+> "Jaggard's supply of type was inadequate for setting the Folio in the customary
+> way … Setting by formes, on the other hand, would demand relatively little type.
+> **The types used in forme I could be distributed as soon as forme II had been
+> set** (provided, of course, that presswork on forme I had been completed
+> meanwhile, during the composition of forme II) and at once used again to set
+> forme III. Thus **only enough type to set four pages would be absolutely
+> required** — although, as before, something above the bare minimum would be
+> desirable."
+
+And the stock he later establishes: "the supply was large enough to set about
+**eight Folio pages**, and hence that it was **barely adequate, at best, for
+setting by successive pages**."
+
+**So the premise has nothing to do with an abundant fount.** The Folio shop was
+short of type — that is Hinman's reason for setting by formes in the first place.
+The premise holds because of *when* the shop distributed: forme I goes back to
+the case **as soon as forme II has been set**, between formes and never during
+one. Two consecutive formes cannot share because both are standing while the
+second is composed, and that is true at any fount size.
+
+His two numbers make it exact: four pages standing is the absolute minimum for
+setting by formes, and the shop held about eight — **twice the minimum**, which
+is the margin that keeps a case from running dry in the middle of a forme.
+
+**What is wrong here is therefore the distribution trigger, not the fount.**
+`book.rkt` fires distribution mid-forme whenever `standing-sorts` passes
+`type-ceiling`, checked after every page. That check is right for *measuring* the
+peak — the comment there is correct that the cases run thinnest mid-forme — but
+making it also the moment of *action* is what lets a forme reach the case before
+its successor is finished, and puts six to ten shared types across a boundary
+Hinman says must be empty.
+
+**The corrected experiment**, and it is now a sourced target rather than a
+search: give the shop twice the type its standing requirement needs, distribute
+at forme completion rather than mid-page, and check three things together — that
+consecutive formes stop sharing, that the link fires, and **that the shortage
+ladder survives**. If the ladder collapses, the margin is wrong; if it survives,
+Hinman's premise and Blayney's shortages are consistent at 2× the minimum, which
+would be worth more than either alone.
 
 **The exception is his and is kept**: where a shop distributed sooner than the
 criterion assumes, no order is admissible at all; the report counts those quires
