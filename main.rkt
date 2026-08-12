@@ -442,7 +442,7 @@
       "how finely the ANALYSIS can tell one damaged type from another, 0-1; the default is anchored on Hinman's Folio and is a ceiling, not a typical eye"
       (set! discrimination (string->number x))]
      [("--heap-disorder") x
-      "how much of the heaps' order the drying and piling destroy, 0-1. At 0 the copies are gathered exactly as Gaskell describes and the press variants group consistently; at 1 every forme is an independent draw. No source gives a value (default 0.15)"
+      "how often a handful of doublings is laid back out of order at the drying rack, 0-1. At 0 the copies are gathered exactly as Gaskell describes. Moxon gives the grain -- the heap dries in doublings of 12-25 sheets, taken down three or four at a time -- so this governs how MANY sheets move and never how far: a sheet never travels past 75, at any value. No source gives a rate (default 0.15)"
       (set! heap-disorder (string->number x))]
      [("--jaggard-alphabet") "sign from Jaggard's 20 letters, omitting X, Y and Z"
       (set! jaggard? #t)]

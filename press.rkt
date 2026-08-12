@@ -56,7 +56,7 @@
          (struct-out printed-copy) (struct-out press-run)
          run-press copy-reading-map collate run-variants
          forme-state-corrected? book-quires
-         variant-groupings greg-consistent?)
+         variant-groupings greg-consistent? HEAP-TRAVEL-BOUND)
 
 ;; Plausible sophistications: what a corrector puts in when he decides a
 ;; perfectly good reading must be wrong.
@@ -64,6 +64,31 @@
   (hash "thou" "you" "vnto" "to" "whiles" "while"
         "betwixt" "between" "burthen" "burden" "murther" "murder"
         "vilde" "vile" "moe" "more" "shew" "show"))
+
+;; The drying rack, in Moxon's own units (pp. 311-12).
+;;
+;; He offers three sizes for a doubling -- a quire, half a quire, or "about
+;; seventeen Sheets, more or less" -- and a quire in his warehouse is 24 or 25,
+;; so 12 to 25 is his span and seventeen is his middle. Nothing here is
+;; interpolated between his figures. The handful is "several Doublings over one
+;; another (perhaps three or four)".
+(define DOUBLING-MIN 12)
+(define DOUBLING-MAX 25)
+(define HANDFUL-MIN 3)
+(define HANDFUL-MAX 4)
+
+;; The furthest a sheet can be carried from where it was printed. A doubling
+;; only moves among the handful taken down with it, so the bound is the span of
+;; a handful and NOT a function of `heap-disorder' at all -- the rate governs
+;; how many sheets move, never how far. 75 by construction; 70 is the furthest
+;; observed over 40 heaps of 750 sheets.
+;;
+;; This is exported because it is the number a report has to print beside
+;; Greg's condition. A collation whose copies stand further apart than this in
+;; the heap cannot detect the disorder at any rate whatever, so "HOLDS" from
+;; such a collation means the test could not fire rather than that the
+;; warehouse kept its order.
+(define HEAP-TRAVEL-BOUND (* (sub1 HANDFUL-MAX) DOUBLING-MAX))
 
 (struct pvariant (forme page line word uncorrected corrected note) #:transparent)
 
@@ -464,16 +489,87 @@
   ;; remarkable regularity" and hedges it in the same breath: after drying,
   ;; "the chances were that ... the sheets would be in the same order as before,
   ;; although this was not certain to happen". `heap-disorder' is how much of
-  ;; the order the drying and piling destroy -- 0 for Gaskell's ideal case, 1
-  ;; for the independent draw this code used to do. It is a knob, and no source
-  ;; gives its value.
+  ;; the order the drying and piling destroy -- 0 for Gaskell's ideal case. It
+  ;; is a knob, and no source gives its value.
+  ;;
+  ;; But Moxon gives the *grain*, and this code used to get it wrong. It drew
+  ;; `ordered?' independently for every copy and every sheet, so a single sheet
+  ;; could lose its place in the heap on its own -- white noise. Moxon watched
+  ;; the work (pp. 311-12) and it is not what happens. The heap goes up to the
+  ;; drying racks in DOUBLINGS: the warehouse-keeper "doubles over so much of
+  ;; the Heap as he thinks good, perhaps about a Quire, or half a Quire, or
+  ;; about seventeen Sheets, more or less". It comes down a handful at a time:
+  ;; he "slides several Doublings over one another (perhaps three or four)" and
+  ;; lays them back on the heap.
+  ;;
+  ;; Two consequences, both structural rather than matters of rate. Order is
+  ;; preserved INSIDE a doubling, always. And a doubling can only be laid back
+  ;; out of order among the few handled with it. **A sheet never travels alone,
+  ;; and it never travels far.**
   (define n-copies (max 1 copies))
+
+  ;; The heap is as deep as the edition, not as deep as the copies anybody
+  ;; collates: a doubling is seventeen of the sheets that were printed, and
+  ;; four collated copies of a 750-sheet impression are 187 sheets apart in it.
+  ;; Getting this wrong would measure the doublings in the wrong unit and make
+  ;; the grain look far coarser than it is.
+  (define heap-size (max n-copies edition))
+
+  ;; The order the sheets lie in after drying, given the order they went up in.
+  ;; `disorder' is the chance that one handful of doublings is laid back out of
+  ;; order among themselves; within a doubling nothing moves at any value.
+  (define (dry-heap laid-up disorder rg)
+    (define doublings
+      (let loop ([xs laid-up] [acc '()])
+        (cond
+          [(null? xs) (reverse acc)]
+          [else
+           (define len (min (length xs)
+                            (+ DOUBLING-MIN
+                               (rnd-int rg (add1 (- DOUBLING-MAX DOUBLING-MIN))))))
+           (loop (drop xs len) (cons (take xs len) acc))])))
+    (define laid-back
+      (let loop ([ds doublings] [acc '()])
+        (cond
+          [(null? ds) (reverse acc)]
+          [else
+           (define k (min (length ds)
+                          (+ HANDFUL-MIN
+                             (rnd-int rg (add1 (- HANDFUL-MAX HANDFUL-MIN))))))
+           (define handful (take ds k))
+           (loop (drop ds k)
+                 (cons (if (< (rnd rg) disorder) (rnd-sample rg handful k) handful)
+                       acc))])))
+    (append* (append* laid-back)))
 
   ;; Which forme of each sheet was perfected first. Gaskell's example supposes
   ;; every sheet was inner-first; a real shop was not so tidy.
   (define inner-first
     (for/hash ([name (in-hash-keys states)])
       (values name (< (rnd (make-rng (+ seed 4409 (equal-hash-code name)))) 0.5))))
+
+  ;; One heap per sheet, dried and piled on its own, so the order each forme's
+  ;; variant divides is that heap's and not the book's. Built once per forme:
+  ;; every copy gathered from a heap sees the same order, which is the whole
+  ;; difference between this and the per-copy draw it replaces.
+  (define heaps (make-hash))
+  (define (heap-for name)
+    (hash-ref!
+     heaps name
+     (lambda ()
+       ;; the printing positions as they lie after drying
+       (define dried
+         (dry-heap (range heap-size) heap-disorder
+                   (make-rng (+ seed 5171 (equal-hash-code name)))))
+       ;; and then gathered from the top -- reverse of the printing order for a
+       ;; sheet perfected inner forme first, printing order for outer-first
+       (list->vector (if (hash-ref inner-first name #t) (reverse dried) dried)))))
+
+  ;; Copy i of the ones made up stands at this depth in the gathering order.
+  ;; The copies are spread through the impression rather than taken off the
+  ;; front of it, which is what a bibliographer collating a handful of
+  ;; surviving copies has.
+  (define (gathering-depth i) (quotient (* i heap-size) n-copies))
 
   ;; A, B ... Z, AA, AB ... which is the way a bibliographer runs out of
   ;; letters and the way this program already signs its gatherings.
@@ -498,16 +594,15 @@
        nm
        (for/hash ([(name s) (in-hash states)])
          (define uncorrected (forme-state-fraction-uncorrected s))
-         ;; where this copy's sheet stood in the order it was printed
-         (define pos
-           (if (hash-ref inner-first name #t) (- n-copies 1 i) i))
-         (define ordered? (> (rnd g) heap-disorder))
+         ;; This copy reaches into the heap at the depth it was gathered from,
+         ;; and takes whichever sheet the drying rack left there. `pos' is that
+         ;; sheet's place in the order it was PRINTED, which is what the proof
+         ;; divides: everything worked off before the marked proof came back is
+         ;; uncorrected, whatever order it was piled in afterwards.
+         (define pos (vector-ref (heap-for name) (gathering-depth i)))
          (values name
                  (and (forme-state-corrected? s)
-                      (if ordered?
-                          (>= (/ (add1 pos) n-copies) uncorrected)
-                          ;; the heap lost its order at the drying rack
-                          (> (rnd g) uncorrected)))))
+                      (>= (/ (add1 pos) heap-size) uncorrected))))
        (bind quires #:name nm #:rate binding-error
              #:rng (make-rng (+ seed 9001 (* 31 i)))))))
 
@@ -604,13 +699,12 @@
   ;; publication, which is exactly what a process per module is for.
   (define-runtime-path greg-sample "samples/ado/_all-q1600.txt")
 
-  ;; Gaskell's mechanism, tested by Greg's rule.
+  ;; Gaskell's mechanism, tested by Greg's rule, at Moxon's grain.
   ;;
   ;; Gathered from the tops of the heaps in signature order (pp. 143-4), every
   ;; press variant divides the copies at a point in one linear order, so any
   ;; two groupings are nested or disjoint and Greg's consistency condition
-  ;; (p. 12) holds. Drawn independently -- which is what this module did before
-  ;; the heaps were modelled -- the groupings cross and it fails.
+  ;; (p. 12) holds.
   ;;
   ;; The point is not that the ideal case passes. It is that the failure is
   ;; diagnostic: Greg says that where "the grouping is throughout random or if
@@ -619,28 +713,56 @@
   ;; conflation by construction. So the consistency of the groupings measures
   ;; how far the warehouse preserved the order of printing -- which is a real
   ;; bibliographical inference, and one this program knows the truth of.
+  ;;
+  ;; What this asserted before Moxon's doublings were modelled was that a high
+  ;; `heap-disorder' makes the condition fail on ten copies. It does not, and
+  ;; the reason is the whole finding: a sheet moves only among the doublings
+  ;; handled with it -- 26 sheets on average and never past 70 -- so ten copies
+  ;; of a 750-sheet impression, 75 sheets apart in the heap, straddle the
+  ;; disorder without ever sampling inside it. **The condition is blind to a
+  ;; disorder finer than the spacing of the copies collated**, which is a
+  ;; sharper statement than the old one and the opposite of a small-sample
+  ;; effect: the sample is not too small, it is too sparse.
   (let ()
     (define book
       (set-book (make-house #:fmt QUARTO #:seed 21)
                 (file->string greg-sample)))
-    (define (consistent-share disorder)
+    ;; A rate over 25 runs, not one seed. Runs offering fewer than three
+    ;; groupings cannot exercise the condition and are not counted.
+    (define (consistent-share disorder #:copies [copies 10])
       (define-values (ok n)
         (for/fold ([ok 0] [n 0]) ([seed (in-range 25)])
-          (define r (run-press book #:copies 10 #:seed seed #:proof-rate 1.0
+          (define r (run-press book #:copies copies #:seed seed #:proof-rate 1.0
                               #:heap-disorder disorder))
           (define g (variant-groupings r))
           (if (< (hash-count g) 3)
               (values ok n)
               (values (+ ok (if (greg-consistent? g) 1 0)) (add1 n)))))
       (if (zero? n) 1.0 (/ ok (exact->inexact n))))
-    (define ordered (consistent-share 0.0))
-    (define shuffled (consistent-share 1.0))
-    (check-equal? ordered 1.0
+
+    ;; Gaskell's "case of remarkable regularity" -- nothing moved, so every
+    ;; grouping is a prefix or suffix of one order.
+    (check-equal? (consistent-share 0.0) 1.0
                   "heaps gathered in order satisfy Greg's consistency rule")
-    (check-true (< shuffled 0.75)
-                (format "heaps gathered at random do not: ~a" shuffled))
-    (check-true (> ordered shuffled)
-                "the order of gathering is what makes the groupings consistent"))
+    (check-equal? (consistent-share 0.0 #:copies 60) 1.0
+                  "and however many copies are collated")
+
+    ;; Sparse collation: the disorder is there and cannot be seen.
+    (check-equal? (consistent-share 1.0) 1.0
+                  "ten copies are too far apart in the heap to sample the disorder")
+
+    ;; Dense enough to reach inside a handful of doublings, and it shows.
+    ;; Assert the ordering of the rates rather than their values: what is
+    ;; being tested is that the detector responds to the disorder, and
+    ;; pinning the numbers would make this a test of the seed sequence.
+    (define dense-ordered (consistent-share 0.0 #:copies 60))
+    (define dense-slack (consistent-share 0.15 #:copies 60))
+    (define dense-shuffled (consistent-share 1.0 #:copies 60))
+    (check-true (< dense-shuffled 0.25)
+                (format "sixty copies do sample it: ~a" dense-shuffled))
+    (check-true (< dense-shuffled dense-slack dense-ordered)
+                (format "and the more the warehouse lost, the less consistent: ~a ~a ~a"
+                        dense-ordered dense-slack dense-shuffled)))
 
   (define sample
     (string-append

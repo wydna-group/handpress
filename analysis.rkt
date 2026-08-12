@@ -1254,6 +1254,24 @@ THE HEAPS, AND THE COPIES GATHERED FROM THEM
    "
 
 "
+   ;; What the rate does NOT govern, which is where this section used to
+   ;; mislead. Moxon's heap goes up in doublings and comes down three or four
+   ;; at a time, so a sheet moves only among its neighbours however high the
+   ;; disorder is set. A collation spaced wider than that cannot see any of it,
+   ;; and must not be allowed to report HOLDS as though it had looked.
+   (wrap (format "The order is lost at Moxon's grain and not sheet by sheet (pp. 311-12): the heap is doubled over \"perhaps about a Quire, or half a Quire, or about seventeen Sheets\" to dry, and taken down by sliding \"several Doublings over one another (perhaps three or four)\". Order is kept inside a doubling always, so a sheet never travels alone and never travels further than ~a sheets -- a bound set by the handful, not by the rate above. These ~a copies stand about ~a sheet~a apart in an impression of ~a, so ~a"
+                 HEAP-TRAVEL-BOUND
+                 n
+                 (max 1 (quotient (press-run-edition r) (max 1 n)))
+                 (if (= 1 (max 1 (quotient (press-run-edition r) (max 1 n)))) "" "s")
+                 (press-run-edition r)
+                 (if (> (quotient (press-run-edition r) (max 1 n)) HEAP-TRAVEL-BOUND)
+                     "no disorder of the heap can reach between two of them. The condition below is reporting that this collation is too sparse to resolve the warehouse's mistakes, NOT that the warehouse made none."
+                     "a sheet can be carried from one of them past another, and the condition below is genuinely being tested."))
+         74)
+   "
+
+"
    (if (zero? (hash-count groups))
        "No forme was corrected at press, so the copies do not differ and there is nothing to group.
 "
@@ -1287,7 +1305,7 @@ THE HEAPS, AND THE COPIES GATHERED FROM THEM
                                       (string-join (take named 10) " "))])))))
         "
 "
-        (wrap (format "Greg's condition for consistent grouping -- that \"given any two constant groups, either these or their complements are either mutually exclusive or one wholly includes the other\" (Calculus of Variants, p. 12) -- ~a here. That is the test worth watching. A made-up copy descends from no other copy but is assembled from as many heaps as there are sheets, which is conflation by construction, and Greg warns that where \"the grouping is throughout random ... some sort of conflation has somewhere to be assumed\" (p. 43). Gathered as Gaskell describes, the groupings are constant up to complementation and the condition holds; drawn independently, it fails. So the consistency of these groups measures how far the warehouse preserved the order of printing -- and, sheet by sheet, which forme went to press first."
+        (wrap (format "Greg's condition for consistent grouping -- that \"given any two constant groups, either these or their complements are either mutually exclusive or one wholly includes the other\" (Calculus of Variants, p. 12) -- ~a here. That is the test worth watching. A made-up copy descends from no other copy but is assembled from as many heaps as there are sheets, which is conflation by construction, and Greg warns that where \"the grouping is throughout random ... some sort of conflation has somewhere to be assumed\" (p. 43). Gathered as Gaskell describes, the groupings are constant up to complementation and the condition holds; disturbed at the drying rack, it fails -- but only where the copies collated are close enough together in the heap for a sheet to travel between them, which is the qualification stated above. So the consistency of these groups measures how far the warehouse preserved the order of printing, at the resolution this collation happens to have -- and, sheet by sheet, which forme went to press first."
                       (if consistent? "HOLDS" "FAILS"))
               74)
         "

@@ -5,9 +5,18 @@ item is not "would this be interesting?" but **"would this let the program be
 wrong in a way we could detect?"** — which is the only thing it has ever been
 good for.
 
-Open work comes first, because that is what a roadmap is for. What is built is
-summarised at the end with the numbers that came out of it; the detail lives in
-the commit messages, the README and the manual.
+Open work first, because that is what a roadmap is for. Then what is built,
+kept short. Then the working rules, which are the most useful part of this file
+and the part most expensively learnt.
+
+The README says what the program does and where it currently stands. This file
+says what is wrong with it.
+
+**Six items below came out of one afternoon's reading of Moxon and Smith** —
+the two printers' manuals the README had listed as sources for a year while
+every figure from them arrived second-hand through Gaskell or Blayney. Reading
+them directly cost less than any of the work they invalidated. They are marked
+**[manuals]**.
 
 ---
 
@@ -50,7 +59,7 @@ evidence, it is the answer, and grading an inference against the truth means
 nothing if the inference starts from the truth.
 
 How far off it was is the measurement worth keeping. At the default fount the
-model puts **27.2 distinctive types on a folio page** (± 1.2 over five seeds)
+model put **27.2 distinctive types on a folio page** (± 1.2 over five seeds)
 where Hinman's actual harvest from the Folio *Lear* was 11–12. Roughly twice as
 much evidence as the man who invented the method ever had — and it is his figure
 that every published type-recurrence argument rests on. The gap is *not* a sign
@@ -66,21 +75,14 @@ way that they cannot always be clearly distinguished from each other". The
 second is the interesting one, because it means evidence does not scale with
 decay: a fouler fount holds more distinctive pieces *and* more pieces damaged
 alike, so past a point further battering buys nothing. That falls out of counting
-the model's own pieces, and §1 can test it at any fount condition.
+the model's own pieces, and this section can test it at any fount condition.
 
-One free parameter, `discrimination`, the finest difference between two injuries
-an investigator can reliably see. Anchored on the folio at 0.20, which gives
-12.2 ± 0.7 a page against Blayney's 11–12. **The quarto is a check and not a
-second anchor, and it passes**: with 0.20 carried over untouched, 5.3 ± 0.5
-against the 5–6 Blayney argues for from the type-area. The ratio between the
-formats is the model's own.
-
-Anchored on Hinman's Folio, so it is a *ceiling* on what a bibliographer sees
-rather than a typical value — the best-equipped study the method has had, with
-eighty-odd copies and a collating machine. Blayney says most quarto
-investigators "have used rather less evidence per forme than did Hinman", and §4
-below records what happened last time a parameter here was anchored on Jaggard
-and treated as ordinary. `--discrimination` sets it.
+One free parameter, `--discrimination`, the finest difference between two
+injuries an investigator can reliably see. Anchored on Hinman's Folio, so it is
+a **ceiling** on what a bibliographer sees rather than a typical value — the
+best-equipped study the method has had, with eighty-odd copies and a collating
+machine. Blayney says most quarto investigators "have used rather less evidence
+per forme than did Hinman".
 
 **Two of Hinman's mechanisms are named and not built**, and both belong with the
 inference rather than with the eye:
@@ -101,7 +103,8 @@ inference rather than with the eye:
   Hinman's own answer was that "thorough investigation will certainly require
   the use of more than one copy."
 
-**Turner's rule is built and graded**, in `recurrence.rkt` and reported in full.
+### Turner's rule is built and graded
+
 The principle is that "in a quarto set by formes, type from the first forme of
 each sheet normally reappears in both formes of the succeeding sheet, but type
 from the second forme only in the second forme". Blayney takes his *Midsummer
@@ -148,7 +151,7 @@ One caveat to carry: at two or more formes standing the model produces a very
 clean one-way signal — outer→inner when set by formes, inner→outer when
 seriatim — which would discriminate perfectly. That is the model's own
 regularity, a fixed standing-type threshold distributing on schedule, and it
-should not be believed. Real shops ran several presses and several books; §5 is
+should not be believed. Real shops ran several presses and several books; §8 is
 where that gets tested.
 
 Related and cheap now that the table exists: the *order* of the sheets it pairs
@@ -158,9 +161,9 @@ raw page order of a quarto reads H, A, B … G — which produced a confident ta
 for "H → A", the sheet printed last against the one printed first, and dropped
 the real G → H. `turner-table` now orders the sheets itself.
 
-Related and cheap once this exists: **pagination errors as evidence of order.**
-`pagination.rkt` already separates errors of omission from commission because
-Hinman says only the former are informative. Nothing yet uses them.
+Related and cheap once the inference exists: **pagination errors as evidence of
+order.** `pagination.rkt` already separates errors of omission from commission
+because Hinman says only the former are informative. Nothing yet uses them.
 
 ---
 
@@ -185,9 +188,277 @@ contrary to experience and leads to erroneous results" (p. 9n, Note C). Also his
 warning that the finer the collation, the more non-evidential variants and
 chance coincidences it turns up (p. 18).
 
+**§3 is done and it changes what this exam means.** The groupings now carry
+Moxon's grain, and the first consequence is known before the inference is
+built: on a sparse collation the disorder is invisible, so the inference will
+score better than it deserves to and the score must be read against the
+spacing of the copies. Grade it at several collation sizes or it will flatter
+itself.
+
 ---
 
-## 3. Watermarks and chain-lines
+## 3. The heaps had the wrong grain — *done, and it inverted the result* **[manuals]**
+
+**A published number in the README was produced by a mechanism Moxon rules out.**
+It was the cheapest item on the list and it changed more than expected.
+
+`--heap-disorder` has always carried the disclaimer that no source gives its
+value, and that is still true of the *rate*. But Moxon gives the **mechanism**,
+and the code's was not it. `press.rkt` drew independently **per copy per sheet**:
+
+```racket
+(define ordered? (> (rnd g) heap-disorder))
+```
+
+Every sheet decided on its own whether it kept its place — white noise. Moxon,
+on hanging the heap up to dry and taking it down again (pp. 311–12):
+
+> he doubles over so much of the Heap as he thinks good, **perhaps about a
+> Quire, or half a Quire, or about seventeen Sheets, more or less** … [and
+> taking down] the Warehouse-keeper clapping the flat side of his Peel against
+> the Right Hand edge of the Paper, **slides several Doublings over one another
+> (perhaps three or four)**: And putting the Peel under them, takes them off the
+> Racks, and lays them on the Heap again
+
+The heap is taken apart and put back in **blocks of about seventeen sheets**,
+moved three or four blocks at a time. Order is preserved *within* a doubling,
+always. **A sheet never travels alone** — which is precisely what the per-sheet
+draw made it do.
+
+**The prediction was that block-structured disorder at the same nominal rate
+would score far higher on `greg-consistent?` than the then-current 37/60 at
+0.15. It does: 25/25.** And the reason turned out to be more interesting than
+the number, because it is not about the rate at all.
+
+Separating the two, over 40 heaps of 750 sheets:
+
+| `--heap-disorder` | sheets that moved | mean travel | furthest |
+|---|---|---|---|
+| 0.15 — the default | 11.6% | 27 sheets | 65 |
+| 0.5 | 37.4% | 26 sheets | 70 |
+| 1.0 | 79.9% | 26.2 sheets | 70 |
+
+**The rate governs how many sheets move and has no effect whatever on how far.**
+That is fixed by the handful — four doublings of at most 25 sheets — and it is a
+consequence of the mechanism rather than of any parameter. The old model had no
+such bound: a sheet could go anywhere in the heap.
+
+So the condition became blind, and blind in a specific way. Ten copies of a
+750-sheet impression stand 75 sheets apart in the heap and no sheet travels more
+than 70, so **at ten copies the condition now holds at every disorder including
+1.0**, where the noise model failed a third of the time at 0.15. At sixty copies
+— 12 sheets apart — it fails 25 times in 25. The README carries both tables.
+
+**The old reading of the sample-size effect was wrong.** It was recorded as a
+small-sample artefact: collate more copies, get more chances to see the lost
+order. It is not about the number of copies, it is about their *spacing in the
+heap* against how far a sheet can move. The same 24 copies detect the disorder
+on a 150-sheet impression (43% consistent) and cannot on a 3,000-sheet one
+(100%). A collation is blind to any disorder finer than its own spacing, and
+the blindness is total rather than partial.
+
+That was not tuning the disorder down until the failure went away — the rate is
+untouched at 0.15 and the failure is larger than ever at a dense collation. The
+noise had the wrong shape, and correcting the shape moved the answer in a
+direction nobody had predicted, including this file.
+
+**What still has no source is the rate**, exactly as before. Moxon gives the
+doubling, the handful and the care taken; he does not say how often the care
+failed.
+
+Moxon supplies two further constraints while he is about it. The heaps are laid
+out in signature order and gathered "**beginning at the last Heap first**"
+(p. 315) — Davis & Carter flag that he contradicts himself about which end is
+the left hand, and gloss the intent: the end sheet is gathered first. And the
+warehouse-keeper is careful to lay every sheet so its signature falls over the
+signature of the first, "**lest when the Books come to be Gathered, some Sheets
+may be Turned**", which names the fault the care is against.
+
+---
+
+## 4. The space bodies are Jacobi's, 1890 **[manuals]**
+
+`metrics.rkt` sets six space bodies — em, en, **thick 1/3, middle 1/4, thin
+1/5**, hair 1/8 — and calls them "the spaces and quads, as they lie in the lower
+case". Moxon's fount has four, and two of them are not these:
+
+> Besides Letters, there is to be Cast for a perfect Fount (properly a Fund)
+> **Spaces Thick and Thin, n Quadrats, m Quadrats and Quadrats.** (p. 170)
+
+Davis & Carter, annotating p. 103, are explicit and go further:
+
+> **Moxon knows of only two spaces: the thick and the thin** (p. 170). …
+> **The present convention for the thickness of spaces (thick, 3 to the em; mid,
+> 4 to the em; thin, 5 to the em) is of uncertain age.** Johnson's *Typographia*
+> (1824, p. 101) shows that room was found in the case for the three spaces
+> **when the long s went out of use**; Jacobi (*Printing*, 1890, p. 21) gives
+> them their present value.
+
+Three problems follow, of which the first is the serious one.
+
+**(a) The values are dated 1890 and used for 1600.** This is the same error
+`metrics.rkt` already documents and rejects twenty lines above, for the ranging
+figures — "an eighteenth-century convention read back into the sixteenth". The
+module caught it once and not twice.
+
+**(b) The program sets long s *and* uses the post-long-s case.** Johnson's
+point, as Davis & Carter report it, is that room was found for the three spaces
+*because* the long s vacated its boxes. This program sets long s throughout and
+provisions ſt, ſh and ſi as sorts in their own right.
+
+**(c) Moxon's own values are neither of the program's.**
+
+| body | Moxon | program |
+|---|---|---|
+| thin | **1/7 em** — "ought by a strict orderly and methodical measure to be made of the Thickness of the seventh part of the Body; though Founders make them indifferently Thicker or Thinner" (Dictionary, p. 353) | 1/5 em |
+| thick | **1/4 em** — "one quarter so thick as the Body is high; though Spaces are seldom Cast so thick" (p. 103) | 1/3 em |
+
+Davis & Carter derive a second reading of the thick space from the casting
+instructions: "if a piece of brass a Brevier-thick is enough to make a thick
+space of Canon body, **the thick space is one-sixth of the em**" (note to
+p. 171). So Moxon supports thick ∈ {1/6, 1/4}, and 1/3 is outside both.
+
+**What it changes.** `NORMAL-SPACE` is `THICK`, so the house's normal word space
+is 33% wider than Moxon's. "Three spaces and no more" — which `description.rkt`
+already cites and counts against — comes out at 1 em instead of 3/4 em. The
+pigeon-hole threshold at `compositor.rkt:564` is `> EM-QUAD`, which is *exactly*
+three thick spaces under the program's 1/3 em and therefore internally
+consistent; under Moxon's it should be `> 3/4 em`. Every pigeon-hole count in
+every report turns on which is right.
+
+**Why this is not a one-line fix.** `UNITS-PER-EM` is 120 so the spaces divide
+the em exactly, and the tests assert it. 1/7 of 120 is not an integer. Carrying
+1/7, 1/6 and 1/4 exactly needs a unit divisible by 84: **`UNITS-PER-EM 840`**
+would do it (em 840, en 420, thick 210 or 140, thin 120). That is a real design
+decision with blast radius across every justification the program makes, and it
+would invalidate the calibration table, which is why it is here rather than
+done.
+
+**The period question underneath it.** Smith (1755) *does* have four spaces —
+thick, middle, thin, hair — in his bill, so the six-body ladder is right for the
+eighteenth century and doubtful for the seventeenth. The program's period is
+1580–1640 and Moxon is the nearest manual to it.
+
+### 4a. And the quantities disagree with the only bill there is
+
+`typecase.rkt` says of the space-metal:
+
+> The quantities are measured from the demand rather than found in a bill,
+> **because no bill of this period tabulates them.**
+
+Davis & Carter confirm the premise about Moxon — "Moxon does not discuss the
+composition of a fount … **The earliest printed schemes are apparently those in
+Smith's *Printer's Grammar* of 1755**" (note to p. 19). But Smith's bill *does*
+tabulate the spaces, and `typecase.rkt` already uses that same bill for the
+letters at Smith/4 and Smith/10. Smith is being treated as good enough for `e`
+and not for the thick space.
+
+Smith, pp. 42–45, in two columns: the founder's standard bill, and Smith's own
+revision for English matter. He states on p. 46 that both total **133,110**, and
+they do, exactly — which is how the OCR of this table is known to be sound.
+
+| | to be cast | in all |
+|---|---|---|
+| lower case | 90,200 | 89,500 |
+| capitals | 14,350 | 14,950 |
+| double letters | 5,300 | 4,350 |
+| figures | 10,800 | 12,200 |
+| points | 12,460 | 12,110 |
+| **total** | **133,110** | **133,110** |
+
+Spaces are given separately and total 32,000 each way — thick 15,000 → **12,000**,
+middle 10,000 → **10,000**, thin 5,000 → **8,000**, hair 2,000 → **2,000**; with
+quadrats m 2,000, n 5,000, and the large quadrats by weight (4 m's 40 lb, 3 m's
+30 lb, 2 m's 10 lb). Row labels and figures are reconstructed from the table;
+both column totals check exactly.
+
+**Smith independently confirms the claim the code makes in prose.**
+`typecase.rkt` states "the thick space is as common in a fount as the letter e".
+Smith: thick 12,000, `e` 13,000. That is the proposition, from a printer, at
+0.92. **The code's own table does not obey it**, and the disagreement has a
+shape. Normalising each body to the `e` box:
+
+| body | program | ÷ e | Smith | ÷ e | program ÷ Smith |
+|---|---|---|---|---|---|
+| em quad | 900 | 0.31 | 2,000 | 0.15 | **2.0× rich** |
+| en quad | 1,200 | 0.41 | 5,000 | 0.38 | 1.1× |
+| thick | 4,000 | **1.38** | 12,000 | **0.92** | **1.5× rich** |
+| middle | 800 | 0.28 | 10,000 | 0.77 | **0.36× — 2.8× poor** |
+| thin | 900 | 0.31 | 8,000 | 0.62 | **0.50× — 2× poor** |
+| hair | 1,400 | 0.48 | 2,000 | 0.15 | **3.1× rich** |
+
+(program `e` = 2,907; Smith `e` = 13,000)
+
+The program holds too many of the *extreme* bodies and too few of the
+*intermediate* ones. Smith's fount justifies by mixing middle and thin, which
+are nearly as numerous as the thick; the program's justifies with thick and then
+cascades to hair — and `typecase.rkt` says so outright, "every line that could
+not find a thick space made the white out of middles, then thins, then hairs,
+and drained the whole ladder", which is why the thick box was raised to 4,000
+and the hair box to 1,400.
+
+**That cascade is what a 2.8× hole in the middle of the ladder would produce.**
+The hair box at 3.1× Smith's proportion looks like the residue of the space-metal
+bug in the lessons below. Re-derive from Smith/10 and see whether the cascade
+survives; if it does, the demand model is wrong somewhere else.
+
+One confirmation while here: "**Letter Founders call 3000 Lower case m's a
+Bill**, and proportion all the other Sorts by them; so that a whole Bill of Pica
+makes 500 lb" (p. 46 n.) — which is `typecase.rkt`'s "a bill is a fount
+proportioned to 3,000 m", now from the source rather than through Blayney.
+
+---
+
+## 5. Casting off is two regimes, not one dial **[manuals]**
+
+`--cast-off` is a single scalar accuracy. Both manuals describe something with
+structure, and Smith describes two regimes whose *errors behave differently*.
+
+**Moxon (pp. 239–43)** counts letters, not words — 43 letters × 35 lines = 1,505
+a page, × 127 pages = 191,135, ÷ (47 × 33 = 1,551) = 123 pages ÷ 8 = 15 sheets
+and 3 pages. Then:
+
+> a strict regard must be had to the **Breaks** … **long Breaks in the Copy are
+> generally likely to be Got-in, and consequently a Line is Got-in: But short
+> Breaks often Drive-out a Line.** Therefore … he more particularly considers his
+> Breaks; and indeed **they serve as so many Regulators to him, to keep him
+> within the bounds of his Counted off Copy**: For every Break he examines by the
+> number of Lines from the last Break … and accordingly marks it in his Copy.
+
+The error is not global. It is carried break to break and settled at each break,
+with the running line-count written in the margin in figures.
+
+**Smith (pp. 155–9)** knows that method and thinks little of it. He prefers
+marking off every page — "which tho' it is very tedious, is nevertheless **the
+safest way; because if we fall into a mistake in one page, we may recover
+ourselves in the next**" — and of the break-to-break method: "they are as often
+deceived by it, especially in a long run of close Matter … **Such casting-off
+therefore is next to lumping the Copy; and no Compositor is to answer for the
+contrary effects thereof.**"
+
+**And the crowding devices are conditional on the regime**, which is the part
+that bears hardest here:
+
+> when Copy is cast off close, and the Pages marked off, the Compositor takes
+> notice how his Matter runs; and **if he finds that it keeps not even with the
+> Copy, he drives either out, or gets in, where he conveniently can** … but
+> **this precaution need not be taken where Copy is cast off the other way.**
+
+So: error bounded per page with active correction, or error accumulating across
+a chapter with none. Two settings, not one dial — and the second is a licence to
+let the mechanisms this program spent months building simply not fire.
+
+Both manuals agree on two smaller points. **Abbreviations in the copy are
+expanded** and counted at full length (Moxon p. 243, Smith p. 157) — independent
+support for the near-zero measured rate of tildes and superscripts in printed
+books, and against the compositor introducing them. And **headings are allotted
+an explicit depth in lines**, marked in the margin; Moxon adds that the whites
+round a heading must make "a just number of Lines" with the text body, so the
+page still justifies in length.
+
+---
+
+## 6. Watermarks and chain-lines
 
 The evidence half the rest of this depends on. The paper stock now exists to
 hang them on — sheet sizes, the fold, and the leaf it makes — but a mould, its
@@ -222,22 +493,56 @@ lily, the pot and the grapes indifferently, and warns (p. 68) that the marks
 "were not used exclusively for particular sizes, especially during the sixteenth
 century". A watermark is evidence about a mould, not a ruler.
 
+**Moxon adds one thing a paper model should know** (pp. 320–3): the two outside
+quires of every ream are **cording quires**, made up by the paper-maker of
+"torn, wrinckled, stained, and otherwise naughty Sheets" and culled sheet by
+sheet against the light. The good paper recovered from them is used deliberately
+**in the middle of the book**, never at the beginning or end, "for though we
+call'd it good Paper, yet it very rarely happens to be so beautiful as the
+Inside Quires". The worst paper in a copy is not randomly placed.
+
 ---
 
-## 4. The set widths are invented, and their spread is too narrow
+## 7. The set widths: better anchored than this file used to claim **[manuals]**
 
-`metrics.rkt` carries a per-sort width table with no source. Its own comment
-says so: "an old-face roman, rounded. Exactness is beside the point, proportion
-is not." It was built to be plausible. It sits underneath every line the
-compositor sets, and it is the one place where "the spacing is the whole point
-of the exercise" rests on nothing measured.
+This section used to open "the set widths are invented". That is now half wrong
+and the correction is worth having.
 
-**Whether it matters is not known, and the attempt to find out failed.** The
-branch `width-experiment` substitutes the only measured alternative anybody has
-published — Blokland's appendix a5.5, Garamont / Van den Keere's Moyen Canon
-Romain, sixteenth-century foundry type from the Museum Plantin-Moretus, taken
-sort by sort with a digital calliper — with the setting density held constant.
-Across eight seeds, preliminary scheme pinned so only the seed varies:
+**Smith gives an aggregate, and the table meets it.** Setting the procedure as
+well as the result — put an alphabet of roman lower case in a stick and an
+alphabet of italic on top of it (p. 158):
+
+> whereas an alphabet [of 24 letters] of the **Italic** in this work occupies the
+> width of **nine m's and an n**, **Roman** takes up **eleven m's**, and **Black,
+> fifteen**.
+
+`metrics.rkt`'s roman lower case, a–z less j and u, sums to **10.95 em** against
+Smith's 11 — **0.5% off**, an independent period check on a table nobody had
+checked. It should stop being called invented.
+
+**What is still missing is the italic**, and the program has none:
+
+| | Moxon (p. 243) | Smith (p. 158) |
+|---|---|---|
+| italic : roman | 45 : 50 → **0.90** | 9.5 : 11 → **0.864** |
+| black : roman | 43 : 40 → **1.075** | 15 : 11 → **1.364** |
+
+They are close on italic (mean ≈ 0.88) and far apart on black letter. `em-widths`
+is one roman table, and Moxon sets proper names, words of emphasis and whole
+title-page lines in italic (p. 216); italic set at roman widths is ~13% too wide.
+Both manuals caveat their own figures the same way — Moxon: "nor all Romans of
+the same Body to be of an equal Thickness, because some are Cut Thicker or
+Thinner on the Face"; Smith: "it may be, that what Italic gets in upon the
+Roman, is so trifling, as not to deserve regarding". So take 0.88 with the
+caveat attached, not as a constant.
+
+**Whether the per-sort widths matter is still unknown, and the attempt to find
+out failed.** The branch `width-experiment` substitutes the only measured
+alternative anybody has published — Blokland's appendix a5.5, Garamont / Van den
+Keere's Moyen Canon Romain, sixteenth-century foundry type from the Museum
+Plantin-Moretus, taken sort by sort with a digital calliper — with setting
+density held constant. Across eight seeds, preliminary scheme pinned so only the
+seed varies:
 
 | | invented table | measured table | diff / sd |
 |---|---|---|---|
@@ -246,55 +551,48 @@ Across eight seeds, preliminary scheme pinned so only the seed varies:
 | quadded out | 169.18 ± 1.60 | 170.25 ± 1.35 | 0.72 |
 
 Nothing there. **The seed dominates everything.** On one width table, changing
-only the seed swings word division from 65.34 to 113.41 — a 74% spread, and the
-same for expedients. Any difference the widths make is buried under it at this
-sample size. Detecting a five-point shift against a standard deviation of
-fourteen would need something like sixty runs a side, not eight.
+only the seed swings word division from 65.34 to 113.41 — a 74% spread.
+Detecting a five-point shift against a standard deviation of fourteen would need
+something like sixty runs a side, not eight.
 
 **Two claims made from a single seed and since retracted**, recorded because the
 first answer is the one that gets believed:
 
-- *"Division rises 15.4%."* It does on seed 1614. Over eight seeds the
-  difference is −1.5, and the sign reverses. Pure noise.
+- *"Division rises 15.4%."* It does on seed 1614. Over eight seeds the difference
+  is −1.5, and the sign reverses. Pure noise.
 - *"The collation changes from `4°: *⁴ A–E⁴` to `4°: A–F⁴`."* It does not. The
-  preliminary signature scheme is drawn from weights when left on `auto`, so any
-  change upstream shifts the RNG stream and the draw lands elsewhere. Pin the
-  scheme with `--prelim-signatures` and both tables give the same collation.
-  That was the RNG moving, not the type.
-
-What survives is narrower and still worth having: the table has no source; the
-measured fount's spread is wider than ours (m/i 3.86 against 2.79); and `quadded
-out` is the one metric with low enough seed variance that a real effect could be
-seen there if one exists.
+  preliminary signature scheme is drawn from weights on `auto`, so any change
+  upstream shifts the RNG stream and the draw lands elsewhere. Pin the scheme and
+  both tables give the same collation. That was the RNG moving, not the type.
 
 **Why the branch is not merged.** Blokland measured display sizes. Before
 Benton's pantograph "every point size was a type on its own and had to be cut
-separately", which made adaptations between sizes standard practice, so these
-millimetres must not be scaled to a pica. That is exactly the
-anchored-on-one-example error recorded at the foot of this file, and it is how
-the fount came to be three times too large. What transfers is the structure.
+separately", so these millimetres must not be scaled to a pica. That is exactly
+the anchored-on-one-example error in the lessons below, and it is how the fount
+came to be three times too large. What transfers is the structure.
 
-**What transfers, and is worth doing without any new source:** widths came in
-shared classes rather than a continuum. Blokland's measured groups, within a
-tolerance of 0.2–0.4 mm, are `[a c e]`, `[b d g h n o p q v fi]`, `[i j l]` and
-`[r s t]`. Casting with fixed registers is why: matrices of corresponding
-letters were justified to one width. Our table gives forty-odd sorts forty-odd
-independent decimals.
+**What transfers, and needs no new source:** widths came in shared classes
+rather than a continuum. Blokland's measured groups, within 0.2–0.4 mm, are
+`[a c e]`, `[b d g h n o p q v fi]`, `[i j l]` and `[r s t]`. Casting with fixed
+registers is why — matrices of corresponding letters were justified to one width.
+Our table gives forty-odd sorts forty-odd independent decimals.
 
-**What is still wanted: a measured text-size roman.** No book appears to
-tabulate one. Vervliet catalogues types for identification — 20-line body,
-x-height — not per-sort widths, and Mosley warns in his preface to Carter that
-type from identical matrices "may look very different if cast in a mould for a
-larger or smaller body", so a set width may not be a property of the matrices
-at all. Two routes, neither of them a purchase: measure it off a
-high-resolution facsimile of a page in a known fount, solving for widths across
-many lines of known content; or write to Blokland, who has the matrices, the
-microscope and the method, and measured display sizes only because that is what
-his argument needed.
+**Still wanted: a measured text-size roman.** No book appears to tabulate one.
+Vervliet catalogues types for identification — 20-line body, x-height — not
+per-sort widths, and Mosley warns that type from identical matrices "may look
+very different if cast in a mould for a larger or smaller body", so a set width
+may not be a property of the matrices at all. Two routes: solve for widths off a
+high-resolution facsimile across many lines of known content, or write to
+Blokland, who has the matrices, the microscope and the method.
+
+Smith also gives **body depths** (pp. 148–52), if bodies are ever modelled:
+Great Primer : English 4:5 · English : Pica 9:10 · Pica : Small Pica 7:8 ·
+Small Pica : Long Primer 14:15 · Long Primer : Burgeois 7:8 · Long Primer :
+Brevier 4:5 · Burgeois : Brevier 9:8.
 
 ---
 
-## 5. Concurrent production — the McKenzie mode
+## 8. Concurrent production — the McKenzie mode
 
 The program models one book at a time. McKenzie's central finding is that a shop
 worked on several at once, and that the patterns this produces are "of such an
@@ -311,111 +609,134 @@ fail**, and the interesting measurement is how fast and in which direction. This
 is the honest reply to the objection: not an argument, an experiment.
 
 Needs a clock, which the program does not have. McKenzie supplies the rates —
-compositors at 5,000–6,000 ens a day against a nominal 12,000, presswork at
-about 250 impressions an hour.
+compositors at 5,000–6,000 ens a day against a nominal 12,000, presswork at about
+250 impressions an hour. Moxon supplies the unit the shop actually counted in: a
+**token** is 10 quires for a whole press, 5 for a single press-man (p. 321).
 
 Two things wait on this rather than on anything else: **points shared between
 founts** (punctuation was "the common property of all founts of the same
-body-size", and Okes was still setting the Snowdons' points among his own, so
-the comma box belongs to the house), and **space-metal shared the same way**
-("pica spaces are pica spaces, irrespective of fount").
+body-size", and Okes was still setting the Snowdons' points among his own, so the
+comma box belongs to the house), and **space-metal shared the same way** ("pica
+spaces are pica spaces, irrespective of fount").
 
 ---
 
-## 6. Smaller, and well specified
+## 9. Smaller, and well specified
 
-- [ ] **What became of the leaves that stayed white.** Two outlets are modelled
-      — preliminaries printed there and cut out, and cancels printed there — and
-      where neither applies the program shows a blank leaf and says nothing.
-      That is half an answer. McKerrow gives the other half in the same breath:
-      "it might sometimes have been more convenient to have the two extra leaves
-      as **covers or end-papers**", and elsewhere that spare leaves were used "to
+- [ ] **Collation repairs are not modelled, and they conflate copies.** **[manuals]**
+      `binding.rkt` claims no authority for its fault rate, correctly — Moxon
+      gives none. He gives the **check**, exactly (p. 317): "First, To examine
+      whether the whole number of Sheets that belong to a Book are Gathered in
+      the Book. Secondly, To examine that **two Sheets of one sort are not
+      Gathered**. Thirdly, To examine whether the **proper Signature of every
+      Sheet lye on its proper corner**."
+
+      The third is the turned-sheet test, and it confirms the reasoning already
+      in the README that an unsigned gathering is likelier to go in wrong *and*
+      likelier to survive the check — the check *is* the signature and its
+      corner. Moxon even has the compositor set the signature nearer the end of
+      the line than the middle so the collationer need not "prick up with his
+      Bodkin the corners of the Sheet so high to see the Signature: which in a
+      long train of work saves time" (p. 210).
+
+      **The repair is the part with a consequence.** A book short a sheet, where
+      the heap is exhausted, "is laid by as **Unperfect** till he have Colationed
+      the whole Impression of Books, to see if he can make it Perfect **with some
+      other Book, that may have two of the same Sheets Gathered in it**." So a
+      copy can receive a sheet from *another copy's* position in the heap order —
+      a documented, targeted source of exactly the conflation Greg's calculus
+      warns about, and unlike `--heap-disorder` it has a cause, a trace, and a
+      frequency bounded by how often a duplicate was gathered. Belongs with §3.
+
+- [ ] **No paper overplus.** **[manuals]** Moxon's warehouse-keeper adds an
+      eleventh quire to every fourth, fifth or sixth token (or every second, if
+      the quires run 24 rather than 25). Davis & Carter do the arithmetic in the
+      margin: "His allowance for spoiled sheets is at the most **24 in 480, plus
+      24 for the book: a little more than 5 per cent**. It is a small allowance to
+      include proofing." It covers "Proves, Revises, Register-Sheets,
+      Tympan-Sheets, and … other accidents … either by naughty Sheets, or Faults
+      committed in Beating, Pulling, Bad Register". `--edition` is sheets printed
+      and `--first-proof` is a probability; there is no waste allowance, and 5% is
+      the number if one is wanted.
+
+- [ ] **The second signature alphabet is `AA` and should be `Aa`.** **[manuals]**
+      `letters-mark` (`imposition.rkt:101`) repeats the capital. Moxon, p. 210:
+      "if the Book contain above three and twenty Sheets, the Signature of the
+      four and twentieth Sheet must be **A a**, if five and twenty **B b** … still
+      as he begins a new Alphabet **adding an a**." Blayney's Appendix II
+      collations — already mined for this project — agree: `πA8(−A7,8) A-Bb8
+      Cc1,2` has **`Bb`** and **`Cc`**. Two sources against the code. A contained
+      fix in one function, but it changes every collation formula past 23
+      gatherings, so it wants a deliberate pass over the tests.
+
+- [ ] **Rules Moxon states that the program may not keep.** **[manuals]** Each is
+      cheap to check and none has been:
+      - The catchword is the first word of the next page, "**or if the Word be
+        very long and the Line very short, two Syllables, or sometimes but one**"
+        (p. 210).
+      - **Widows are avoided**: "Nor do good Compositers account it good
+        Workmanship to begin a Page with a Break-line" — and a long break at the
+        foot of a page **becomes the direction line**, with the catchword set at
+        the end of it (p. 217). That is a line of page depth the program may be
+        spending.
+      - Quartos are signed worse than the rule: Moxon states it (all odd pages on
+        the outside of the sheet are signed) and then says "**in Quarto's they not
+        only leave the Signature 4 out, but rarely put in Signature 3**" (p. 211).
+        A documented gap between rule and practice, which is the kind of thing
+        this program is for.
+      - **Title-pages letterspace their capitals**, quantitatively: "if he Sets
+        but one Space between the Letters in a Word, he Sets **three Spaces
+        between Word and Word**: And if he Set two Spaces between Letter and
+        Letter, he Sets **four Spaces between Word and Word**" (p. 213). Blayney's
+        spaced imprint date `1 6 0 8.`, which `titlepage.rkt` already reproduces
+        at 50%, is a special case of this general rule and is currently the only
+        part of it modelled.
+
+- [ ] **Moxon's fount weights point the other way from every previous
+      correction.** **[manuals]** p. 25: long primer **500 lb** in a *small*
+      printing-house (150 of it italic); pica and english **800–1,000 lb**; other
+      bodies **300–400 lb** "accounted a good Fount". The program models ~31,200
+      sorts on Blayney's measured Okes fount (21,953 sorts). Smith's whole bill of
+      pica is 500 lb ≈ 172,000 sorts, so Okes sits near **Smith/10**, which is the
+      yardstick `typecase.rkt` already adopts — internally consistent. But
+      Moxon's *smallest* respectable fount is two to three times Blayney's
+      measured one.
+
+      Smith supplies a reconciliation: "the Professors of the Art were obliged to
+      have **large Founts of Letter, on account of printing their Works in Quires
+      of three, four, and even five sheets**; whereas now, a Fount of **half that
+      force** will serve … **by printing in single sheets**" (p. 47). Moxon says
+      the same from the other side — "he cannot Impose till he has Set to the last
+      Page of that Quire" (p. 211). By Smith's account this program's period needed
+      twice the fount of 1755 work for the same output, and the program prints in
+      sixes.
+
+      That bears on the Hinman/McKenzie disagreement without settling it: it is an
+      argument that type supply was a real constraint in quired work, which is
+      Hinman's side, from a source explaining why it stopped being one. **Every
+      previous correction has made the shop poorer; this is the first evidence
+      pointing the other way, which is reason to check it hard rather than act on
+      it.** Smith also gives fount size in units this program computes directly —
+      a fount of english "sat up about twelve sheets in 4to", one large fount
+      "above thirty sheets in Folio, of 77 lines long, and 45 m's wide" (p. 48) —
+      which is comparable to "pages standing at the peak" and a better yardstick
+      than pounds.
+
+- [ ] **What became of the leaves that stayed white.** Two outlets are modelled —
+      preliminaries printed there and cut out, and cancels printed there — and
+      where neither applies the program shows a blank leaf and says nothing. That
+      is half an answer. McKerrow gives the other half in the same breath: "it
+      might sometimes have been more convenient to have the two extra leaves as
+      **covers or end-papers**", and elsewhere that spare leaves were used "to
       print matter that was to be bound elsewhere in it, such as titles or
       cancels" (p. 156).
 
-      A white leaf should be *accounted for* rather than displayed: pasted down
-      as an endpaper, folded back as a wrapper on a stitched pamphlet (McKerrow,
-      p. 123), or genuinely left blank, which really did happen — Bowers is firm
-      that "no blank not interrupting continuous text would be torn by the
-      printer for excision." Printing unrelated matter on them is the one option
-      to leave alone: McKerrow raises it and calls it "merely a suggestion".
-
-- [x] **The fount has too few figures, and it is Lear's fault.** *Done.* In
-      Floyd's *Common Wealth* the arabic figures ran to *zero* — and the run
-      confirmed it sort for sort: `2` wanted 25 times, `&` 16, `1` 15, `3` 11,
-      `4` 10, and nothing else in the bill emptied.
-
-      The rate was never the first question. `upper-bill` gave each figure
-      26–40 sorts on the rule "the greater of Lear's measured maximum and a
-      tenth of Smith's bill". But *Lear* is a play: no numbered chapters, no
-      arabic pagination, no marginal citations. Blayney says as much himself —
-      three of the numerals in his list are there only because they appear on
-      the titlepage, "despite the fact that they were not used in the text
-      itself (`6`, `8`, and P)".
-
-      **The instruction to find a real bill could not be carried out, and that
-      is the finding.** Blayney's table (i. 146) has no numerals row in any of
-      its three columns: it tabulates lower case, ligatures, capitals, accented
-      sorts and points, and stops. Gaskell (p. 37) gives the full bill only as
-      ratios — 3,000 m, 7,000 a, 12,000 e, 400 x, 800 A — and refers the rest
-      to Smith pp. 38–48. Neither Smith as Blayney reproduces him nor van den
-      Keere's 1571 registre gives figures at all.
-
-      So they are measured from the demand, like the space-metal above, and by
-      Blayney's own criterion — his maxima are "the number of types of each
-      sort that were in type just before each distribution", which is the
-      **peak, not the mean.** That distinction is the whole of it. Averaged,
-      Floyd wants sixteen `2`s standing against a bill of 34, and the case
-      looks ample. It is not: figures gather in a contents table, a set of
-      citations, a chronology. The densest twelve pages that can stand locked
-      up together want
-
-      | | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | & |
-      |---|---|---|---|---|---|---|---|---|---|---|---|
-      | peak | 19 | 56 | 60 | 45 | 37 | 23 | 21 | 18 | 17 | 12 | 53 |
-      | was | 30 | 40 | 34 | 30 | 28 | 28 | 26 | 26 | 26 | 26 | 40 |
-      | now | 30 | 80 | 80 | 60 | 50 | 32 | 30 | 26 | 24 | 20 | 72 |
-
-      and the five short of their peak are exactly the five the run reported
-      exhausted, in the same order. The whole increase is 170 sorts on a net
-      total near 22,000 — under one per cent by count, less by weight. It is
-      not a bigger fount, it is a fount whose upper case is no longer laid out
-      as though every book were a play. Two sanity checks: the figures now sit
-      in the same band as the capitals beside them (16–80 against Smith/10's
-      20–80), which is where they sit in the case; and for the one sort a real
-      1571 fount does record, van den Keere gives **160** ampersands where this
-      gives 72.
-
-      **`BLANK-FOR-PROOF` is left at 0.25**, and the reason is worth stating
-      because the obvious move is wrong. Tuning it until the model produces
-      Blayney's one instance would fit a number that is not a census: a
-      placeholder filled at proof leaves nothing behind, and his proof at
-      I4v36 works only because the type that filled it "cannot have been
-      available until a later sheet had been set". The count is bounded below
-      by one and above by nothing. His prose points the other way in any case —
-      *Lear* "bristles with deliberately-turned types and other improvised
-      substitutions", and what he finds notable is "the relative infrequency of
-      accidental foul-case errors, **wrong-fount types**, and turned letters"
-      (i. 179), which is the very branch this parameter chooses against.
-
-      Measured consequence, which is what it now carries instead of a guess:
-      **129 face-down sorts in a 48-page prose quarto before; none at all
-      across five seeds after; seven in a play set as a quarto**, which is
-      Okes's own case. Above the one he can prove, well inside "bristles", and
-      nought where the strain is not there. In the play the boxes that empty
-      are em-quads, `!`, `?` and the capitals — which is precisely Blayney's
-      account of what a play did to Okes's fount.
-
-      Their *widths* are fixed, which is a separate thing from their number. The
-      table used to give every figure 0.50 em "so that tables would range", which
-      was an eighteenth-century convention read back into the sixteenth. Two
-      sources say otherwise: Blokland's calliper measurements run 3.37 to 5.53 mm
-      across the ten, a spread of 64%, and Marini's IM Fell English — a faithful
-      digitisation of the seventeenth-century Oxford types — has old-style
-      figures of plainly differing widths. They are now proportioned to his
-      measurements with the mean held at the en body, so the density is unchanged
-      and only the shape of the distribution has moved. See §4 for why the shape
-      transfers from a display size and the values do not.
+      A white leaf should be *accounted for* rather than displayed: pasted down as
+      an endpaper, folded back as a wrapper on a stitched pamphlet (p. 123), or
+      genuinely left blank, which really did happen — Bowers is firm that "no
+      blank not interrupting continuous text would be torn by the printer for
+      excision." Printing unrelated matter on them is the one option to leave
+      alone: McKerrow raises it and calls it "merely a suggestion".
 
 - [ ] **A forced substitution is free in the model and was not in the shop.**
       `pick-line!` owns `printed` and writes it; `width` was derived from
@@ -452,13 +773,13 @@ the comma box belongs to the house), and **space-metal shared the same way**
 
 - [ ] **`runne` modernises to `rune`.** Believed unfixable by rule. The grouping
       assigns an old form to its nearest current word by edit distance: `rune` is
-      one letter from `runne`, `run` is two. Frequency would arbitrate correctly
-      — `run` is far commoner — but the same change breaks `heere`, one letter
-      from `here` and two from the much commoner `her`. The two cases are
+      one letter from `runne`, `run` is two. Frequency would arbitrate correctly —
+      `run` is far commoner — but the same change breaks `heere`, one letter from
+      `here` and two from the much commoner `her`. The two cases are
       orthographically identical and lexically opposite. This is precisely why
-      VARD keeps a human in the loop, and the honest next step is to **measure
-      the error rate on a hand-checked sample** rather than keep adjusting a rule
-      that cannot in principle succeed.
+      VARD keeps a human in the loop, and the honest next step is to **measure the
+      error rate on a hand-checked sample** rather than keep adjusting a rule that
+      cannot in principle succeed.
 
 - [ ] **The type page may be wrong for the paper.** Fell out of building the
       sheet, and nothing has been retuned to hide it. The margin canon 2:3:4:6
@@ -471,23 +792,23 @@ the comma box belongs to the house), and **space-metal shared the same way**
       pages against leaves rather than by adjusting until it looks right.
 
 - [ ] **Collation mode.** Compare two witnesses, or a witness against its
-      copy-text, and report the differences as an apparatus. Most of the
-      machinery exists — `collate` superimposes two made-up copies, the TEI
-      carries `<app>`/`<rdg wit>`, and the deviation classifier knows what kind
-      of change each one is. Missing: the front end, and the ability to collate
-      against an arbitrary text rather than another copy of the same setting.
+      copy-text, and report the differences as an apparatus. Most of the machinery
+      exists — `collate` superimposes two made-up copies, the TEI carries
+      `<app>`/`<rdg wit>`, and the deviation classifier knows what kind of change
+      each one is. Missing: the front end, and the ability to collate against an
+      arbitrary text rather than another copy of the same setting.
 
 - [ ] **Per-compositor type cases.** Hinman distinguishes cases x, y and z, and
-      much of his argument turns on which man used which; here every workman
-      draws from one pair, which makes the type evidence cleaner than it was.
-      Blayney adds the sharper version: Okes's men *divided* one fount into two
-      cases part-way through the book, and after that "it is impossible to be
-      sure how much type was in either case at any one point" — the division
-      itself destroys the evidence.
+      much of his argument turns on which man used which; here every workman draws
+      from one pair, which makes the type evidence cleaner than it was. Blayney
+      adds the sharper version: Okes's men *divided* one fount into two cases
+      part-way through the book, and after that "it is impossible to be sure how
+      much type was in either case at any one point" — the division itself
+      destroys the evidence.
 
-- [ ] **Standing type between editions.** A second edition set from the first
-      with some formes never distributed. (Half-sheet imposition, which used to
-      be filed with this, is built.)
+- [ ] **Standing type between editions.** A second edition set from the first with
+      some formes never distributed. (Half-sheet imposition, which used to be
+      filed with this, is built.)
 
 - [ ] **Two-pull press.** A folio forme needed two pulls; the timing model will
       need it when there is a clock.
@@ -495,41 +816,100 @@ the comma box belongs to the house), and **space-metal shared the same way**
 - [ ] **Thirty-two bindings the manual mentions but does not document.**
       `raco setup --check-pkg-deps` names them: `make-house`, `book?`,
       `PRELIM-SCHEMES`, `page-spec?`, `page-evidence?` and the rest. Each renders
-      as plain code instead of a link, because there is no `defproc` or
-      `defstruct` to link to. Not a blocker — the package builds clean — but it
-      is the difference between a manual and a reference, and the list is
-      already written for us.
+      as plain code instead of a link, because there is no `defproc` or `defstruct`
+      to link to. Not a blocker — the package builds clean — but it is the
+      difference between a manual and a reference, and the list is already written
+      for us.
+
+- [x] **The fount has too few figures, and it is Lear's fault.** *Done.* In
+      Floyd's *Common Wealth* the arabic figures ran to *zero* — and the run
+      confirmed it sort for sort: `2` wanted 25 times, `&` 16, `1` 15, `3` 11,
+      `4` 10, and nothing else in the bill emptied.
+
+      `upper-bill` gave each figure 26–40 sorts on the rule "the greater of Lear's
+      measured maximum and a tenth of Smith's bill". But *Lear* is a play: no
+      numbered chapters, no arabic pagination, no marginal citations. Blayney says
+      as much himself — three of the numerals in his list are there only because
+      they appear on the titlepage, "despite the fact that they were not used in
+      the text itself".
+
+      **The instruction to find a real bill could not be carried out, and that was
+      the finding** — at the time. Blayney's table (i. 146) has no numerals row;
+      Gaskell (p. 37) gives the full bill only as ratios and refers the rest to
+      Smith pp. 38–48; van den Keere's 1571 registre gives no figures. *This has
+      since been superseded: Smith's own bill, read directly, gives the figures
+      unequal — 1,500 / 1,300 / 1,300 / 1,100 / 1,100 / 1,200 / 1,100 / 1,000 /
+      1,000 / 1,600 for 1–9 and 0 — which is itself evidence about relative demand
+      and has not yet been compared against what is here.*
+
+      So they were measured from the demand, and by Blayney's own criterion — his
+      maxima are "the number of types of each sort that were in type just before
+      each distribution", which is the **peak, not the mean**. Averaged, Floyd
+      wants sixteen `2`s standing against a bill of 34 and the case looks ample.
+      It is not: figures gather in a contents table, a set of citations, a
+      chronology. The densest twelve pages that can stand locked up together want
+
+      | | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | & |
+      |---|---|---|---|---|---|---|---|---|---|---|---|
+      | peak | 19 | 56 | 60 | 45 | 37 | 23 | 21 | 18 | 17 | 12 | 53 |
+      | was | 30 | 40 | 34 | 30 | 28 | 28 | 26 | 26 | 26 | 26 | 40 |
+      | now | 30 | 80 | 80 | 60 | 50 | 32 | 30 | 26 | 24 | 20 | 72 |
+
+      and the five short of their peak are exactly the five the run reported
+      exhausted, in the same order. The whole increase is 170 sorts on a net total
+      near 22,000 — under one per cent by count, less by weight. It is not a bigger
+      fount, it is a fount whose upper case is no longer laid out as though every
+      book were a play. Two sanity checks: the figures now sit in the same band as
+      the capitals beside them (16–80 against Smith/10's 20–80); and for the one
+      sort a real 1571 fount does record, van den Keere gives **160** ampersands
+      where this gives 72.
+
+      **`BLANK-FOR-PROOF` is left at 0.25**, and the reason is worth stating
+      because the obvious move is wrong. Tuning it until the model produces
+      Blayney's one instance would fit a number that is not a census: a placeholder
+      filled at proof leaves nothing behind, and his proof at I4v36 works only
+      because the type that filled it "cannot have been available until a later
+      sheet had been set". The count is bounded below by one and above by nothing.
+      His prose points the other way in any case — *Lear* "bristles with
+      deliberately-turned types and other improvised substitutions", and what he
+      finds notable is "the relative infrequency of accidental foul-case errors,
+      **wrong-fount types**, and turned letters" (i. 179), which is the very branch
+      this parameter chooses against.
+
+      Measured consequence: **129 face-down sorts in a 48-page prose quarto before;
+      none at all across five seeds after; seven in a play set as a quarto**, which
+      is Okes's own case. Above the one he can prove, well inside "bristles", and
+      nought where the strain is not there.
 
 ---
 
-## 6a. The First Folio as the standard test case
+## 10. The First Folio as the standard test case
 
 `tools/fetch-folio.py` builds the whole book as copy — 868,245 words, all 36
-plays in the order of the 1623 Catalogue with the eight preliminary pieces,
-as both declared TEI and constructed Markdown. Nothing is committed; it is
-other people's text, on the footing of `corpus/` and `sources/`.
+plays in the order of the 1623 Catalogue with the eight preliminary pieces, as
+both declared TEI and constructed Markdown. Nothing is committed; it is other
+people's text, on the footing of `corpus/` and `sources/`.
 
-It is the standard case because it is the *hard* one. Everything the program
-had been exercised on was a quarto of prose or a single play; setting the
-whole Folio at 1,200 copies found four defects that nothing smaller did.
+It is the standard case because it is the *hard* one. **The current numbers are
+in the README**; what follows is the history, which is where the value is.
 
-**What it caught.**
+### What the scale caught
 
 - **The folio measure was wrong, and by 25%.** `FOLIO` and `FOLIO-IN-SIXES`
   carried an unsourced 16 ems. Hinman measured the book: "twenty lines measure
   about 83 millimetres; and since the horizontal measure of the type-column is
   also about 83 mm., each ordinary Folio line may be said to contain 20 ems"
-  (i. 35). At 16 a pentameter does not fit, so **a third of all verse lines
-  were being turned over**, each turn-over costing a second line of type.
-  Correcting it took turn-overs from 333 to 139 per 1000 verse lines and the
-  book from 1,386 pages to 1,026, against the real Folio's 908.
+  (i. 35). At 16 a pentameter does not fit, so **a third of all verse lines were
+  being turned over**, each turn-over costing a second line of type. Correcting
+  it took turn-overs from 333 to 139 per 1000 verse lines and the book from 1,386
+  pages to 1,026.
 - **A fuller spelling could overrun the measure and crash the compositor.**
-  `justify` re-checks the squeeze every round and gives up at HAIR; the
-  *stretch* — fuller spellings to fill a loose line — was never re-checked, so
-  it could overshoot. It needs words long enough that one substitution
-  overruns a 16-em column, which is why only Hamlet found it:
-  `historical-pastoral` became `hiſtorical-paſtoralle` and the line overhung by
-  one hair space. Habit proposes, the measure disposes.
+  `justify` re-checks the squeeze every round and gives up at HAIR; the *stretch*
+  — fuller spellings to fill a loose line — was never re-checked, so it could
+  overshoot. It needs words long enough that one substitution overruns a 16-em
+  column, which is why only Hamlet found it: `historical-pastoral` became
+  `hiſtorical-paſtoralle` and the line overhung by one hair space. Habit
+  proposes, the measure disposes.
 - **Copy names broke past 26 copies.** `(integer->char (+ 65 i))` gave copy 27
   the name `Copy [`, copy 28 `Copy \` — not a legal Windows filename — and copy
   33 `Copy a`, which after `string-downcase` overwrote copy A. Now A…Z, AA, AB…
@@ -537,9 +917,9 @@ whole Folio at 1,200 copies found four defects that nothing smaller did.
   useless for 1,200: one forme ran to six hundred names and buried the finding
   underneath. Counts now, with the first ten names.
 
-**Then the Norton Facsimile arrived**, and it did what every source the user
-has supplied has done. Two kinds of evidence came out of it, and both
-overturned something.
+### Then the Norton Facsimile arrived
+
+And it did what every source the user has supplied has done.
 
 *Measured off the plates.* The facsimile's OCR is good enough to count on, and
 Hinman's through-line numbers identify a genuine leaf, so the whole book can be
@@ -552,106 +932,57 @@ measured rather than sampled — 790 pages, 101,006 lines of type:
 | verse plays (Macbeth, Caesar, Richard II, King John) | 0.40 |
 
 The 16× gap confirms the model's rule — verse turns over where prose divides —
-and the three rates together *solve* for the book's composition: 73% verse,
-which agrees with the usual literary estimate of 70–75%.
+and the three rates together *solve* for the book's composition: 73% verse, which
+agrees with the usual literary estimate of 70–75%.
 
-**We were producing 94%**, and the cause was the `<l>`-per-line fix above.
-`looks-like-verse?` asks whether a line is under 78 characters, which is fair
-for copy whose breaks mean something and useless for copy a machine wrapped at
-72: every wrapped prose line read as verse, and since verse does not divide,
-word division collapsed to 0.15 per 100 lines. Classifying per *speech* on the
-length of its non-final lines — verse averages 41 characters, prose 68 — gives
-**73.2% verse and 1.77 divisions per 100 lines** against the measured 2.03.
+**We were producing 94%**, and the cause was the `<l>`-per-line fix.
+`looks-like-verse?` asks whether a line is under 78 characters, which is fair for
+copy whose breaks mean something and useless for copy a machine wrapped at 72:
+every wrapped prose line read as verse, and since verse does not divide, word
+division collapsed to 0.15 per 100 lines. Classifying per *speech* on the length
+of its non-final lines — verse averages 41 characters, prose 68 — gives 73.2%
+verse.
 
-This also retires a figure that had been quoted here for months. The word
-division rate was calibrated on "5.1 per 100 lines across five scenes of *Much
-Ado*"; the whole book gives 2.03. **The single sample was 2.5× the book**,
-because those scenes are prose and most of the Folio is not.
+This also retired a figure quoted here for months. Word division was calibrated
+on "5.1 per 100 lines across five scenes of *Much Ado*"; the whole book gives
+2.03. **The single sample was 2.5× the book**, because those scenes are prose and
+most of the Folio is not.
 
 *Read out of Hinman's introduction* (pp. xix–xxi), which gives the press-variant
 figures his two volumes do not summarise: "just over 500" press variants in the
-whole book, about seventy in the Comedies (in 29 of more than 300 pages),
-seventy in the Histories (in 31 of 262), and some 370 in the Tragedies — half
-of those in the seventy-odd pages set by Compositor E, whose work was reviewed
-because he was "evidently expected to make many errors". That is roughly a
-hundred variant formes in about 450.
+whole book, about seventy in the Comedies (in 29 of more than 300 pages), seventy
+in the Histories (in 31 of 262), and some 370 in the Tragedies — half of those in
+the seventy-odd pages set by Compositor E, whose work was reviewed because he was
+"evidently expected to make many errors". That is roughly a hundred variant formes
+in about 450. `proof-rate` was an unsourced 0.6; his count put it at 0.28, and
+then at 0.224 (below).
 
-| | model, before | Hinman |
-|---|---|---|
-| formes corrected mid-run | 258 of 511 (50%) | ~100 of ~450 (22%) |
-| press variants | 1,035 | "just over 500" |
-| impressions before correction | median 8% | "about 100" of 1,200 = 8.3% |
+### Two further defects the scale exposed
 
-The last of those was already right and is the one nothing was fitted to. The
-first two were wrong because `proof-rate` was an unsourced 0.6; it is now 0.28,
-derived from his count. The *unevenness* was already modelled — E's formes are
-proofed 1.9× as often — and only the base rate under it was wrong.
-
-**Two further defects the scale exposed.**
-
-- **`--cancel-rate` was drawn per surviving error, not per leaf**, so its
-  meaning changed with the length of the book: 0.15 meant one leaf in eight on a
-  pamphlet and 349 of 511 leaves on the Folio, against the real book's one
-  famous cancel. A parameter whose meaning depends on the size of its input is
-  not a parameter. Now at most one cancel per leaf.
+- **`--cancel-rate` was drawn per surviving error, not per leaf**, so its meaning
+  changed with the length of the book: 0.15 meant one leaf in eight on a pamphlet
+  and 349 of 511 leaves on the Folio, against the real book's one famous cancel.
+  A parameter whose meaning depends on the size of its input is not a parameter.
+  Now at most one cancel per leaf.
 - **The discrimination anchor had rotted.** It was fitted at 0.20 when the folio
   measure was an unsourced 16 ems; correcting the measure to Hinman's 20 put a
-  quarter more type on the page and the same eye found a quarter more evidence
-  on it. Re-anchored to 0.26 (11.5 types a page against his 11–12). **The quarto
+  quarter more type on the page and the same eye found a quarter more evidence on
+  it. Re-anchored to 0.26 (11.5 types a page against his 11–12). **The quarto
   check no longer passes at the same value** — about 4.3 against Blayney's 5–6 —
   and that is left standing, because his reasoning assumes a quarto page holds
-  half a folio page's type-area where ours holds 30%. Tuning until both fit
-  would bury the discrepancy that says one of the two measures is still wrong.
-
-### Results against the record
-
-Everything below is the whole Folio at a full edition of 1,200 copies. The
-right-hand column is what the literature says; the middle is where the program
-now lands. Nothing was tuned to close a gap — where one is left, it is left.
-
-| | before | after | recorded | source |
-|---|---|---|---|---|
-| | first | `45b75fc` | recorded | source |
-|---|---|---|---|---|
-| verse share of the text | 94% | **73.2%** | 73% | solved from the Norton plates |
-| word divisions per 100 lines | 0.15 | **1.66** | 2.03 | measured, 790 plates |
-| press variants in the book | 1,035 | **773** | "just over 500" | Hinman, Norton, p. xx |
-| formes corrected mid-run | 258 of 511 | **137 of 493** | ~100 of ~450 | ibid. |
-| impressions before correction | median 8% | median 8% | "about 100" of 1,200 | ibid. |
-| identifiable types per page | 18.9 | 12.7 | 11–12 | Blayney i. 96 on Hinman |
-| characters to a line of type | — | **37.7 mean, 41 median** | 39.6 mean, 42 median | measured, 220 plates / 27,884 lines |
-| type page | — | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
-| leaves cancelled | 349 of 511 | 69 of 510 | one famous cancel | McKerrow, Hinman |
-| pages | 1,386 | **990** | 908 | the book |
-
-The uncorrected-impressions figure is the one nothing was fitted to: it falls
-out of the edition size and Hinman's own four pulls a minute, and it was right
-before anyone looked.
-
-**The middle column is the run of `45b75fc` and four fixes have landed since**
-— see *The preliminaries were never printed* below. Every figure in it will
-have moved and none has been re-measured at Folio scale; the two unbolded ones
-are older still, from the run before that. Re-run before quoting any of it.
-
-Two gaps are deliberately open. The **quarto type-density check no longer
-passes** at the folio's re-anchored discrimination — about 4.3 against
-Blayney's 5–6 — because his reasoning assumes a quarto page holds half a folio
-page's type-area where ours holds 30%; tuning until both fit would bury the
-discrepancy that says one of the two measures is still wrong. And **pages run
-over**, which is partly accounted for: Gutenberg prints a scene list and
-Dramatis Personæ at the head of every play that the Folio does not.
+  half a folio page's type-area where ours holds 30%. Tuning until both fit would
+  bury the discrepancy that says one of the two measures is still wrong.
 
 ### The preliminaries were never printed
 
-Found by opening the front end and scrolling, not by reading code — which is
-the point of building the front end. Four faults, every one silent: the report
-went on stating the right thing about a book that did not have it.
+Found by opening the front end and scrolling, not by reading code — which is the
+point of building the front end. Four faults, every one silent: the report went
+on stating the right thing about a book that did not have it.
 
 **The front matter was thrown away by the fetch script.** It wrote
-`blocks(body)[1:]`, reasoning that block [0] was the heading. Block [0] *is*
-the heading, but it is not separated from what follows by a blank line, so
-`blocks` returned the title and the whole piece as one block and the slice
-discarded it.
+`blocks(body)[1:]`, reasoning that block [0] was the heading. Block [0] *is* the
+heading, but it is not separated from what follows by a blank line, so `blocks`
+returned the title and the whole piece as one block and the slice discarded it.
 
 | | words | kept |
 |---|---|---|
@@ -660,206 +991,161 @@ discarded it.
 | the Catalogue and the Actors | 30 | **0** |
 | the dedication | 487 | 8 |
 
-The whole preliminaries of the First Folio came to **98 words of headings**,
-and the report said "8 preliminary divisions declared by the TEI markup and
-taken from it, not guessed" throughout — true of the divisions, and of not one
-word inside them. Now 2,188 words, the four commendatory poems and the two
-lists emitted as verse rather than run together as prose.
+The whole preliminaries of the First Folio came to **98 words of headings**, and
+the report said "8 preliminary divisions declared by the TEI markup and taken
+from it, not guessed" throughout — true of the divisions, and of not one word
+inside them. Now 2,188 words.
 
-**And then the page loop dropped them anyway.** `formes-for-gathering` hands
-back the whole twelve-page folio scheme whatever `#:leaves` it is given, so a
-three-leaf preliminary gathering is set in the order 5 8 6 7 3 10 4 9 1 12 2
-11 — and the second entry, page 8, has no segment. The loop answered `(void)`
-and **stopped** instead of skipping, so page 5 was composed and the other five
-were not. The preliminaries were one leaf, and blank, because segment 5 is one
-of the empty ones. It could only bite on a gathering shorter than the format's
-scheme, which in practice means every preliminary gathering.
+**And then the page loop dropped them anyway.** `formes-for-gathering` hands back
+the whole twelve-page folio scheme whatever `#:leaves` it is given, so a
+three-leaf preliminary gathering is set in the order 5 8 6 7 3 10 4 9 1 12 2 11 —
+and the second entry, page 8, has no segment. The loop answered `(void)` and
+**stopped** instead of skipping, so page 5 was composed and the other five were
+not. The preliminaries were one leaf, and blank. It could only bite on a gathering
+shorter than the format's scheme, which in practice means every preliminary
+gathering.
 
-**Two thirds of the pages were spun out** — 646 of 990, with white at the foot
-of the second column. The casting off judged whether a verse line turns over at
-the *ordinary* space, where the compositor's own test is content plus a hair to
-each gap: `set-verse` works down the ladder and squeezes the words themselves
-before it gives up. On the same copy the caster-off predicted **363** turn-overs
-in 2,188 verse lines where the compositor set **166** — 197 lines of copy held
-back over 25 pages, 7.9 a page, against a 12.8-line average shortfall. At a
-hair it predicts 130, erring the other way by 1.4 a page, which leaves the
-crowded pages and the omission branch something to fire on. Mean depth 119.2 →
-**127.5** of 132; full pages 4 of 25 → **21 of 23**; the same copy set in 23
-pages where it took 25.
+**Two thirds of the pages were spun out** — 646 of 990, with white at the foot of
+the second column. The casting off judged whether a verse line turns over at the
+*ordinary* space, where the compositor's own test is content plus a hair to each
+gap: `set-verse` works down the ladder and squeezes the words themselves before
+it gives up. On the same copy the caster-off predicted **363** turn-overs in 2,188
+verse lines where the compositor set **166** — 197 lines of copy held back over 25
+pages, 7.9 a page, against a 12.8-line average shortfall. At a hair it predicts
+130, erring the other way by 1.4 a page, which leaves the crowded pages and the
+omission branch something to fire on. Mean depth 119.2 → **127.5** of 132; full
+pages 4 of 25 → **21 of 23**.
 
 **`proof-rate` 0.28 → 0.224.** It is the rate formes are *proofed* and was
 calibrated against Hinman's count of formes *corrected*, which is not the same
-number: 86% of proofed formes have something worth altering, and E's are
-proofed 1.9 times as often, lifting the effective rate to 32.3%. That gave 137
-corrected of 493 — 27.8% against Hinman's 22.2% — and 773 variants against his
-"just over 500". It was wrong when it was set (the previous Folio gave the same
-28%) and went unnoticed because variants per corrected forme were 3.90 against
-his 5.00, so the product landed near 500 by accident. Setting a white line
-between speeches was what held that figure down; with the page solid it is 5.64
-and the compensation is gone. **Two errors cancelling is the failure mode this
-project keeps finding, and it is the argument for reporting a rate beside its
-components rather than alone.**
+number: 86% of proofed formes have something worth altering, and E's are proofed
+1.9 times as often, lifting the effective rate to 32.3%. That gave 137 corrected
+of 493 — 27.8% against Hinman's 22.2% — and 773 variants against his "just over
+500". It was wrong when it was set and went unnoticed because variants per
+corrected forme were 3.90 against his 5.00, so the product landed near 500 by
+accident. Setting a white line between speeches was what held that figure down;
+with the page solid it is 5.64 and the compensation is gone. **Two errors
+cancelling is the failure mode this project keeps finding, and it is the argument
+for reporting a rate beside its components rather than alone.**
 
-**`--pages` truncated the terminal render and nothing else**, so there was no
-way to ask for a facsimile of part of a book. The Folio's is 79 MB and three
-and a half minutes of layout, and nothing else touched it: 1,200 copies gives
-79.5 MB and one copy 78.6, because the book is the size and not the edition —
-864,020 words, each a span carrying its position, its width, both its forms and
-every distinctive sort in it. `--pages 40` now gives 3.1 MB, and the page says
-on its face that it shows 40 leaves of 985 so the counts above it are not
-misread.
+**`--pages` truncated the terminal render and nothing else**, so there was no way
+to ask for a facsimile of part of a book. The Folio's is 79 MB and three and a
+half minutes of layout, and nothing else touched it: 1,200 copies gives 79.5 MB
+and one copy 78.6, because the book is the size and not the edition. `--pages 40`
+now gives 3.1 MB, and the page says on its face that it shows 40 leaves of 985 so
+the counts above it are not misread.
 
 ### What a plate showed that no statistic did
 
-Setting a page beside the Norton facsimile of the same play found four things
-the numbers could not, because none of them changes a rate:
+Setting a page beside the Norton facsimile of the same play found four things the
+numbers could not, because none of them changes a rate: the running title read
+`THE HISTORY` on all 1,020 pages where the Folio names the play; Gutenberg's
+italic markers were being set as type, 4,510 underscores; the Folio's **box frame
+and centre rule** were not drawn at all; and the first line of a speech is
+indented in the Folio and flush in ours.
 
-- the running title read `THE HISTORY` — the book's global default — on all
-  1,020 pages, where the Folio names the play;
-- Gutenberg's italic markers were being set as type, 4,510 underscores;
-- the Folio's **box frame and centre rule** were not drawn at all, though
-  Hinman treats them as skeleton furniture and a bruised rule is evidence in
-  the same way a damaged running title is;
-- the first line of a speech is indented in the Folio and flush in ours.
+**The speech indent** was applied to the prose path first and did nothing, because
+three-quarters of the Folio goes through `set-verse`, which had no first-line
+indent at all. It is `set-verse #:first-indent?` now, taken only by the line that
+carries the prefix. The indented line is genuinely narrower and so turns over
+sooner, which is why the Folio turns over on prefix lines more than on any other.
 
-All four are now fixed, and the last two turned out to be larger than they
-looked.
-
-**The speech indent** was applied to the prose path first and did nothing,
-because three-quarters of the Folio goes through `set-verse`, which had no
-first-line indent at all. It is `set-verse #:first-indent?` now, taken only by
-the line that carries the prefix — which is what Lear 295 shows: `Lear.
-Returne to her? and fifty men dismiss'd?` stands in from the margin and the
-five lines under it do not. The indented line is genuinely narrower and so
-turns over sooner, which is why the Folio turns over on prefix lines more than
-on any other.
-
-**The brackets** wanted more than a regex, as expected, and the visible stray
-`]` was the small half of it. `[Aside.] I must obey ...` matched the direction
-test on its first character, so the *entire verse line* was set as a
-direction — italic, ranged right — with the bracket surviving the trim. 611
-lines of the Folio went that way, 350 more broken mid-line, 45 at the end, and
-5 wrapped across two lines with the `[` on one and the `]` on the other. The
-brackets are now lifted in `copytext.rkt` before anything else reads the line:
-a modern edition's square brackets are apparatus, exactly like Gutenberg's
-underscores, and there is not one on any page of the Folio. Each bracketed
-span becomes a direction in its own right — above the line if it stood before
-any speech, below if it interrupted or followed it — and the verse line it was
-sitting in survives whole, which splitting it would not.
+**The brackets** wanted more than a regex, and the visible stray `]` was the small
+half of it. `[Aside.] I must obey ...` matched the direction test on its first
+character, so the *entire verse line* was set as a direction — italic, ranged
+right. 611 lines went that way, 350 more broken mid-line, 45 at the end, and 5
+wrapped across two lines. Brackets are now lifted in `copytext.rkt` before
+anything else reads the line: a modern edition's square brackets are apparatus,
+exactly like Gutenberg's underscores, and there is not one on any page of the
+Folio.
 
 ### The white line between speeches was the editor's
 
-The Folio sets a play **solid**. On Lear 295 `Lear. You? Did you?` follows
-`Deferu'd much leffe aduancement.` with nothing between them, `Reg. I pray you
-Father …` follows that, and the two columns run sixty-six lines each without a
-white line anywhere in them — the white and the rules come at `Actus Tertius.
-Scena Prima.` and nowhere else.
+The Folio sets a play **solid**. On Lear 295 the two columns run sixty-six lines
+each without a white line anywhere in them — the white and the rules come at
+`Actus Tertius. Scena Prima.` and nowhere else.
 
 A modern edition puts a blank line between speeches because a modern reader
-expects one, and the reader here was setting every one of them as a white line
-of quads. On *King Lear* that was **229 lines of type in 4,400 — a line of the
-page for every speech.**
+expects one, and the reader here was setting every one of them as a white line of
+quads. On *King Lear* that was **229 lines of type in 4,400 — a line of the page
+for every speech.**
 
-The blank unit is still emitted, because it is in the copy and the reader's job
-is to report what the copy contains. It is *marked*, and `compose` declines to
-set white for it. Only in dramatic copy, and only where no heading is beside
-it: a blank between stanzas of a poem is the poet's and is set, and the white
-round an act heading `compose` supplies for itself anyway.
+The blank unit is still emitted, because it is in the copy and the reader's job is
+to report what the copy contains. It is *marked*, and `compose` declines to set
+white for it — only in dramatic copy, and only where no heading is beside it.
 
-**And the casting off had to be told.** `cast-off` went on allowing a line for
-a blank that `compose` no longer set, so every page in a play came up a line
-short for every speech on it and the compositor spun out what he had to fill
-the depth — gaping word spaces, and `diuifion` printing `diuifione`. A real
-mechanism, fired by two stages disagreeing about arithmetic rather than by
-anything in the copy. This is the third time that particular fault has appeared
-here and it is always the same shape: one property settled in two places.
+**And the casting off had to be told.** `cast-off` went on allowing a line for a
+blank that `compose` no longer set, so every page in a play came up a line short
+for every speech on it and the compositor spun out what he had to fill the depth.
+A real mechanism, fired by two stages disagreeing about arithmetic rather than by
+anything in the copy. **This is the third time that fault has appeared here and it
+is always the same shape: one property settled in two places.**
 
 ### Rules, borders and ornaments are objects
 
 Prompted by the question *what do the sources say about frames and ornaments —
-those are objects too*. They are, and the sources are unanimous and precise:
+those are objects too*. They are, and the sources are unanimous:
 
-- **They print.** A rule is type-high, which is exactly what distinguishes it
-  from the furniture (Blayney i. 124 n. 2), and is cast on a body of so many
-  ems — McKerrow infers the existence of wide spaces from the fact that
-  "ornaments and rules of several ems in length were quite common" (p. 108).
-  The Cambridge press bought brass rules from a London joiner at about
-  sixpence each (McKenzie i. 42).
-- **Five to a page, ten to a forme.** "Each page is surmounted by a headline
-  and enclosed in a frame of 'box' rules. Five box rules appear, since one is
-  used below as well as one above the headline. Although it is within the four
-  rules that frame the page as a whole, therefore, the headline is
-  nevertheless separated from the text proper by a rule" (Hinman i. 51).
-- **The two kinds go different ways.** Box rules are the skeleton's, stripped
-  and lifted with the running titles (Gaskell p. 109 counts them among the
-  skeleton's "regularly repeated rules or ornaments"). The centre rule
-  "belongs to the type-page proper rather than to its skeleton, and it was not
-  removed from the type-page during stripping operations" (Hinman i. 130) — it
-  goes to the case with the type beside it.
-- **The arrangement is the fingerprint.** "Almost never, when rules took up
-  new positions in a given forme, did they resume exactly their former
-  positions in some later forme. Hence a given arrangement of rules serves to
-  define a group of formes belonging to the same printing sequence" (i. 148).
-  A whole new set of box rules *is* a new skeleton (i. 44).
-- **They wear, and the wear is datable.** Hinman follows individual centre
-  rules by their degeneration and names three of the worst in the last quire
-  of the Tragedies (i. 148). The satyr tailpiece was damaged during the
-  printing of Z6 and is found in two states in the Folio (i. 20).
+- **They print.** A rule is type-high, which is exactly what distinguishes it from
+  the furniture (Blayney i. 124 n. 2), and is cast on a body of so many ems.
+  McKerrow infers wide spaces from the fact that "ornaments and rules of several
+  ems in length were quite common" (p. 108). Cambridge bought brass rules from a
+  London joiner at about sixpence each (McKenzie i. 42).
+- **Five to a page, ten to a forme.** "Each page is surmounted by a headline and
+  enclosed in a frame of 'box' rules. Five box rules appear, since one is used
+  below as well as one above the headline" (Hinman i. 51).
+- **The two kinds go different ways.** Box rules are the skeleton's, stripped and
+  lifted with the running titles. The centre rule "belongs to the type-page proper
+  rather than to its skeleton, and it was not removed from the type-page during
+  stripping operations" (i. 130) — it goes to the case with the type beside it.
+- **The arrangement is the fingerprint.** "Almost never, when rules took up new
+  positions in a given forme, did they resume exactly their former positions in
+  some later forme. Hence a given arrangement of rules serves to define a group of
+  formes belonging to the same printing sequence" (i. 148).
+- **They wear, and the wear is datable.** Hinman follows individual centre rules by
+  their degeneration and names three of the worst in the last quire of the
+  Tragedies (i. 148).
 
-So `imposition.rkt` has a `type-rule` struct: an id, a kind, a length in ems or
-lines, accumulated damage, and impressions worked. The skeleton owns ten of
-them and a mutable arrangement re-drawn every few formes; the page owns a
-centre rule drawn from a shop stock sized to the standing formes. They wear at
-one imperfection per 25,000 impressions, which is read off what Hinman treats
-as *remarkable* — extreme degeneration worth a footnote at the end of a book
-of some 500 formes. They are written to the TEI as `<milestone unit="rule">`
-with `@hp:role` saying which stock they belong to, and the facsimile draws the
-rules the file says are there, with damage and a hover naming the piece.
-
-The stylesheet's `border: 1px solid` box is gone with them: four sides of one
-CSS border cannot be four objects, and Hinman's whole argument is that they
-are.
+So `imposition.rkt` has a `type-rule` struct: id, kind, length in ems or lines,
+accumulated damage, impressions worked. They wear at one imperfection per 25,000
+impressions, read off what Hinman treats as *remarkable*. The stylesheet's
+`border: 1px solid` box is gone with them: four sides of one CSS border cannot be
+four objects, and Hinman's whole argument is that they are.
 
 **Still only rules.** Ornaments, factotums, head- and tail-pieces are not
-modelled. The satyr is the obvious next one and is fully specified in the
-sources — a rectangle of about 70 × 120 mm, used as a tailpiece for 24 of the
-36 plays whenever the last lines take up less than about two-thirds of the
-final page, in two states either side of Z6.
+modelled. The satyr tailpiece is the obvious next one and is fully specified in
+the sources — about 70 × 120 mm, used for 24 of the 36 plays whenever the last
+lines take up less than about two-thirds of the final page, in two states either
+side of Z6.
 
-**What it showed that is not a defect.** Three mechanisms report nought on the
-Folio — pages crowded, lines of copy dropped, catchwords not answering — and
-all three are alive. They are consequences of the casting off, and casting off
-is some sixteen times tighter on verse than on prose, because the man counts
-verse lines and estimates prose: `slip` in `imposition.rkt`, 0.06 against 1.0,
-which is Gaskell's point. The same code on prose copy at the same accuracy
-crowds 109 pages per thousand and drops 406 lines per thousand. **The report
-now says so beside the noughts**, because a bare `0.00` is exactly the reading
-that once had a live mechanism written off as dead here.
+### What it showed that is not a defect
+
+Three mechanisms report nought on the Folio — pages crowded, lines of copy
+dropped, catchwords not answering — and all three are alive. They are consequences
+of the casting off, and casting off is some sixteen times tighter on verse than on
+prose, because the man counts verse lines and estimates prose: `slip` in
+`imposition.rkt`, 0.06 against 1.0, which is Gaskell's point. The same code on
+prose copy at the same accuracy crowds 109 pages per thousand and drops 406 lines
+per thousand. **The report now says so beside the noughts**, because a bare `0.00`
+is exactly the reading that once had a live mechanism written off as dead here.
 
 `tools/audit-mechanisms.py` sorts every countable mechanism into *fired*,
-*silent*, and *not offered*, and now distinguishes a silence with an
-established explanation from one without. It exits non-zero only for the
-latter, so it is usable as a check.
+*silent*, and *not offered*, and distinguishes a silence with an established
+explanation from one without. It exits non-zero only for the latter.
 
-**Greg's consistency condition depends on how many copies you collate**, which
-was not expected and is worth chasing:
-
-| heap-disorder | 24 copies | 200 copies |
-|---|---|---|
-| 0 — Gaskell's ideal | HOLDS | HOLDS |
-| 0.15 — the default | HOLDS | **FAILS** |
-| 0.5 | FAILS | FAILS |
-
-At the default disorder the condition holds on a small collation and fails on a
-large one. That is the detector working — more copies mean more chances for the
-warehouse's lost order to show — but it means **a bibliographer collating four
-copies would conclude the heaps kept their order when they did not**. The
-sensitivity of Greg's test to sample size is measurable here and is not, as far
-as I know, anywhere in the literature.
+**Greg's consistency condition depends on how many copies you collate**, which was
+not expected — and the explanation first given for it was wrong. It was recorded
+as a small-sample effect: more copies, more chances for the warehouse's lost
+order to show. §3 replaced the noise model with Moxon's doublings and the real
+variable turned out to be the **spacing of the collated copies in the heap**
+against how far a sheet can travel, which the mechanism bounds at 70. Ten copies
+of a 750-sheet impression are 75 sheets apart and cannot see the disorder at any
+rate at all; sixty copies are 12 apart and see it every time. The sample was not
+too small, it was too sparse. Numbers in the README.
 
 ---
 
-## 7. Widen the calibration base
+## 11. Widen the calibration base
 
 Nearly every rate rests on **one pairing**: about 12,000 words of the *Much Ado*
 quarto against the Folio set from it. That is a narrow base for the confident
@@ -869,59 +1155,56 @@ tables the reports print.
       generations, each set from its predecessor, with variants recorded line by
       line. Three more copy→print transmissions with known copy, which would
       roughly quadruple the evidence. Extracting them means reading the apparatus
-      rather than diffing, since the interesting cases are errors *shared*
-      between texts, which a mechanical diff cannot see.
+      rather than diffing, since the interesting cases are errors *shared* between
+      texts, which a mechanical diff cannot see.
 
 - [ ] **Manuscript copy.** Every misreading profile assumes printed copy. Setting
-      from a secretary hand is a different problem with a different confusion
-      set, and the Duport manuscript and Newton's *Opticks* copy survive with the
+      from a secretary hand is a different problem with a different confusion set,
+      and the Duport manuscript and Newton's *Opticks* copy survive with the
       compositors' marks on them.
 
 ---
 
 ## Built
 
-Kept short on purpose. Each of these was argued out at length when it was done;
-what is worth carrying forward is the number it produced.
+Kept short on purpose. Each was argued out at length when it was done; what is
+worth carrying forward is the number it produced. The README describes what these
+*do*; this is what they *cost to get right*.
 
 **The material.**
 
 - **Space-metal is type** — the biggest thing the model was missing. A gap is a
   cast body picked by hand from a box that can empty. **16% of everything set is
-  white**, and the thick space is as common in a fount as the letter `e`. The
-  fount rose from 21,953 to 31,200 because Blayney's table counts letters,
-  capitals, points and ligatures and no quads at all. Provisioned from *prose*
-  demand, the play strain falls out by itself: a play empties the em-quad box
-  (100% out against 8% for prose) because every short speech line is quadded to
-  the measure — Blayney's asymmetry, reproduced rather than fitted. Justification
-  is quantised as a consequence: 86% of the old gaps were widths no founder ever
-  cast, and a line now fills to within less than a hair (median 4/120 em) rather
-  than exactly. The white is in the TEI, body by body on each `<lb/>`.
+  white.** The fount rose from 21,953 to 31,200 because Blayney's table counts
+  letters, capitals, points and ligatures and no quads at all. Provisioned from
+  *prose* demand, the play strain falls out by itself: a play empties the em-quad
+  box (100% out against 8% for prose) because every short speech line is quadded
+  to the measure — Blayney's asymmetry, reproduced rather than fitted.
+  Justification is quantised as a consequence: 86% of the old gaps were widths no
+  founder ever cast, and a line now fills to within less than a hair (median 4/120
+  em) rather than exactly. *The bodies themselves are now in doubt — see §4.*
 - **The bill of type and the size of the fount** — wrong by nearly a factor of
   three. 60,000 sorts was derived from Jaggard's Folio pica, the largest house in
   London working in folio; the default is now Okes's measured 21,953. Two
   independent checks came out right: 465 `y` and 974 `i` against Blayney's "at
   least 500 'y's and 1,046 'i's", and 67 `i` a page against his measured 66.
-- **The ladder of shifts** when a box runs dry, in Blayney's order: set `VV`; rob
-  a standing page at the margins; distribute a forme early; set a sort face down
-  and fill at proof; send to the founder. On *Areopagitica* the ladder reads 226
+- **The ladder of shifts** when a box runs dry, in Blayney's order: set `VV`; rob a
+  standing page at the margins; distribute a forme early; set a sort face down and
+  fill at proof; send to the founder. On *Areopagitica* the ladder reads 226
   robbed, 13 wrong-fount, 4 face down, against 248 wrong-fount before.
 - **`ſt`, `ſh`, `ſi` as sorts.** `ſt` at 200 is Okes's commonest ligature, more
   than `ﬀ`, `ﬁ` and `ﬂ` together. A ligature prints as its two letters; what
   differs is which box emptied.
-- **Type-supply governs spelling** — the best thing in Blayney. B's choice
-  between `-ie` and `-y` looked incoherent until the boxes were tabulated: over
-  200 `y` available he set 49% `-y`, between 100 and 200 he set 42%, below 100 he
-  set 29%. A spelling test measures the case as well as the man.
+- **Type-supply governs spelling** — the best thing in Blayney. B's choice between
+  `-ie` and `-y` looked incoherent until the boxes were tabulated: over 200 `y`
+  available he set 49% `-y`, between 100 and 200 he set 42%, below 100 he set 29%.
+  A spelling test measures the case as well as the man.
 - **Inverted sorts as evidence.** Short `s` upside down at 1 in 150, invisible to
   the corrector and legible three centuries later.
-- **The sheet, and the size it makes.** `paper.rkt`. Format is a folding and not
-  a size; the two together give a leaf. Named stocks with foolscap 420×320 mm the
-  default (Gaskell p. 68: the sixteenth century's ordinary printing paper), and
-  one rule — a fold halves whichever dimension is longer — which reproduces his
-  Key III exactly for pot, demy and royal in all three formats. The proportion
-  alternates: from one sheet the folio is 1.52 tall to wide, the quarto 1.31, the
-  octavo 1.52 again.
+- **The sheet, and the size it makes.** Format is a folding and not a size; the two
+  together give a leaf. One rule — a fold halves whichever dimension is longer —
+  reproduces Gaskell's Key III exactly for pot, demy and royal in all three
+  formats.
 
 **The book.**
 
@@ -930,25 +1213,25 @@ what is worth carrying forward is the number it produced.
   The collation formula takes runs, so it prints `4°: A² B–L⁴`, Blayney's own
   formula for *Lear* Q1.
 - **Printing the preliminaries last**, and East's decision about the Table
-  reproduced rather than imitated: is there room in the white leaves already
-  left, and does moving it save leaves at the front?
+  reproduced rather than imitated: is there room in the white leaves already left,
+  and does moving it save leaves at the front?
 - **The title-page, generated as copy** so it goes through the same compositor —
   from Blayney's Appendix II, about ninety transcripts from one shop 1604–9.
 - **The last sheet**, with preliminaries printed in the white leaves and cut out,
   conjugate from the centre and disjunct from the tail.
 - **Cancels** — the trace simulated and the cause parameterised, which is
-  McKerrow's own division ("into the purpose of these cancels we need not
-  enter"). Five of his six detection tests are generated; the sixth is the paper,
-  and is §3.
+  McKerrow's own division ("into the purpose of these cancels we need not enter").
+  Five of his six detection tests are generated; the sixth is the paper, and is §6.
 - **Folding, gathering and the binder's errors** — five kinds of fault, all from
   the sources; the *rate* is a parameter with no authority claimed for it.
-- **Half-sheet imposition**, for the case that arises: a two-leaf gathering is one
-  forme worked and turned (Gaskell, p. 83), and `A2` is the commonest preliminary
-  arrangement in Blayney's checklist by a wide margin.
-- **Correlated press-variant states**, the meeting point of Gaskell and Greg. A
-  made-up copy is conflation by construction, so Greg's consistency condition
-  detects whether the heaps kept their order: **60/60 consistent at disorder 0,
-  16/60 at disorder 1** — the second being what this program used to do.
+- **Half-sheet imposition**: a two-leaf gathering is one forme worked and turned
+  (Gaskell, p. 83), and `A2` is the commonest preliminary arrangement in Blayney's
+  checklist by a wide margin.
+- **Correlated press-variant states**, the meeting point of Gaskell and Greg, at
+  Moxon's grain: the heap goes up to dry in doublings and comes down three or
+  four at a time, so a sheet moves only among its neighbours — 26 sheets on
+  average, never past 70. Consistency then turns on how far apart the collated
+  copies stand in the heap rather than on how many there are. *§3.*
 
 **Reading the copy.**
 
@@ -956,14 +1239,14 @@ what is worth carrying forward is the number it produced.
   PDF, in three tiers: *declared*, *constructed*, and *nothing at all*, which is
   what plain text gets and is the honest answer.
 - **The heading vocabulary was the wrong instrument** and is off by default.
-  Demonstrated rather than argued: against Aylett's *Peace with her foure
-  Garders* (1622) it found nothing, because the book opens with fourteen lines of
-  dedicatory verse under no heading, so the walk stopped before the vocabulary
-  was consulted once.
-- **Scribal frequency has a slope**, which two data points could not show.
-  Tildes per thousand words fall 2.99 → 0.19 across the 1580s to the 1630s; the
-  superscript brevigraphs never crossed over from the hand at all (`yᵗ` at 5.5
-  per *million* words against the program's 6,600). `--year` sets the date.
+  Demonstrated rather than argued: against Aylett's *Peace with her foure Garders*
+  (1622) it found nothing, because the book opens with fourteen lines of dedicatory
+  verse under no heading, so the walk stopped before the vocabulary was consulted
+  once.
+- **Scribal frequency has a slope**, which two data points could not show. Tildes
+  per thousand words fall 2.99 → 0.19 across the 1580s to the 1630s; the superscript
+  brevigraphs never crossed over from the hand at all (`yᵗ` at 5.5 per *million*
+  words against the program's 6,600).
 
 **Output.**
 
@@ -972,67 +1255,78 @@ what is worth carrying forward is the number it produced.
   page — a property rather than a discipline that has to be remembered. It found
   two things immediately: the TEI carried no record of which damaged sorts set a
   word, and no statistics.
-- **Four views and a filter.** The book, the make-up, the evidence, the copies;
-  a map of the whole run, collation diagrams that show which leaf comes loose
-  when another is cut out, and a legend that filters the apparatus by kind of
-  departure — the one thing a screen can fix that a printed apparatus cannot.
+- **Four views and a filter.** The book, the make-up, the evidence, the copies; a
+  map of the whole run, collation diagrams that show which leaf comes loose when
+  another is cut out, and a legend that filters the apparatus by kind of departure.
 - **The leaf at its true size**, drawn from the sheet in the file rather than
   invented by the stylesheet.
 
 **Defects found by measuring rather than by looking.**
 
-- **Words collide in the tightest lines** — *not* systematic. 13 touching pairs
-  in 16,219, or 0.08%, the residue of substituting a real font for a table of
-  widths. My visual impression from one screenshot overstated it by a wide
-  margin.
+- **Words collide in the tightest lines** — *not* systematic. 13 touching pairs in
+  16,219, or 0.08%. My visual impression from one screenshot overstated it by a
+  wide margin.
 - **Turn-over never fires** — *not* dead. It fires on verse, once in 267 lines of
   *Hamlet*, and reads zero on prose because only a verse line can be turned over.
   The real defect was a report that printed a bare `0.00`.
 - **Foul case fired on every u-for-v** — 1,048 words classified as accidents
-  against a measured rate of about five for that book. Self-inflicted by a
-  rename. **1,048 → 7.**
-- **A paragraph longer than a page was never divided when it began the page**, so
-  a two-hundred-line paragraph was cast off as one page of thirty-eight.
+  against a measured rate of about five for that book. Self-inflicted by a rename.
+  **1,048 → 7.**
+- **A paragraph longer than a page was never divided when it began the page**, so a
+  two-hundred-line paragraph was cast off as one page of thirty-eight.
 
 ---
 
 ## Not doing, and why
 
-**Answering McKenzie.** The objection is correct and the program cannot escape
-it. Every percentage the analysis produces is the analyser inverting the
-generator; both were written from the same account of how a printing house
-behaved, so agreement demonstrates self-consistency and nothing else. The right
-response is to keep saying so in every report and to build §5, which makes the
-failure visible rather than arguing about it.
+**Answering McKenzie.** The objection is correct and the program cannot escape it.
+Every percentage the analysis produces is the analyser inverting the generator;
+both were written from the same account of how a printing house behaved, so
+agreement demonstrates self-consistency and nothing else. The right response is to
+keep saying so in every report and to build §8, which makes the failure visible
+rather than arguing about it.
 
-**Fitting the parameters to the sample.** Several rates sit close to their
-measured targets. It would be easy to close the remaining gaps by adjusting until
-they matched, and the result would be worthless. Where a figure is off it is left
-off, and said to be off: the tilde runs about 1.5× the median for 1605 (inside
-the interquartile range, so unremarkable), and the ampersand at twice the 1630s
-median, between that median and its 75th percentile.
+**Fitting the parameters to the sample.** Several rates sit close to their measured
+targets. It would be easy to close the remaining gaps by adjusting until they
+matched, and the result would be worthless. Where a figure is off it is left off,
+and said to be off: the tilde runs about 1.5× the median for 1605 (inside the
+interquartile range, so unremarkable), and the ampersand at twice the 1630s median,
+between that median and its 75th percentile.
 
 The note that used to stand here — "the ampersand at roughly twice the observed
-rate" — was measured against the Folio's fourteen in twelve thousand words, and
-the corpus says the Folio is unusually sparing. Against the median book of its
-decade the ampersand was about right all along. **A figure said to be off can be
-as wrong as one said to be right.**
+rate" — was measured against the Folio's fourteen in twelve thousand words, and the
+corpus says the Folio is unusually sparing. Against the median book of its decade
+the ampersand was about right all along. **A figure said to be off can be as wrong
+as one said to be right.**
 
 ---
 
-## The rule this project actually runs on
+## The rules this project actually runs on
 
-**Every parameter checked against a real book has been wrong**, most by an order
-of magnitude, and always in the direction of making the simulation more
-picturesque than the truth. Assume the next one is too.
+**Every parameter checked against a real book has been wrong**, most by an order of
+magnitude, and always in the direction of making the simulation more picturesque
+than the truth. Assume the next one is too. *One exception has now appeared —
+Moxon's fount weights, §9 — and being the first it deserves more scepticism than
+the rule, not less.*
+
+**Read the source before building on a summary of it.** Moxon and Smith sat in
+`sources/` and in the README's bibliography while every figure from them arrived
+through Gaskell or Blayney. One afternoon with the actual books produced six
+roadmap items, one confirmation that a table called invented is accurate to 0.5%,
+and one live anachronism in the most foundational module in the program. **A source
+you have cited is not a source you have read.**
+
+**A convention with no date on it is dated by whoever wrote it down last.** The
+ranging figures were caught because someone asked when tabular figures began. The
+space bodies twenty lines below them were not, and they are Jacobi 1890. When a
+value arrives as "the standard widths", ask *standard when*.
 
 **A parameter anchored on one example is anchored on that example's end of the
 range.** 60,000 sorts was not a guess; it was carefully derived from the
-best-documented fount of the period — and from the largest house in London
-working in folio, which made every other shop three times richer than it was and
-suppressed the shortages that are half the evidence. One good anchor at the wrong
-end of a range is more misleading than no anchor, because it looks like
-diligence.
+best-documented fount of the period — and from the largest house in London working
+in folio, which made every other shop three times richer than it was and suppressed
+the shortages that are half the evidence. One good anchor at the wrong end of a
+range is more misleading than no anchor, because it looks like diligence.
 
 **A rename that crosses a classification boundary is a change of meaning, not of
 names.** Redefining `composed` to mean the reading rather than the set form left
@@ -1045,49 +1339,59 @@ argument for keeping the measured rates written down beside the code.
 contradict each other, and the contradiction hides until something forces them
 apart. The deviation vocabulary lived in five places and had already drifted. The
 leaf's size was decided by the stylesheet while the format was decided by the
-model, and when the paper was finally given a size, two bugs fell straight out
-that the old arrangement had concealed by feeding both sides the same wrong
-number.
+model. The casting off allowed a line for a blank the compositor no longer set.
+Three times, one shape.
 
 **A parameter no test exercises and no report counts will be dead without anyone
 noticing.** Four so far — `catches-misreading`, the catchword bracketing, the
-omission branch, and the crowding devices. Turn-over was wrongly added to that
-list and taken off again. To which that episode adds a corollary: **a report that
-prints a bare zero cannot distinguish a thing that did not happen from a thing
-that could not.** Both look like evidence and only one is.
+omission branch, and the crowding devices. Turn-over was wrongly added to that list
+and taken off again. To which that episode adds a corollary: **a report that prints
+a bare zero cannot distinguish a thing that did not happen from a thing that could
+not.** Both look like evidence and only one is.
+
+**Two errors cancelling is this project's characteristic failure.** `proof-rate`
+was wrong and variants-per-forme were wrong in the opposite direction, and the
+product landed near Hinman's figure by accident for months. Report a rate beside
+its components, never alone.
 
 **One seed is not a measurement, and this applies to rates and not only to rare
-events.** It was already written down here that a test asserting a rare event
-happened at least once, on one seed, is a test of the seed. The same is true of
-every rate the report prints. Word division on one width table ranges from 65 to
-113 per thousand lines across eight seeds — a 74% spread — so a single-seed
-comparison can produce any answer you like, in either direction, and it will
-look like a finding. Two claims were made that way in one session and both were
-noise. Before comparing two versions of anything, run enough seeds to see the
-variance, and pin whatever is drawn at random: the preliminary signature scheme
-is on `auto` by default, so it re-draws whenever the RNG stream shifts and turns
-an unrelated change into an apparent change of collation.
+events.** Word division on one width table ranges from 65 to 113 per thousand lines
+across eight seeds — a 74% spread — so a single-seed comparison can produce any
+answer you like, in either direction, and it will look like a finding. Two claims
+were made that way in one session and both were noise. Before comparing two
+versions of anything, run enough seeds to see the variance, and pin whatever is
+drawn at random.
 
 **A normalisation that looks neutral can smuggle in the effect you are testing
-for.** Substituting a measured width table, I held the unweighted mean over
-a–z, which seemed the obvious control. `i` and `s` are 13.5% of the text between
-them and both shrank hard, so the frequency-weighted mean fell 2.56% and the
-text simply set narrower — I had changed the density while believing I had
-changed only the proportions. Ask what a control actually holds constant, and
-weight it by how often each thing occurs in the copy rather than by how many
-kinds there are.
+for.** Substituting a measured width table, I held the unweighted mean over a–z,
+which seemed the obvious control. `i` and `s` are 13.5% of the text between them
+and both shrank hard, so the frequency-weighted mean fell 2.56% and the text simply
+set narrower — I had changed the density while believing I had changed only the
+proportions. Ask what a control actually holds constant, and weight it by how often
+each thing occurs in the copy rather than by how many kinds there are.
 
-**The corpus can answer questions about marks, not only about words.** The
-scribal rates were guessed from two books for several sessions while 5,287 sat on
-disk, because `lexicon.rkt` reads that corpus as a list of *spellings* and a
-spelling test cannot vouch for `yᵗ`. True of the lexicon, irrelevant to the
-corpus, which is text, and in which every tilde is countable. The tool was built
-for one question and I stopped asking it others.
+**A mechanism can be right in its rate and wrong in its grain, and the grain is
+where the result lives.** `--heap-disorder` always carried an honest disclaimer
+about its *value* and was quietly wrong about its *shape* — white noise where
+Moxon describes blocks of seventeen sheets. The disclaimer on the number made
+the structure look considered. Correcting the shape while leaving the rate alone
+did not adjust the heap figures, it **reversed** what they meant: the parameter
+governs how many sheets move and has no bearing at all on how far, so a
+collation spaced wider than a sheet can travel is blind to the whole range of
+it. A number that was read as a small-sample effect for months was a
+sampling-interval effect. **Ask what a parameter does not control.**
 
-**Verify in both colour schemes.** A page can be correct in every measurement I
-take and unusable on the machine it is opened on. The facsimile shipped with a
-dark-mode override on `body` and `.leaf` and on nothing else, so on a dark
-display the masthead kept its parchment ground while its text turned light —
-title, lede and all four tabs at 1.03:1, which is invisible — and the collation
-diagrams were dark line-work on a dark ground. Headless renders default to light,
-so none of it appeared in any screenshot taken here.
+**The corpus can answer questions about marks, not only about words.** The scribal
+rates were guessed from two books for several sessions while 5,287 sat on disk,
+because `lexicon.rkt` reads that corpus as a list of *spellings* and a spelling test
+cannot vouch for `yᵗ`. True of the lexicon, irrelevant to the corpus, which is text,
+and in which every tilde is countable. The tool was built for one question and I
+stopped asking it others.
+
+**Verify in both colour schemes.** A page can be correct in every measurement I take
+and unusable on the machine it is opened on. The facsimile shipped with a dark-mode
+override on `body` and `.leaf` and on nothing else, so on a dark display the
+masthead kept its parchment ground while its text turned light — title, lede and
+all four tabs at 1.03:1, which is invisible — and the collation diagrams were dark
+line-work on a dark ground. Headless renders default to light, so none of it
+appeared in any screenshot taken here.
