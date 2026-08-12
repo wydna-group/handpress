@@ -986,12 +986,44 @@ and `i` is among the commonest letters in English. A table whose common narrow
 sorts are too wide sets *wider* words, which need *less* white, not more. The
 error is real and may push the opposite way to the one wanted.
 
-**That has to be settled by frequency-weighting before anything is changed**, and
-§7 already records why: substituting a width table while holding the unweighted
-mean smuggled in a density change, because `i` and `s` are 13.5% of the text
-between them. The same trap is waiting here. The next step is to weight both
-normalised tables by the letter frequencies of the actual copy and see which sets
-the narrower line — and only then to ask whether shape explains the white.
+**Frequency-weighted, and it goes the wrong way.** Both normalised tables against
+the letter frequencies of the copy itself, 58,989 letters:
+
+| | weighted mean, normalised |
+|---|---|
+| Blokland's proportions | **0.9301** |
+| this table | 0.9507 |
+
+**His shape sets text 2.17% *narrower* than ours**, where 4.8% *wider* is what
+reaching Blayney's 9% requires. `i` at 9.8% of all letters (his 0.48 against our
+0.62) and `f` at 3.2% (0.47 against 0.73) dominate the rarer `v`, `y` and `z`
+going the other way. **Adopting his proportions would widen the gap, not close
+it.**
+
+### All three candidates are now eliminated, which points back at the anchor
+
+- **`justify`'s stretch** — out. The median gap is the body itself and the mean is
+  3% above it.
+- **The measure** — out. *Lear*'s is 22.76 ems against this program's 21: wider,
+  and carrying less white.
+- **The shape of the set widths** — out. The only measured Renaissance roman there
+  is sets text narrower still.
+
+Nothing mechanical is left, and three independent investigations came back empty
+against the same number. **The remaining possibility is that the 9% is not
+comparable to what is being computed here**, and that was flagged as an assumption
+when the anchor was first run: Blayney's phrase is "the average amount of internal
+space in a given area of visible type", read here as space over space-plus-type.
+The alternative reading, space over type alone, gives 15.2% and is further away —
+but a third is available and untested, that his "area of visible type" is the
+measure times the depth, counting the leading between lines, which no reading here
+has attempted.
+
+**Before any more work on the white, settle what he measured.** He gives the
+method in the same note — ten random 20-line samples, marginal space taken
+separately in millimetres within a 22.76-em measure, non-marginal computed at 9%
+— and it is reconstructable. An anchor that has now sent three investigations
+after nothing has earned that scrutiny before a fourth.
 
 **What is settled** is that the question no longer wants a source. The data are on
 disk, they are measured rather than invented, and the objection that blocked them
