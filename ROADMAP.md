@@ -442,12 +442,58 @@ that looks like. Blayney's shortage ladder does not collapse, but it swells past
 anything his books show.
 
 **Reverted rather than shipped**, because a change that halves one number to
-improve another is the failure this project keeps catching. What it establishes is
-sharper than what it was meant to test: **the timing and the margin are one
-change, not two**, and the next attempt must raise the fount and move the trigger
-together, then check the shortage rate against Blayney rather than against itself.
-Whether this fount can carry 2× at all is the open question, and it is the same
-question §9 raises from Moxon's side.
+improve another is the failure this project keeps catching.
+
+### And the fount was not the problem — it is right, from two sources at once
+
+The next move looked obvious: raise the fount. It was wrong, and measuring before
+changing anything is what caught it. Hinman gives all three figures for the Folio
+(i. 50): four pages standing is the absolute minimum for setting by formes, "**six
+Folio pages, three full formes, were often 'standing' at the same time**", and the
+stock was "large enough to set about **eight pages**".
+
+Measured against this program's own fount, at 30,901 sorts:
+
+| | this fount | the shop the source measured |
+|---|---|---|
+| folio pages in the whole fount | **8.85** | Jaggard, "about eight pages" |
+| folio pages standing under the ceiling | **5.9** | Jaggard, six pages / three formes |
+| quarto pages standing under the ceiling | **15.7** | Okes, not enough for "sixteen pages of *Lear*" |
+
+**Both formats land on their source, and the sources are different men in
+different shops working different formats.** The fount was derived from Blayney's
+Okes quarto and had never been checked against a folio house; it agrees with
+Hinman to within 10% on a measure — pages of double-column folio — that nothing in
+its derivation knew about. That is the first independent confirmation the fount
+has had, and it arrived from the format it was *not* fitted to.
+
+### What is actually wrong is smaller and more specific
+
+**`--formes-standing` does nothing at folio-in-sixes.** Formes standing 2, 3 and 4
+give byte-identical figures for adjacent sharing (12/130), quires determined
+(12/23) and the link (0/0); only the shift count moves, by 0.6%. The ceiling
+always fires first, because the peak includes the forme *currently being set*: two
+complete formes are four pages, the ceiling allows 5.9, so distribution triggers
+about two pages into the third forme — mid-forme, every time, whatever the forme
+count says. That is precisely the mid-forme distribution Hinman's premise forbids,
+and it explains why the parameter cannot fix it.
+
+**And the ceiling fraction is where the two sources part company.** `typecase.rkt`
+calls two-thirds "a judgement about how thin a pair of cases may get", claiming no
+authority, and it is what makes the quarto agree with Blayney. Hinman's Folio ran
+at **six pages of eight — three-quarters**. Raising the ceiling to 3/4 would let
+three formes stand at folio and let distribution wait for forme completion, which
+is the whole of what the premise needs; it would also give 17.7 quarto pages
+standing where Blayney says Okes could not manage sixteen.
+
+**So the ceiling cannot be one constant if both men are right.** It is not a
+property of the metal but of a shop's willingness to work thin cases, and the two
+best-documented shops of the period differ by a sixth. That is a real finding and
+it is left standing rather than split: fitting a single value to the mean of two
+shops would satisfy neither and would bury the disagreement, which is the more
+interesting fact. The next step is a per-house ceiling, sourced at 2/3 for Okes
+and 3/4 for Jaggard, and then the timing change — which at 3/4 should cost far
+less than the 42% measured above.
 
 **The exception is his and is kept**: where a shop distributed sooner than the
 criterion assumes, no order is admissible at all; the report counts those quires
