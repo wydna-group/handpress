@@ -984,7 +984,17 @@
       (for*/hash ([fm (in-list formes)] [p (in-list (forme-page-numbers fm))])
         (values p fm)))
 
-    (for ([fm (in-list formes)])
+    ;; NUMBERED IN THE ORDER THEY ARE SET, which is `formes' reversed.
+    ;; `setting-order' hands out the pages of the LAST forme in this list first
+    ;; (imposition.rkt, "from the inside out"), so walking `formes' forwards
+    ;; here numbered every gathering inside out -- forme-order 0 being the last
+    ;; forme composed. Three things read the counter as a setting order and two
+    ;; of them were wrong for it: the compositor's turn, which decides who meets
+    ;; the thin case and so which man's spelling the type supply governs, and
+    ;; the skeleton's wear, which decides the order the running-title damage
+    ;; appears in. The preliminaries assertion below was unharmed, comparing
+    ;; whole gatherings rather than formes within one.
+    (for ([fm (in-list (reverse formes))])
       (define sk (list-ref skeletons (modulo forme-counter (length skeletons))))
       (define sk*
         (if (and (> (length skeletons) 1) (< (rnd g) 0.12))

@@ -388,35 +388,40 @@ order of a quire and is right whenever it speaks, and the link across the bounda
 fixes the direction and is right whenever it speaks. At two formes standing no
 boundary is testable, because determined quires rarely fall next to each other.
 
-`forme-order` itself is left alone deliberately, and **the other three readers of
-it have now been checked one by one**:
+**And `forme-order` is now numbered in the order the formes are set.**
+`book.rkt` walks `(reverse formes)`, since `setting-order` hands out the pages of
+the last forme in that list first. The three readers were checked one by one
+before the change and measured on both sides of it:
 
-- **The preliminaries assertion** (`book.rkt:1523–1537`) is *safe*. It asks
-  `min(front) > max(rest)` across **gatherings**, and the preliminaries are a
+- **The preliminaries assertion** (`book.rkt:1523–1537`) was never affected. It
+  asks `min(front) > max(rest)` across **gatherings**, and the preliminaries are a
   gathering of their own set last, so they hold the highest counter values
   whatever the direction inside each one.
-- **The compositor's turn is reversed within a gathering** (`book.rkt:1030`).
-  `man-for-forme` is called with `forme-order` while the pages arrive in
-  `setting-order`, so the stint plan is consumed backwards. The plan is built
-  correctly — it fills lazily from zero upward — and the stints stay whole and
-  contiguous, so no man's work is broken up. What changes is **which man takes a
-  gathering first**. That is not cosmetic: type supply governs spelling here, and
-  Blayney's best finding is that a man's choice between `-ie` and `-y` tracks how
-  full the `y` box is. Swapping the turn swaps which compositor meets the thin
-  case.
-- **Skeleton wear accumulates in counter order** (`book.rkt:988–995`), not in
-  setting order, so running-title damage progresses backwards inside a gathering.
-  The *grouping* survives — skeletons alternate, and an alternating sequence is
-  symmetric under reversal — but the order the damage appears in does not, and
-  that order is what `skeleton-report` reads.
+- **The compositor's turn** was reversed within a gathering. `man-for-forme` reads
+  the counter while the pages arrive in setting order, so the stint plan was
+  consumed backwards — stints stayed whole and contiguous, but which man took a
+  gathering first was inverted, and with it which man met the thin case, which is
+  what governs the `-ie`/`-y` choice Blayney measured.
+- **Skeleton wear** accumulated in counter order, so running-title damage
+  progressed backwards inside a gathering.
 
-**None of these is fixed here.** All three want the same change — number the
-formes in the order they are set — and that change moves skeleton assignment and
-compositor attribution together, so it must be measured against both rather than
-made because it is obviously right. Both are headline outputs of this program, and
-this file has caught itself twice making one number better by making another
-worse. **The honest state is that two known-wrong orderings are recorded, sized,
-and left visible rather than half-mended.**
+**Both headline outputs are unmoved by the correction**, which is the result that
+made it safe to keep. Folio in sixes, 6 seeds:
+
+| | before | after |
+|---|---|---|
+| attribution, right of attributed | 101 / 114 | **101 / 114** |
+| skeletons recovered over the truth | +18 | **+18** |
+
+Unchanged, not unexamined — the plan's random draws do differ, and the point of
+measuring was that they might not have cancelled. Compositors are symmetric in
+aggregate and the skeleton over-count is coarse enough not to feel a reordering of
+which forme took which. **A correction that is right in principle and neutral in
+effect is worth making and worth saying is neutral**, so that nobody later reads
+the commit as having bought an improvement.
+
+And the link improves slightly with the truth straightened: 13 boundaries of 13
+right at one forme standing, against 12 of 12 before.
 
 ### And the fount was not the problem — it is right, from two sources at once
 

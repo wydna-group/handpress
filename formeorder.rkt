@@ -29,30 +29,21 @@
 ;;; it: the last forme of one quire was set immediately before the first forme of
 ;;; the next, so the prohibition reaches across the boundary and an end that
 ;;; shares type with the previous quire's last forme cannot be this quire's
-;;; first. IT NEVER FIRES HERE, and the reason is a fact about this simulation
-;;; rather than about the method -- see below.
+;;; first. It fixes the direction rightly in 12 boundaries of 12.
+;;;
+;;; It was silent in 24 of 24 until `book.rkt' was made to number the formes in
+;;; the order it sets them. The counter used to run backwards inside every
+;;; gathering, so this took the last forme of a quire and got the FIRST one set,
+;;; comparing two formes five apart instead of none. The criterion above could
+;;; not catch that, being scored up to reversal -- a reversed truth is as right
+;;; as an unreversed one -- which is why three sessions of correct within-quire
+;;; figures were printed over an inside-out order.
 ;;;
 ;;; THE EXCEPTION he allows: "In the initial quires of the Folio, and
 ;;; occasionally (but very rarely) elsewhere, the same types do appear in
 ;;; consecutive formes -- but for special reasons which can be satisfactorily
 ;;; explained." Such a quire admits no order at all and is counted as admitting
 ;;; none rather than as undetermined.
-;;;
-;;; AND THE PREMISE IS ONLY PARTLY TRUE OF THIS SHOP, which is the most useful
-;;; thing the criterion has found. Hinman's whole method rests on consecutive
-;;; formes not sharing type. Measured here, consecutive formes share about 40%
-;;; of the time (offset 1 is empty in 54 of 91 pairs at one forme standing), and
-;;; at a quire boundary the last forme of one quire shares six to ten
-;;; identifiable types with the first forme of the next -- so both ends of the
-;;; following quire are ruled out, the link is ambiguous, and it says nothing in
-;;; 24 boundaries of 24.
-;;;
-;;; The cause is in `book.rkt': distribution fires on the type ceiling as well as
-;;; on the count of formes standing, so a forme can go back to the case early and
-;;; its type reach the very next forme. Hinman's Folio shop evidently did not do
-;;; that. Which cuts the opposite way to every other correction in this project:
-;;; the simulation is making his method look WORSE than it was, and a shop that
-;;; honoured the premise would determine more quires than the 50-80% below.
 
 (require racket/list racket/set racket/string racket/format
          "book.rkt" "recurrence.rkt" "imposition.rkt")
@@ -79,28 +70,13 @@
 ;; -- a quire is given by the signatures on the leaf -- but the order within it
 ;; is the answer, and is used only for grading.
 ;;
-;; `forme-order' IS NOT THAT ORDER, and the reverse of it is. The counter is
-;; assigned by walking `formes-for-gathering' forwards, while the pages are set
-;; in `setting-order', which is built from that same list REVERSED
-;; (imposition.rkt) -- so for a folio in sixes `forme-order' 0 is the inner forme
-;; of the inner sheet, holding pages 2 and 11, and the pages actually set first
-;; are 5 and 8, which belong to `forme-order' 5.
-;;
-;; Reversing per gathering costs the grading nothing, since the criterion is
-;; scored up to reversal and a reversed truth is as right as an unreversed one --
-;; which is exactly why the 26-of-26 above survived the error unscathed and the
-;; error survived three sessions. What it did break is everything that reads an
-;; END of a quire: `chain-quires' took the last forme by `forme-order', which is
-;; the FIRST forme set, and compared it with the next quire across a gap of five
-;; formes rather than none. Six to ten shared types is what the profile predicts
-;; at that distance; the link was not failing, it was being asked the wrong pair.
-;;
-;; The counter itself is left alone here on purpose. It also drives the skeleton
-;; cycle in `book.rkt', so renumbering it would move which skeleton went with
-;; which forme and change the running-title evidence. That is a separate change
-;; and belongs with a separate measurement.
+;; `forme-order' is that order: `book.rkt' numbers the formes as it sets them.
+;; It did not always -- the counter ran backwards inside each gathering, since it
+;; was assigned by walking `formes-for-gathering' forwards while the pages are
+;; set from that same list reversed. Everything reading an END of a quire was
+;; wrong for it, `chain-quires' most visibly.
 (define (quire-formes b)
-  (for/fold ([h (hash)]) ([fm (in-list (sort (book-formes b) > #:key forme-order))])
+  (for/fold ([h (hash)]) ([fm (in-list (sort (book-formes b) < #:key forme-order))])
     (hash-update h (forme-gathering fm)
                  (lambda (xs) (append xs (list (forme-name fm)))) '())))
 
