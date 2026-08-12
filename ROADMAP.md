@@ -1019,11 +1019,46 @@ but a third is available and untested, that his "area of visible type" is the
 measure times the depth, counting the leading between lines, which no reading here
 has attempted.
 
-**Before any more work on the white, settle what he measured.** He gives the
-method in the same note — ten random 20-line samples, marginal space taken
-separately in millimetres within a 22.76-em measure, non-marginal computed at 9%
-— and it is reconstructable. An anchor that has now sent three investigations
-after nothing has earned that scrutiny before a fourth.
+**The reading holds up.** His method, in the same note: marginal space measured
+directly in millimetres, non-marginal computed as 9% of "a given area of visible
+type" over ten 20-line samples. A 20-line sample within the measure *is* the type
+rectangle, and within the measure a justified line is letters plus spaces and
+nothing else — so his 9% is space over space-plus-letters, which is what has been
+computed here all along. The third reading is closed and the comparison is
+like-for-like.
+
+**So invert it and ask what gap would produce it.** From this program's own
+figures — mean gap 0.343 em, share 13.2%:
+
+| | |
+|---|---|
+| white : type now | 0.1521 |
+| white : type at 9% | 0.0989 |
+| gaps must shrink by | **×0.650** |
+| **mean gap needed** | **0.223 em** |
+
+And where 0.223 falls is the whole answer:
+
+| | |
+|---|---|
+| Jacobi's thick, in use on `main` | 0.333 em |
+| **Moxon's thick** | **0.250 em** |
+| **the target** | **0.223 em** |
+| Davis & Carter's thick | 0.167 em |
+| Moxon's thin | 0.143 em |
+
+**Blayney's shop was spacing between Moxon's thick and his thin, and much nearer
+the thick.** A house setting mostly thicks with thins mixed in averages almost
+exactly 0.223 — which is Moxon's fount doing what Moxon says it does, and it is
+not reachable with a ladder whose narrowest ordinary space is a third of an em.
+
+That reconciles everything: the branch reached 11.9% rather than 10.2% because
+`justify` had to stretch to fill the measure, and it had to stretch because the
+*quantities* still favour the thick. **The remaining work is not another
+candidate. It is the branch, plus a fount holding enough thin to space with.**
+§4a merged Smith's middle, thin and hair into a single thin of 4,480 against a
+thick of 2,680 — nearly two to one the right way — so the metal is already there
+and what wants checking is whether `justify` reaches for it.
 
 **What is settled** is that the question no longer wants a source. The data are on
 disk, they are measured rather than invented, and the objection that blocked them
