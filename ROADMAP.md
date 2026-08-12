@@ -486,14 +486,48 @@ three formes stand at folio and let distribution wait for forme completion, whic
 is the whole of what the premise needs; it would also give 17.7 quarto pages
 standing where Blayney says Okes could not manage sixteen.
 
-**So the ceiling cannot be one constant if both men are right.** It is not a
-property of the metal but of a shop's willingness to work thin cases, and the two
-best-documented shops of the period differ by a sixth. That is a real finding and
-it is left standing rather than split: fitting a single value to the mean of two
-shops would satisfy neither and would bury the disagreement, which is the more
-interesting fact. The next step is a per-house ceiling, sourced at 2/3 for Okes
-and 3/4 for Jaggard, and then the timing change — which at 3/4 should cost far
-less than the 42% measured above.
+**So the ceiling cannot be one constant if both men are right** — the two
+best-documented shops of the period differ by a sixth on how thin a pair of cases
+may be worked.
+
+### Except that the model cannot tell the difference, and a per-house ceiling was nearly built for nothing
+
+The obvious next move was a ceiling per house, 2/3 for Okes and 3/4 for Jaggard.
+Measured before building, and **the whole range the two men disagree about is one
+program**. Areopagitica, 5 seeds, counting the rungs of Blayney's ladder:
+
+| ceiling | folio6 shifts | robbed | face down | quarto shifts |
+|---|---|---|---|---|
+| **2/3 — Blayney's** | 14,853 | 4,892 | 1,228 | 6,242 |
+| **3/4 — Hinman's** | **14,853** | **4,892** | **1,228** | **6,242** |
+| 0.90 | 21,060 | 5,332 | 2,408 | 6,242 |
+| 0.999 | 21,060 | 5,332 | 2,408 | 6,242 |
+
+Byte-identical at the two sourced values. The ceiling only begins to bite above
+about 0.9, because distribution is granular — a whole forme goes back at once, so
+a ceiling a few hundred sorts higher selects the *same* forme a page later and the
+case arrives in the same state. **And at quarto the ceiling never fires at all**,
+at any value from 2/3 to 0.999: `--formes-standing` governs the format entirely.
+
+**Two parameters, each inert where the other binds.** At folio the forme count
+does nothing (measured earlier: standing 2, 3 and 4 give identical figures); at
+quarto the ceiling does nothing. Neither is dead — each governs one format — but
+each looks alive in the format where it is not, which is worse than a dead
+parameter and is not a case the lessons had covered.
+
+**What this settles about the disagreement**: it is real in the sources and
+currently below the model's resolution. Recording it as a finding to be encoded
+was premature — encoding it would have produced two named shops that behave
+identically, and a reader would reasonably infer the distinction mattered. The
+honest statement is that Blayney and Hinman differ, and that nothing this program
+now computes can distinguish them.
+
+**And it settles the profiles question.** Selectable shop profiles motivated by
+this difference would be ceremony. What a profile could honestly carry is the
+values that *do* change behaviour — the fount, the format and measure, the proof
+rate, the signature alphabet, the setting method — and the argument for it is not
+the ceiling but the fact that a run today already mixes Okes's fount with
+Jaggard's proof rate, Jaggard's measure and Okes's ceiling, and says so nowhere.
 
 **The exception is his and is kept**: where a shop distributed sooner than the
 criterion assumes, no order is admissible at all; the report counts those quires
@@ -1811,6 +1845,23 @@ rather than statistical" — and it was buried under a weighting function anyway
 **Having the finding is not the same as using it.** When the literature contains
 practitioners, read how they actually proceeded before designing a method for
 them.
+
+**A parameter can be alive in one format and inert in another, which reads as
+alive everywhere.** The type ceiling never fires at quarto at any value from 2/3
+to 0.999; `--formes-standing` changes nothing at folio-in-sixes. Each governs one
+format and neither is dead, so neither shows up as a dead mechanism — but a reader
+who tunes the ceiling on a quarto is tuning nothing, and gets no warning. This is
+a worse case than the four silent mechanisms the lessons already name, because
+those at least read zero somewhere. **Vary a parameter across formats before
+believing it does anything.**
+
+**Measure a disagreement's consequence before encoding it.** Blayney's two-thirds
+and Hinman's three-quarters are a real conflict in the sources and produce
+byte-identical output here — the ceiling is granular, since a whole forme goes
+back at once. A per-house ceiling was one edit from being built, and it would have
+shipped two named shops that behave the same while implying to every reader that
+the distinction mattered. A difference in the sources is not yet a difference in
+the program, and the second has to be demonstrated.
 
 **Test whether the answer is in the evidence before blaming either the evidence
 or the instrument.** Three searches for the forme order all returned chance, and
