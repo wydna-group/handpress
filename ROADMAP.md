@@ -933,14 +933,27 @@ set widths are anchored in *sum* to within 0.5% — Smith's eleven-em alphabet
 against this table's 10.95 (§7) — so it is not the widths, unless they are wrong
 in a way that preserves their total.
 
-Which leaves the measure, and gives a falsifiable figure: **20 ems rather than 21**
-(21 ÷ 1.048 = 20.04). That is a prediction about a real book and it is checkable
-in the same place the 9% came from — Blayney's Okes quartos, measuring type pages
-against leaves rather than adjusting until the white comes out right. Note the
-direction is *away* from *Lear*'s own 22.76-em prose measure, which makes it a
-real test rather than a fit: if Okes's pica quartos measure 22 or 23 ems, the
-measure is not the answer and the widths must be wrong in shape while right in
-sum.
+Which leaves the measure, and gave a falsifiable figure: **20 ems rather than 21**
+(21 ÷ 1.048 = 20.04).
+
+**Falsified, by a number that was already on the page the 9% came from.** Blayney
+gives *Lear*'s standard prose measure in the same note: **22.76 ems**. That is
+*wider* than this program's 21 and it carries *less* white — 9% against 13.2%. The
+prediction pointed at 20 and the real book is at 22.76, so narrowing the measure
+is not merely unsupported, it is the wrong direction. **The measure is not the
+cause.**
+
+Which leaves exactly one thing standing: **the set widths are wrong in shape while
+right in sum.** Smith's eleven-em alphabet constrains only their total, and it is
+met to 0.5% — but a table can hit that total with the wrong distribution among the
+sorts, and §7 has said from the beginning that "widths came in shared classes
+rather than a continuum", giving forty-odd sorts forty-odd independent decimals
+where Blokland's measured groups are four. **A table right in sum and wrong in
+shape is precisely what would set lines that need more white to come out even**,
+and it is the one candidate no measurement here has yet been able to rule out.
+
+The search for a per-sort measured text-size roman, §7's standing want, is
+therefore not a nicety. It is now the only route left to the 4.8%.
 
 **Where `--fit` comes in**, and why it is not a free knob: it scales the widths
 against the body, so it moves content and measure together and cannot on its own
