@@ -863,6 +863,43 @@ measured 9%.
 
 The first two are the real work and neither is large; the third is done.
 
+### Built on the branch `moxon-ladder`, and the prediction was wrong in a useful way
+
+The ladder is Moxon's there — em, en, thick 1/4, thin 1/7, no middle and no hair
+— `FINEST-SPACE` names the role `HAIR` was filling at eleven call sites, and the
+thin inherits the metal of the two bodies that go. Measured:
+
+| internal space, share of type + space | |
+|---|---|
+| **13.2%** | Jacobi's 1/3 thick, as shipped on `main` |
+| **11.9%** | Moxon's 1/4 thick, on the branch |
+| 10.2% | what a uniform 3/4 scaling predicted |
+| **9%** | Blayney, ten 20-line samples off *Lear* |
+
+**It moves the right way and only half as far as the arithmetic said**, and the
+reason is worth more than the change. A line must still fill its measure.
+Narrowing the body does not narrow the white; it makes `justify` spread more of
+it. So the realised share fell 10% where the nominal body fell 25%.
+
+**The body sets the granularity of the white, not its total.** Which means
+Blayney's 9% is not reachable by narrowing the thick at all — the remaining gap is
+in the measure, the content, or the justification regime, and §4 has been assuming
+it was in the ladder. That assumption is now disproved, and it was the whole
+argument for the change being consequential. **The change is still right — Jacobi
+1890 has no business in a 1600 fount — but it is a correction of provenance, and
+the effect it was expected to buy is not there.**
+
+Not merged: three fixtures still encode the wider space — a verse line that did
+not fit at the normal space and now does, a prose word count that shifts with the
+line breaks, and a heap test whose variants move with them. None is a defect and
+none was touched, because patching a fixture one has not examined is how a
+calibration stops meaning anything.
+
+**Where to look next for the missing 3 points**: the measure (21 ems, and §9 already
+doubts the type page against foolscap), the `--fit` of the set widths, or
+`justify`'s willingness to stretch. One of those, and not the spaces, is why this
+program sets more white than Okes did.
+
 **And sizing it turned up a fourth, which the unit move had already broken.**
 `typecase.rkt` held its own copy of the six body widths as literals in 1/120 em —
 `(cons 40 # )` for the thick and so on — and did not require `metrics.rkt`
