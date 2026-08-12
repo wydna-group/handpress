@@ -361,34 +361,52 @@
         ;; space-metal" (i. 144). A play is short lines, quadded-out ends and
         ;; marginal prefixes; it eats quads where prose eats letters.
         ;;
-        ;; The quantities are measured from the demand rather than found in a
-        ;; bill, because no bill of this period tabulates them. A quarto page
-        ;; here runs to 1,311 letters and 253 word-gaps -- so 16% of everything
-        ;; set is space -- and with a dozen pages standing some three thousand
-        ;; word-spaces are locked up at once. Which gives the result worth
-        ;; stating plainly: **the thick space is as common in a fount as the
-        ;; letter e**, and the box has to be about as deep.
+        ;; THE QUANTITIES ARE SMITH'S. This comment used to say that no bill of
+        ;; the period tabulated them; one does, and this module was already
+        ;; using it for the letters. Davis & Carter are right that Moxon "does
+        ;; not discuss the composition of a fount" and that "the earliest
+        ;; printed schemes are apparently those in Smith's _Printer's Grammar_
+        ;; of 1755" -- but Smith sets out the spaces as fully as the sorts
+        ;; (pp. 42-45), and both his columns total 133,110 exactly, which is how
+        ;; the OCR of that table is known to be sound. He was good enough for
+        ;; `e' and was not being consulted for the thick space.
         ;;
-        ;; The quantities follow the same principle as the letters: the fount
-        ;; must hold enough to fill the pages that stand, plus a working stock
-        ;; in the case. Some three thousand word-gaps stand at once, so the
-        ;; thick-space box is four thousand. Provisioned to the standing pages
-        ;; alone it cascaded -- every line that could not find a thick space
-        ;; made the white out of middles, then thins, then hairs, and drained
-        ;; the whole ladder.
+        ;; His spaces, revised column: thick 12,000, middle 10,000, thin 8,000,
+        ;; hair 2,000, m quadrats 2,000, n quadrats 5,000. Against his 13,000
+        ;; `e's those are the ratios used here, applied to this fount's own `e'.
         ;;
-        ;; This leaves prose comfortable and a play under strain, which is the
-        ;; asymmetry Blayney describes. Areopagitica is prose and never empties
-        ;; the em-quad box; a text of short lines and quadded-out ends would.
+        ;; Smith confirms from a printer what this comment always asserted from
+        ;; arithmetic: **the thick space is as common in a fount as the letter
+        ;; e** -- 12,000 against 13,000, a ratio of 0.92. The demand model had
+        ;; it at 1.38, and was wrong in a shape: too much of the extreme bodies,
+        ;; too little of the middle of the ladder. Smith's fount justifies by
+        ;; mixing middles and thins, nearly as numerous as the thick; ours
+        ;; justified with thick and cascaded to hair, and the cascade was met by
+        ;; deepening the boxes on either side of the hole rather than filling
+        ;; it. The total is very nearly unchanged: a redistribution, not more.
+        ;;
+        ;; WHAT IT DID NOT FIX, measured on a play over four seeds: the cascade.
+        ;; Space-metal shifts stand at 32 either way, and the sort that empties
+        ;; is the EN QUAD, 100% gone before and after -- which both the demand
+        ;; model and Smith provision at about 0.4 of `e', so neither addresses
+        ;; it. The strain a play puts on this case is not the thick-to-hair
+        ;; cascade this comment describes; it is the en quad, and the account
+        ;; above is kept only because it explains how the old numbers were
+        ;; arrived at. What justifies the change is provenance, not effect.
+        ;;
+        ;; A quarto page here runs to 1,311 letters and 253 word-gaps, so 16% of
+        ;; everything set is space, and with a dozen pages standing some three
+        ;; thousand word-spaces are locked up at once. Prose stays comfortable
+        ;; and a play comes under strain, which is Blayney's asymmetry.
         ;;
         ;; Unicode has characters for exactly these bodies, so they need no
         ;; private-use codepoints and they never print anything but white.
-        #\u2001 900   ; em quad     -- indents, and quadding out a short line
-        #\u2000 1200  ; en quad     -- the half, and figures range on it
-        #\u2004 4000  ; thick space -- the normal word space of the house
-        #\u2005 800   ; middle space
-        #\u2006 900   ; thin space
-        #\u200A 1400  ; hair space
+        #\u2001 450   ; em quad     -- indents, and quadding out a short line
+        #\u2000 1120  ; en quad     -- the half, and figures range on it
+        #\u2004 2680  ; thick space -- the normal word space of the house
+        #\u2005 2240  ; middle space
+        #\u2006 1790  ; thin space
+        #\u200A 450   ; hair space
         ;; Points, from van den Keere's registre rather than from Lear, and for
         ;; a reason Blayney gives: "Early printers evidently considered many
         ;; roman and italic points to be interchangeable (with each other and to

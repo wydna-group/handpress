@@ -862,8 +862,38 @@ and the hair box to 1,400.
 
 **That cascade is what a 2.8× hole in the middle of the ladder would produce.**
 The hair box at 3.1× Smith's proportion looks like the residue of the space-metal
-bug in the lessons below. Re-derive from Smith/10 and see whether the cascade
-survives; if it does, the demand model is wrong somewhere else.
+bug in the lessons below.
+
+**Re-derived from Smith, and the cascade survives — so the demand model is wrong
+somewhere else, exactly as this line predicted.** The quantities are now his
+ratios against his 13,000 `e`, applied to this fount's own: em 450, en 1,120,
+thick 2,680, middle 2,240, thin 1,790, hair 450. The total space-metal is very
+nearly unchanged, so it is a redistribution and not a richer shop.
+
+Measured on a play — where Blayney says the strain falls — over four seeds:
+
+| | space-metal shifts | the sort that empties |
+|---|---|---|
+| the demand table | 32 | en quad, 100% gone |
+| **Smith's proportions** | **32** | **en quad, 100% gone** |
+
+**The strain is on the en quad, which neither table addresses**: the demand model
+puts it at 0.41 of `e` and Smith at 0.385, so filling the hole in the middle of
+the ladder leaves the binding constraint exactly where it was. The thick-to-hair
+cascade the code describes is not what a play does to this case.
+
+**Kept anyway, and for provenance rather than effect.** An invented table has been
+replaced by the only bill anyone has; the module's own claim that "no bill of this
+period tabulates them" is retired as false; and Smith confirms in his own numbers
+the proposition the code asserted from arithmetic — thick 12,000 against `e`
+13,000, a ratio of 0.92 where the demand model had 1.38. **A change that improves
+where a number comes from and moves no measurement is worth making and worth
+labelling as such**, so nobody reads it as having bought an improvement.
+
+The question it leaves is sharper than the one it answered: **why does a play
+empty the en quad**, and is 0.4 of `e` wrong for Smith and the demand model alike,
+or is this model's appetite for en quads wrong? Blayney's *Lear* is where to
+settle it, space-metal under a play being the hinge of his whole reconstruction.
 
 One confirmation while here: "**Letter Founders call 3000 Lower case m's a
 Bill**, and proportion all the other Sorts by them; so that a whole Bill of Pica
