@@ -23,7 +23,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [What it produces](#what-it-produces) · [Quick start](#quick-start) · [Command line](#command-line)
 - [What is modelled](#what-is-modelled) — [the type](#the-type-as-physical-objects), [the paper](#the-paper-format-is-not-size), [casting off](#casting-off), [imposition](#imposition), [justification](#justification), [stints](#stints), [the case](#the-lay-of-the-case)
 - [Reading the copy](#reading-the-copy) · [The preliminaries](#the-preliminaries) · [The last sheet](#the-last-sheet) · [Cancels](#cancels)
-- [The heaps](#the-heaps-and-the-copies-gathered-from-them) · [Binding](#gathering-folding-and-binding) · [The lexicon](#the-lexicon)
+- [The heaps](#the-heaps-and-the-copies-gathered-from-them) · [The perfecting order](#the-perfecting-order-inferred) · [Binding](#gathering-folding-and-binding) · [The lexicon](#the-lexicon)
 - [Calibration](#calibration) · [The First Folio](#the-first-folio) · [Running it backwards](#running-it-backwards)
 - [What it does not do](#what-it-does-not-do) · [Sources](#sources) · [Roadmap](ROADMAP.md)
 
@@ -147,7 +147,7 @@ set twice sixty years apart, so you can see what the shop contributes.
 
 ```sh
 raco pkg install --link .     # require modules as handpress/compositor
-raco test test-all.rkt        # 1,133 checks, about fifteen seconds
+raco test test-all.rkt        # 1,155 checks, about fifteen seconds
 raco scribble --html --dest doc scribblings/handpress.scrbl
 ```
 
@@ -238,6 +238,7 @@ the fount, perfectly labelled.
 | flag | effect |
 |---|---|
 | `--first-proof` | chance of a proof pulled *before* the run begins |
+| `--proof-rate` | chance a forme is proofed at all — 0.224, from Hinman's count of corrected formes in the Folio |
 | `--seed` | the whole run is deterministic in this |
 | `--font` | family the facsimile is drawn in, e.g. `Junicode` |
 | `--font-file` | a fount to embed beside the page — `.woff2`, `.ttf`, `.otf` |
@@ -800,6 +801,57 @@ out of Moxon's mechanism rather than being fitted, and it is not as far as I kno
 anywhere in the literature. It also carries a warning for §2: an inference about
 perfecting order drawn from four copies is reading a heap it cannot resolve.
 
+## The perfecting order, inferred
+
+The exam the heaps opened, and now sat. Gaskell's mechanism run backwards: the corrected
+sheets are the ones worked off after the proof came back, so they lie at the end of the
+printing order — and a sheet perfected inner forme first is gathered in reverse of that
+order, putting its corrected copies **first**. So a grouping that is a *prefix* of the
+gathering names the inner forme, a *suffix* names the outer, and the program knows the
+answer.
+
+**The analyst is not given the gathering order.** Copies here are named A, B, C… in the
+order they were gathered, so sorting them by name would hand over the answer — the fault
+`recurrence.rkt` exists to prevent on the type side. Nothing in `perfecting.rkt` reads a
+copy's name or its position in a list; the order is reconstructed from how the groupings
+nest, which is Greg's condition doing a job rather than being tested. A test feeds the
+copies in scrambled eight ways and checks the reading does not move.
+
+**The result is 100%, and it means less than that sounds.** Over 40 runs of 24 copies,
+322 of 322 formes are sorted into the right two classes. Three things have to be said
+beside it:
+
+- **The chance floor is not a half.** The metric takes the better of two directions, so
+  for nothing it scores `E[max(X, n−X)]/n` — 0.75 on two formes, **0.64 on eight**, still
+  0.53 on two hundred. Scored against a deliberately shuffled truth the control returns
+  66.5%. The report computes the floor per run and prints it beside the score.
+- **The direction is not in the evidence.** Calling one class of groupings the prefixes is
+  free; taking the other reverses the recovered order and turns every inner into an outer
+  at a stroke, and both readings satisfy Greg equally. Over 60 runs the method calls the
+  direction rightly 30 times and backwards 30 times — **a coin, as claimed, and measured
+  rather than argued**. The ambiguity is exactly 2: the groupings never fell into more
+  than one independently-flippable class in any run tested.
+- **It is never partly right.** In those 60 runs, **not one** got some formes right and
+  others wrong. The method recovers the whole partition or the exact inverse. It has
+  precisely one thing it can get wrong, and it gets it wrong half the time.
+
+One fact from outside settles every sheet at once — one sheet whose printing order is
+known from the type recurrence ([§1](ROADMAP.md)), or the assumption that the shop
+perfected mostly one way. Gaskell's own example supposes inner-first throughout, which
+would serve; it is imported rather than read, and is not assumed here.
+
+**And it survives what Greg's own test does not.** At 200 copies and total heap disorder
+the consistency condition fails 25 times in 25 — and the perfecting inference is still
+100%. Moxon's disorder is local, at most 75 sheets; whether a grouping sits at the head or
+the foot of the heap is global. The two are sensitive to different things, which is worth
+knowing before treating a failed consistency test as evidence that nothing can be read.
+
+**What a collation can resolve is bounded by its variants, not its copies.** Groupings cut
+the gathering in one place each, so *j* variant formes distinguish at most *j*+1 positions
+however many copies are on the table. The report brackets copies no variant separates
+rather than printing a flat list — 24 copies and one variant fall into two places, and
+showing them in a line would dress the arbitrary order of a tie as a finding.
+
 ## Gathering, folding and binding
 
 The one stage at which the *book* diverges from the *printing*. Two hands in two
@@ -1111,13 +1163,12 @@ at least two prior distributions in every quarto page, the order those pages wer
 cannot be proved. The simulator can run it at any density and find where the boundary
 actually falls.
 
-**Recovering the perfecting order from the groupings** is the exam the heaps opened and
-nobody has yet sat. The direction of each grouping says which forme of a sheet went to
-press first, and the program knows the answer — but the report still shows the truth
-beside the groupings instead of making the inference and being scored on it. The heaps
-now have Moxon's grain, which is what that exam was waiting on — and which sets its
-first result in advance: on a sparse collation the groupings cannot resolve the
-disorder at all, so the inference should score *better* than it deserves to.
+**Recovering the perfecting order from the groupings** has been sat: 100% of formes
+sorted into the right two classes, and the direction of those classes not recoverable
+from press variants at all. What is still open there is the analyst's eye — the
+inference is handed a perfect collation, where a real one misses variants — and a book
+long enough for the groupings to fall into more than one independently-flippable class,
+which has not yet happened in any run tested.
 
 ## Licence
 

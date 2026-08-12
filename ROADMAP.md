@@ -167,16 +167,61 @@ because Hinman says only the former are informative. Nothing yet uses them.
 
 ---
 
-## 2. Recovering the perfecting order from the groupings
+## 2. Recovering the perfecting order — *built and graded; the direction is not there*
 
-The prize that correlated press-variants opened, and not yet taken. Given a
-handful of collated copies, the direction of each grouping — which end of the
-gathered order holds the corrected sheets — says which forme of that sheet went
-to press first, and the program knows the answer.
+The prize that correlated press-variants opened. `perfecting.rkt`, reported in
+full. Given the groupings and nothing else, it recovers the gathering order from
+the way they nest, reads each grouping as a prefix or a suffix of it, and calls
+the forme perfected first. **100% — 322 of 322 formes over 40 runs of 24
+copies.** Three things have to be said beside that number, and the third was not
+expected.
 
-The report currently shows the truth *beside* the groupings rather than making
-the inference and being scored on it. Turning that round is the analysis half's
-next real exam.
+**The chance floor is not a half.** The metric takes the better of two
+directions, so for nothing it scores `E[max(X, n−X)]/n`: 0.75 on two formes,
+0.64 on eight, still 0.53 on two hundred. Against a deliberately shuffled truth
+the control returns 66.5%. `chance-floor` computes it per run and the report
+prints it beside the score, because a rate without the thing it should be
+compared to is this project's oldest failure.
+
+**The direction is not recoverable from press variants at all.** Calling one
+class of groupings the prefixes is free; taking the other reverses the recovered
+order and turns every inner into an outer at a stroke, and both readings satisfy
+Greg equally. Over 60 runs the method calls it rightly 30 times and backwards 30
+— a coin, measured rather than argued, and there is a test that fails if the code
+ever leans either way. One external fact settles every sheet together: one sheet
+ordered by type recurrence (§1), or the assumption that the shop perfected mostly
+one way. Gaskell's example supposes inner-first throughout and would serve; that
+is imported, not read, and is not assumed here.
+
+**It is never partly right.** In those 60 runs not one got some formes right and
+others wrong — the whole partition or the exact inverse. The method has precisely
+one thing it can get wrong and gets it wrong half the time. That is a very
+different failure profile from the graceful degradation §1's type-recurrence work
+expects, and it is worth carrying into that work: **an inference can be
+structurally certain and globally unanchored**, which no accuracy figure on its
+own will show.
+
+**And it survives what Greg's own test does not.** At 200 copies and total heap
+disorder the consistency condition fails 25 times in 25 (§3) while this reads
+100%. Moxon's disorder is local, at most 75 sheets; whether a grouping sits at
+the head or the foot of the heap is global. A failed consistency test is not
+evidence that nothing can be read off the groupings.
+
+One limit the report now states rather than papering over: groupings cut the
+gathering in one place each, so *j* variant formes distinguish at most *j*+1
+positions among the copies however many are collated. Copies no variant separates
+are bracketed together instead of being listed in the arbitrary order of a tie.
+
+**Still open here**, and the reason this section is not simply deleted:
+
+- **The analyst is handed `variant-groupings` directly**, which is a perfect
+  collation. A real one misses variants and invents none; the effect of an
+  imperfect eye on this inference is unmeasured, and §1's `--discrimination`
+  is the model for how to do it.
+- **The 100% is on one book at one format.** Nothing here has been run at folio,
+  on a book long enough for the groupings to fall into more than one
+  independently-flippable class — the component count was 1 in every run tested,
+  and the report is written to handle 2^n but has never seen n > 1.
 
 **Greg's calculus as an analysis module** is the general form of the same work:
 type-1 and type-2 variants, the compounded variational formula, the resolution
@@ -1348,6 +1393,20 @@ omission branch, and the crowding devices. Turn-over was wrongly added to that l
 and taken off again. To which that episode adds a corollary: **a report that prints
 a bare zero cannot distinguish a thing that did not happen from a thing that could
 not.** Both look like evidence and only one is.
+
+**An inference can be structurally certain and globally unanchored, and an
+accuracy figure will not show it.** The perfecting inference sorts every forme in
+the book into the right two classes, every time, and cannot say which class is
+which — 30 runs right and 30 backwards, never a mixture. Quoted as "100%" it
+sounds like a solved problem; quoted as "one binary fact short of a solved
+problem, and that fact is a coin" it is the truth. Ask of any score not only how
+often it is right but **what shape its error has**, because a method that fails
+wholesale and a method that fails gracefully can print the same percentage.
+
+**A metric that takes the best of several readings has a chance level above a
+coin, and it is usually higher than it looks.** Scoring the better of two
+directions on eight formes gives 64% for nothing, and on two hundred still 53%.
+The floor is computed and printed beside every score rather than assumed.
 
 **Two errors cancelling is this project's characteristic failure.** `proof-rate`
 was wrong and variants-per-forme were wrong in the opposite direction, and the

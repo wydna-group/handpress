@@ -86,6 +86,7 @@
                        #:paging-error [paging-error 0.04]
                        #:prepare-copy? [prepare? #t]
                        #:first-proof [first-proof 0.0]
+                       #:proof-rate [proof-rate PROOF-RATE]
                        #:edition [edition 750]
                        #:condition [condition 'used]
                        #:title [title "THE HISTORY"]
@@ -204,6 +205,7 @@
                         #:prelim-style prelim-style))
   (define b (set-book h copy kind))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
+                       #:proof-rate proof-rate
                        #:edition edition
                        #:binding-error (or binding-error BINDING-ERROR-RATE)
                        #:cancel-rate cancel-rate
@@ -349,6 +351,7 @@
   (define paging-error 0.04)
   (define prepare? #t)
   (define first-proof 0.0)
+  (define proof-rate PROOF-RATE)
   (define edition 750)
   (define condition 'used)
   (define title "THE HISTORY")
@@ -413,6 +416,9 @@
                             (set! standing (string->number n))]
      [("--first-proof") f "chance of a proof pulled BEFORE the run"
                         (set! first-proof (string->number f))]
+     [("--proof-rate") f
+      "chance a forme is proofed at all, 0-1. Hinman's count of corrected formes in the Folio puts it at 0.224 (default)"
+      (set! proof-rate (string->number f))]
      [("--edition") n "sheets printed; the Cambridge accounts show 400-820"
                     (set! edition (string->number n))]
      [("--fount") c "condition of the type: new | used | worn | foul"
@@ -480,6 +486,7 @@
                        #:skeletons skeletons #:formes-standing standing
                        #:stint-sheets stint #:paging-error paging-error
                        #:prepare-copy? prepare? #:first-proof first-proof
+                       #:proof-rate proof-rate
                        #:edition edition #:condition condition
                        #:title title #:book-title book-title #:author author
                        #:printer printer #:publisher publisher

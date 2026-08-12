@@ -56,7 +56,7 @@
          (struct-out printed-copy) (struct-out press-run)
          run-press copy-reading-map collate run-variants
          forme-state-corrected? book-quires
-         variant-groupings greg-consistent? HEAP-TRAVEL-BOUND)
+         variant-groupings greg-consistent? HEAP-TRAVEL-BOUND PROOF-RATE)
 
 ;; Plausible sophistications: what a corrector puts in when he decides a
 ;; perfectly good reading must be wrong.
@@ -89,6 +89,12 @@
 ;; such a collation means the test could not fire rather than that the
 ;; warehouse kept its order.
 (define HEAP-TRAVEL-BOUND (* (sub1 HANDFUL-MAX) DOUBLING-MAX))
+
+;; How often a forme is proofed at all. The arithmetic that gets from Hinman's
+;; count of formes CORRECTED to this rate of formes PROOFED is spelt out at the
+;; keyword argument below; it is named here because main.rkt needs the same
+;; default and a second literal is a second place for it to drift.
+(define PROOF-RATE 0.224)
 
 (struct pvariant (forme page line word uncorrected corrected note) #:transparent)
 
@@ -203,7 +209,7 @@
                    ;; once both are accounted for. Two wrongs stop making a
                    ;; right, which is the only reason the arithmetic is spelt
                    ;; out here rather than the number simply changed.
-                   #:proof-rate [proof-rate 0.224]
+                   #:proof-rate [proof-rate PROOF-RATE]
                    #:catches-accident [catches-accident 0.75]
                    #:catches-misreading [catches-misreading 0.10]
                    ;; How often the reader calls for the copy rather than

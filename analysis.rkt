@@ -12,7 +12,7 @@
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "recurrence.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "book.rkt" "deviation.rkt" "pagination.rkt"
          "prelims.rkt" "titlepage.rkt" "binding.rkt" "cancels.rkt" "import.rkt"
-         "press.rkt" "render.rkt" "paper.rkt")
+         "press.rkt" "render.rkt" "paper.rkt" "perfecting.rkt")
 
 (provide (struct-out page-evidence)
          spelling-evidence attribution-report contamination-report
@@ -1418,7 +1418,7 @@ CANCELS
                  (case-report b)
                  (turner-report b)
                  (deviation-report b r))
-           (if r (list (press-report b r)) '())
+           (if r (list (press-report b r) (perfecting-report r)) '())
            (list MCKENZIE))
    (string-append "\n\n" (make-string 74 #\═) "\n\n")))
 
