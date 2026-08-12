@@ -1053,12 +1053,33 @@ exactly 0.223 — which is Moxon's fount doing what Moxon says it does, and it i
 not reachable with a ladder whose narrowest ordinary space is a third of an em.
 
 That reconciles everything: the branch reached 11.9% rather than 10.2% because
-`justify` had to stretch to fill the measure, and it had to stretch because the
-*quantities* still favour the thick. **The remaining work is not another
-candidate. It is the branch, plus a fount holding enough thin to space with.**
-§4a merged Smith's middle, thin and hair into a single thin of 4,480 against a
-thick of 2,680 — nearly two to one the right way — so the metal is already there
-and what wants checking is whether `justify` reaches for it.
+`justify` had to stretch to fill the measure. **Measured on the branch, it does
+reach for the thin — and the mean is dragged by something else.**
+
+| gaps on `moxon-ladder`, 48,067 of them | |
+|---|---|
+| mean gap | **0.302 em** (target 0.223) |
+| exactly at the thick, 0.25 | **57%** |
+| at or below the thin, 0.143 | **22.9%** |
+| the remaining fifth | averages **0.63 em** — wider than an en quad |
+
+So four gaps in five are set at the thick or finer, exactly as a Moxon house would
+set them, and **a fifth are padded past an en quad**. That tail alone carries the
+mean from about 0.22 to 0.30 — which is to say, **remove it and the branch lands
+on Blayney's figure.**
+
+**The residual is in how the leftover is distributed, not in the ladder.** A line
+short of its measure has the remainder spread over its gaps, and `space-bodies`
+builds each gap greedily from the largest body that fits — so a line wanting much
+white gets a few very wide gaps rather than many slightly wide ones. A compositor
+short of measure has other recourse: divide a word, respell, or reach for the next
+line. This one only pads.
+
+**That is the last piece, and it is a mechanism rather than a constant.** What to
+compare it against is in `description.rkt` already — Moxon's "three spaces and no
+more" between words, which at his thick is 3/4 em and which a 0.63-em gap does not
+break but a padded line full of them makes suspicious. The count of gaps exceeding
+that threshold is the check, and it is already reported.
 
 **What is settled** is that the question no longer wants a source. The data are on
 disk, they are measured rather than invented, and the objection that blocked them
