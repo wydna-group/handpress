@@ -13,7 +13,7 @@
 ;;; locked up until that forme has been printed off and distributed; and the
 ;;; wrong-fount sort borrowed from another case when no shift will serve.
 
-(require racket/list racket/math racket/string "rng.rkt")
+(require racket/list racket/math racket/string "rng.rkt" (only-in "metrics.rkt" EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
 
 (provide (struct-out draw) (struct-out tcase) (struct-out sort-piece)
          make-type-case pick! distribute! distribute-pieces! scarcest
@@ -918,16 +918,25 @@
 ;; Largest first, because that is fewest pieces and fewest chances of one
 ;; working loose.
 ;;
-;; Widths are in 1/120 em so that the ladder divides exactly, which is why this
-;; can be a greedy decomposition rather than an approximation.
+;; The widths come from `metrics.rkt' and are not written out again here.
+;;
+;; They were, as six literals in 1/120 em. When the unit moved to 1/840 to carry
+;; Moxon's seventh (roadmap \u00A74) this table went on naming a thick space of 40
+;; units -- which at the new unit is thinner than a hair -- and **every test
+;; still passed**, because nothing checked that the case's idea of a body agreed
+;; with the compositor's. The module did not even require `metrics.rkt'; the six
+;; numbers had been copied across and there was nothing to keep them together.
+;;
+;; That the ladder divides the em exactly is what lets this be a greedy
+;; decomposition rather than an approximation, and it is `metrics.rkt' that
+;; guarantees it.
 (define SPACE-BODIES
-  ;; width in 1/120 em -> the sort
-  (list (cons 120 #\u2001)      ; em quad
-        (cons 60  #\u2000)      ; en quad
-        (cons 40  #\u2004)      ; thick
-        (cons 30  #\u2005)      ; middle
-        (cons 24  #\u2006)      ; thin
-        (cons 15  #\u200A)))    ; hair
+  (list (cons EM-QUAD #\u2001)
+        (cons EN-QUAD #\u2000)
+        (cons THICK   #\u2004)
+        (cons MIDDLE  #\u2005)
+        (cons THIN    #\u2006)
+        (cons HAIR    #\u200A)))
 
 ;; Fill `width' from the boxes, taking the largest bodies that will serve and
 ;; that are actually in stock. Returns (values pieces short?) -- `short?' when
@@ -1367,16 +1376,17 @@
   ;; first, and the widths divide exactly so the decomposition is not an
   ;; approximation.
   (let ([tc6 (make-type-case #:rng (make-rng 1608))])
-    (define-values (ps short?) (take-space! tc6 120))
+    (define-values (ps short?) (take-space! tc6 EM-QUAD))
     (check-equal? ps (list #\u2001) "an em of white is one em quad")
     (check-false short?)
-    (define-values (ps2 s2) (take-space! tc6 55))
-    (check-equal? ps2 (list #\u2004 #\u200A) "a thick and a hair make 55/120")
+    ;; a thick and a hair, whatever the unit happens to be
+     (define-values (ps2 s2) (take-space! tc6 (+ THICK HAIR)))
+    (check-equal? ps2 (list #\u2004 #\u200A) "a thick and a hair make one gap")
     (check-false s2)
     ;; Empty the thick box and the same white is made of smaller pieces, which
     ;; is what a compositor does and what leaves a tell-tale row of thins.
     (hash-set! (tcase-boxes tc6) #\u2004 0)
-    (define-values (ps3 s3) (take-space! tc6 40))
+    (define-values (ps3 s3) (take-space! tc6 THICK))
     (check-true s3 "a thick space wanting is a shortage")
     (check-false (memv #\u2004 ps3) "and no thick space was set")
     (check-true (>= (length ps3) 1) "the white was made up out of the ladder"))
@@ -1387,7 +1397,7 @@
   ;; space-metal, and so was quite capable of passing for a finding.
   (let ([tc7 (make-type-case #:rng (make-rng 1608))])
     (define before (hash-ref (tcase-boxes tc7) #\u2004))
-    (define-values (ps _s) (take-space! tc7 40))
+    (define-values (ps _s) (take-space! tc7 THICK))
     (note-white! tc7 "A1r" ps)
     (check-equal? (hash-ref (tcase-boxes tc7) #\u2004) (sub1 before))
     (distribute-space! tc7 "A1r")

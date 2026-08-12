@@ -863,6 +863,32 @@ measured 9%.
 
 The first two are the real work and neither is large; the third is done.
 
+**And sizing it turned up a fourth, which the unit move had already broken.**
+`typecase.rkt` held its own copy of the six body widths as literals in 1/120 em —
+`(cons 40 # )` for the thick and so on — and did not require `metrics.rkt`
+at all. When the unit moved to 1/840 that table went on naming a thick space of
+40 units, **thinner than a hair at the new unit**, so the case and the compositor
+disagreed about what a body was.
+
+**Every test passed.** Nothing checked that the case's idea of a body agreed with
+the compositor's, and the space-metal tests were themselves written in the same
+stale literals — `take-space! tc6 55` and "a thick and a hair make 55/120" — so
+they were self-consistently wrong and went on passing against the broken table.
+The tests were part of the fault rather than a check on it.
+
+Now sourced from `metrics.rkt`, with the fixtures written in terms of the
+constants. Measured after the repair: internal space **13.2%**, unchanged, and the
+play's shortage figures intact. So the damage was latent rather than expressed —
+the greedy decomposition still terminated, it was simply choosing bodies against a
+ladder that no longer existed.
+
+**The lesson is the one this file already names and did not apply widely enough.**
+One property, one decision point — and the property here was not a rate or a rule
+but a *unit*. When the denominator of a shared quantity changes, every literal
+expressed in it is wrong at once, and literals hide in test fixtures as readily as
+in code. *The unit move was reported as costing two trivial fixups; it cost three,
+and the third was invisible until the ladder was sized.*
+
 ### 4a. And the quantities disagree with the only bill there is
 
 `typecase.rkt` says of the space-metal:
