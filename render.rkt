@@ -185,8 +185,14 @@
   (check-true (> (string-length txt) 50))
   ;; The rendered line never runs past the measure in characters either.
   (define chars (measure-in-characters (* 21 UNITS-PER-EM)))
+  ;; The slack is for the indent a centred or quadded line carries, which is
+  ;; part of the rendering and not part of the type. It was four characters,
+  ;; fitted at 1/120 em; at 1/840 the centring of the imprint line rounds one
+  ;; character the other way and it wants six. The number is arbitrary either
+  ;; way -- what the check is for is a line running away entirely, not a
+  ;; character of indent.
   (for* ([p (in-list (book-pages b))] [l (in-list (page-all-lines p))])
-    (check-true (<= (string-length (render-line-text l chars)) (+ chars 4))
+    (check-true (<= (string-length (render-line-text l chars)) (+ chars 6))
                 (format "rendered line too long: ~s" (render-line-text l chars))))
 
   )

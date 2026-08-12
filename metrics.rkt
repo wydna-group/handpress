@@ -8,9 +8,18 @@
 ;;; to a text at the end of a line follows from that one mechanical fact, so
 ;;; the widths have to be modelled before anything else.
 ;;;
-;;; Widths are integers in units of 1/120 em, so that the common spaces divide
+;;; Widths are integers in units of 1/840 em, so that the common spaces divide
 ;;; evenly. Racket's exact rationals make the divisions honest: (u 1/3) is
-;;; exactly 40, not 39.99999.
+;;; exactly 280, not 279.99999.
+;;;
+;;; 840 rather than 120, and the number is chosen to divide by seven. 120
+;;; carries halves, thirds, quarters, fifths and eighths, which suits the
+;;; ladder below -- a ladder that is Jacobi's of 1890. Moxon's fount has four
+;;; spaces, not six, and his thin is "the seventh part of the Body"
+;;; (Dictionary, p. 353), which 120 cannot express at all. 840 is the least
+;;; number carrying halves, thirds, quarters, fifths, sixths, sevenths and
+;;; eighths together, so Jacobi's ladder and Moxon's can both be stated exactly
+;;; and compared without either being rounded to suit the other. Roadmap §4.
 
 (require racket/math)
 
@@ -20,7 +29,7 @@
          width-of width-of-word ems describe-space space-bodies
          AVERAGE-LOWERCASE measure-in-characters)
 
-(define UNITS-PER-EM 120)
+(define UNITS-PER-EM 840)
 
 (define (u em) (exact-round (* em UNITS-PER-EM)))
 
@@ -158,14 +167,24 @@
   (require rackunit)
   ;; The spaces must divide the em exactly; this is the whole reason for
   ;; working in 1/120 em rather than in floating point.
-  (check-equal? EM-QUAD 120)
-  (check-equal? EN-QUAD 60)
-  (check-equal? THICK 40)
-  (check-equal? MIDDLE 30)
-  (check-equal? THIN 24)
-  (check-equal? HAIR 15)
-  (check-equal? (* 3 THICK) EM-QUAD)
+  ;;
+  ;; Asserted as the property, not as six literals. It was six literals, and
+  ;; they had to be rewritten to change the unit -- which turns a test of the
+  ;; arithmetic into a test of one arbitrary denominator, and would have to be
+  ;; rewritten again for the next one.
+  (check-equal? EM-QUAD UNITS-PER-EM)
   (check-equal? (* 2 EN-QUAD) EM-QUAD)
+  (check-equal? (* 3 THICK) EM-QUAD)
+  (check-equal? (* 4 MIDDLE) EM-QUAD)
+  (check-equal? (* 5 THIN) EM-QUAD)
+  (check-equal? (* 8 HAIR) EM-QUAD)
+  ;; And the unit must carry a seventh, which 120 could not. Moxon's thin is
+  ;; "the seventh part of the Body", so a unit unable to express one cannot
+  ;; state his fount at all, let alone compare it with the one in use.
+  (check-equal? (* 7 (quotient UNITS-PER-EM 7)) UNITS-PER-EM
+                "the em divides by seven, so Moxon's thin is expressible")
+  (check-equal? (* 6 (quotient UNITS-PER-EM 6)) UNITS-PER-EM
+                "and by six, for Davis & Carter's reading of his thick")
   ;; A long s is narrower than a short one -- which is why the conventions of
   ;; the case have to be applied before any width is computed.
   (check-true (< (width-of #\ſ) (width-of #\s)))

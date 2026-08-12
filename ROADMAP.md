@@ -801,43 +801,47 @@ would do it (em 840, en 420, thick 210 or 140, thin 120). That is a real design
 decision with blast radius across every justification the program makes, and it
 would invalidate the calibration table, which is why it is here rather than done.
 
-**Attempted, and the first attempt's verdict was wrong.** It was recorded here
+**The unit is done.** `UNITS-PER-EM` is 840, and Moxon's fount is now
+expressible: a seventh, a sixth and a quarter of the em are all whole numbers of
+units, where 120 could state none of the first two.
+
+It took two attempts and the first one's verdict was wrong. It was recorded here
 that the move broke three tests across `imposition.rkt` and `compositor.rkt`, that
-one failure "could not be reconciled with the arithmetic", and that the unit was
-therefore inseparable from a full recalibration. **All of that was stale
-bytecode.** `metrics.rkt` had been edited twice in quick succession and dependent
-modules were compiled against different versions of it; the failing check at
-`imposition.rkt:868` passes when run on its own, at the very figures the hand
-arithmetic gives — 15,361 units against a measure of 16,800.
+one "could not be reconciled with the arithmetic", and that the unit was therefore
+inseparable from a full recalibration. **All of that was stale bytecode** —
+`metrics.rkt` edited twice in quick succession, dependent modules compiled against
+different versions of it. The check said to be irreconcilable passes on its own at
+exactly the figures hand arithmetic gives, 15,361 units against a measure of
+16,800.
 
-Rebuilt from clean, with every `compiled/` directory removed, the actual state of
-`UNITS-PER-EM 840` is:
+Rebuilt from clean, the whole cost of the move was two things:
 
-| | |
-|---|---|
-| tests | **1,189 of 1,190 pass** |
-| the one failure | `render.rkt:189`, a plain-text line 46 characters against a tolerance of 45 |
-| the line | `"  Printed by Henrie Ballard for Edward Blount."` — centred, on the title-page |
+- **six literal body assertions** in `metrics.rkt`, which had to be rewritten to
+  change the unit — a test of the arithmetic that was really a test of one
+  arbitrary denominator. They now assert the property: each body is its stated
+  fraction of the em, exactly, and the em divides by six and seven.
+- **one plain-text line**, `"  Printed by Henrie Ballard for Edward Blount."`,
+  centred on the titlepage, 46 characters against a tolerance of 45. The slack in
+  that check is for the indent a centred line carries, was fitted at 1/120, and
+  wanted one more character at 1/840. Arbitrary either way; the check is for a
+  line running away entirely.
 
-**One character, on a centred line, from the centring indent rounding
-differently.** It is not type overrunning its measure; it is the plain-text
-approximation of a centred line, and the `+4` slack in that check is arbitrary.
+**And both period calibrations are unmoved, which is what licensed the merge:**
 
-So the unit move is very nearly free after all, and the six literal body
-assertions in `metrics.rkt` are the only real work in it — they should assert the
-property (each body is its stated fraction of the em) rather than six numbers that
-have to be rewritten whenever the denominator changes.
+| | at 1/120 em | at 1/840 em | the source |
+|---|---|---|---|
+| roman lower case, a–z less j and u | 10.95 em | **10.95 em** | Smith, "eleven m's" (§7) |
+| internal space, share of type + space | 13.2% | **13.2%** | Blayney, ≈9% off *Lear* (§4a) |
 
-**Left unmerged all the same**, and for a reason that is not the one given before:
-the roadmap requires that moving the unit be accompanied by re-deriving
-`em-widths` at the finer rounding, re-checking Smith's eleven-em alphabet (§7) and
-re-running the 9% area check (§4a). None of that is done, and shipping the unit
-alone would leave the calibration unverified at a rounding it has never been
-tested at. **The difference is that this is now a piece of work with a known cost,
-rather than a wall.**
+1,190 tests pass.
 
-*Lesson recorded below: a stale compile can manufacture a failure that reads
-exactly like a finding, and it did.*
+**What remains is the bodies themselves**, and it is now an isolated change: the
+ladder is still Jacobi's — thick 1/3, middle 1/4, thin 1/5, hair 1/8 — and Moxon's
+is thick 1/4 (or 1/6) and thin 1/7, with no middle and no hair at all. The unit
+can now express either, so whatever moves when the ladder changes is the ladder
+and not the arithmetic. That separation was the whole purpose of doing the unit on
+its own, and the 13.2% above is the number to watch: Moxon's quarter predicts
+10.2% against Blayney's 9%.
 
 ### 4a. And the quantities disagree with the only bill there is
 
