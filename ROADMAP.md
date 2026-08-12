@@ -156,6 +156,54 @@ itself readable.
   Folio copy from §10 or a longer text, and finding it out now is cheaper than
   finding it out after the inference is written.
 
+### First attempt at the inference: it produced Blayney's predicted result, and the result was a bug
+
+Worth recording in full, because the near-miss here is the most dangerous kind
+this project has met.
+
+The attempt: build the shared-type matrix, weight each pair by a bump that is
+negative while two formes stand together and peaks a lag later, search the lag
+over 1–4, and hill-climb the permutation with segment reversals and single
+moves from six random restarts. Then fix the direction from the trend in
+identifiable-piece counts, since the fount batters as the book goes on and later
+formes carry more distinctive type — the recurrence matrix being symmetric, it
+can give the order only up to reversal, exactly as §2 predicted.
+
+Kendall tau against the truth, quarto, eight seeds: **0.15, and a coin is 0.**
+
+**That is precisely what Blayney says should happen.** A quarto page carries "no
+more than 5 or 6 types", which "is not nearly enough to allow the page-order of a
+quarto to be determined with any great precision". Our formes hold 15 identifiable
+pieces over four pages — his density almost exactly. The temptation to write it
+up as his prediction confirmed was considerable, and it would have been wrong.
+
+**The control that caught it.** If the method is sound, the score must rise as
+the eye gets finer and the evidence per forme grows. It does not:
+
+| `--discrimination` | identifiable pieces per forme | tau |
+|---|---|---|
+| 0.26 — the default | 15.1 | 0.15 |
+| 0.15 | 20.5 | 0.18 |
+| 0.05 | 29.3 | −0.26 |
+| 0.0 — a perfect eye | 35.5 | −0.13 |
+
+At 35 pieces a forme the analyst has more than twice Hinman's folio density and
+the inference is still at chance. **No quantity of evidence rescues it, so the
+fault is in the instrument.** A method that genuinely wanted more evidence would
+improve when given it.
+
+The lag search is the visible symptom: it returns 1 on nearly every run, where
+the measured profile above puts the peak at offset 5 for two formes standing. The
+objective is not finding the structure the matrix demonstrably has, so the fault
+is likely there rather than in the hill-climbing — a bump with a hand-chosen
+width and a hand-chosen penalty, fitted to nothing.
+
+**The rule for the next attempt: run the density sweep before reporting any
+score.** A flat line across densities means the algorithm; a line that climbs and
+then plateaus is where Hinman's threshold actually is, and that plateau is the
+number §1 exists to find. Nothing about the quarto's difficulty can be claimed
+until the method has been shown to work somewhere.
+
 ### Turner's rule is built and graded
 
 The principle is that "in a quarto set by formes, type from the first forme of
@@ -1446,6 +1494,16 @@ omission branch, and the crowding devices. Turn-over was wrongly added to that l
 and taken off again. To which that episode adds a corollary: **a report that prints
 a bare zero cannot distinguish a thing that did not happen from a thing that could
 not.** Both look like evidence and only one is.
+
+**When a result matches the literature's prediction, that is the moment to build
+the control.** The first forme-order inference scored a flat 0.15 on quarto,
+which is exactly what Blayney says must happen at that evidence density — and it
+was the algorithm, proved by giving the analyst twice Hinman's folio density and
+watching the score stay at chance. The lessons below already say a historically
+plausible symptom is when to check the arithmetic hardest; this is the same rule
+for a historically plausible *result*, which is more seductive because it arrives
+looking like a finding rather than like a bug. **A method must be shown to work
+somewhere before its failure anywhere means anything.**
 
 **An inference can be structurally certain and globally unanchored, and an
 accuracy figure will not show it.** The perfecting inference sorts every forme in
