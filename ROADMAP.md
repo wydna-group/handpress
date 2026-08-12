@@ -388,12 +388,35 @@ order of a quire and is right whenever it speaks, and the link across the bounda
 fixes the direction and is right whenever it speaks. At two formes standing no
 boundary is testable, because determined quires rarely fall next to each other.
 
-`forme-order` itself is left alone deliberately. It also drives the skeleton cycle
-in `book.rkt`, so renumbering it would move which skeleton went with which forme
-and change the running-title evidence — a separate change wanting its own
-measurement. **Recorded here rather than fixed quietly**, because anything else
-reading `forme-order` as a setting order is wrong in the same way and nothing yet
-says which those are.
+`forme-order` itself is left alone deliberately, and **the other three readers of
+it have now been checked one by one**:
+
+- **The preliminaries assertion** (`book.rkt:1523–1537`) is *safe*. It asks
+  `min(front) > max(rest)` across **gatherings**, and the preliminaries are a
+  gathering of their own set last, so they hold the highest counter values
+  whatever the direction inside each one.
+- **The compositor's turn is reversed within a gathering** (`book.rkt:1030`).
+  `man-for-forme` is called with `forme-order` while the pages arrive in
+  `setting-order`, so the stint plan is consumed backwards. The plan is built
+  correctly — it fills lazily from zero upward — and the stints stay whole and
+  contiguous, so no man's work is broken up. What changes is **which man takes a
+  gathering first**. That is not cosmetic: type supply governs spelling here, and
+  Blayney's best finding is that a man's choice between `-ie` and `-y` tracks how
+  full the `y` box is. Swapping the turn swaps which compositor meets the thin
+  case.
+- **Skeleton wear accumulates in counter order** (`book.rkt:988–995`), not in
+  setting order, so running-title damage progresses backwards inside a gathering.
+  The *grouping* survives — skeletons alternate, and an alternating sequence is
+  symmetric under reversal — but the order the damage appears in does not, and
+  that order is what `skeleton-report` reads.
+
+**None of these is fixed here.** All three want the same change — number the
+formes in the order they are set — and that change moves skeleton assignment and
+compositor attribution together, so it must be measured against both rather than
+made because it is obviously right. Both are headline outputs of this program, and
+this file has caught itself twice making one number better by making another
+worse. **The honest state is that two known-wrong orderings are recorded, sized,
+and left visible rather than half-mended.**
 
 ### And the fount was not the problem — it is right, from two sources at once
 
