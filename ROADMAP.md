@@ -799,8 +799,34 @@ the em exactly, and the tests assert it. 1/7 of 120 is not an integer. Carrying
 1/7, 1/6 and 1/4 exactly needs a unit divisible by 84: **`UNITS-PER-EM 840`**
 would do it (em 840, en 420, thick 210 or 140, thin 120). That is a real design
 decision with blast radius across every justification the program makes, and it
-would invalidate the calibration table, which is why it is here rather than
-done.
+would invalidate the calibration table, which is why it is here rather than done.
+
+**Attempted as a free refactor, and it is not one.** The reasoning was that every
+body below is a fraction of an em, 840 divides all six exactly (840, 420, 280,
+210, 168, 105), so moving the unit changes the precision of the arithmetic and not
+the widths it expresses. That is true of the *bodies* and false of the *sorts*:
+`em-widths` is a table of decimal ems rounded to whole units, so at 120 a sort is
+rounded to 1/120 em and at 840 to 1/840, and a word of forty sorts can differ by a
+sixth of an em between the two. Line breaking moves with it.
+
+Three tests failed — a verse line that fitted the measure at a hair and no longer
+did, a cast-off allowing it one line instead of two, and a prose fixture whose
+word count went from 24 to 25 because a word divided that had not divided before.
+**All three are fixtures encoding the old rounding**, not defects, and the finer
+arithmetic is the more accurate one. Reverted all the same, for two reasons: one
+of the failures could not be reconciled with the arithmetic in the time available
+— by hand the line fits at 15,361 units against a measure of 16,800 and the check
+still failed, which means something in that path is not what it appears — and
+patching a fixture one does not understand is how a calibration quietly stops
+meaning anything.
+
+**So the order of work is now known.** The unit change is not separable from the
+recalibration; it must be one piece of work that moves `UNITS-PER-EM`, re-derives
+`em-widths` at the finer unit, re-checks Smith's 11-em alphabet (§7), re-runs the
+9% area check above, and only then touches the bodies. The unexplained failure at
+`imposition.rkt:868` is the first thing to sit down with, and it is a lead rather
+than an obstacle: a width path that disagrees with hand arithmetic is worth
+finding whatever happens to §4.
 
 **The period question underneath it.** Smith (1755) *does* have four spaces —
 thick, middle, thin, hair — in his bill, so the six-body ladder is right for the
