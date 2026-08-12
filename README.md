@@ -828,11 +828,11 @@ eye does *not* raise the strike rate; it shrinks the admissible set from 14.35 t
 **The chaining that fixes direction is built and never fires.** The last forme of
 one quire shares six to ten identifiable types with the first forme of the next,
 where Hinman's premise says they cannot share at all — so both ends are ruled out
-and the link is ambiguous in 24 boundaries of 24. That is a fault in this shop,
-not in his method: `book.rkt` distributes on the type ceiling as well as on formes
-standing, so type returns to the case early. **The simulation is making a
-bibliographer's method look worse than it was**, which is the reverse of every
-other correction here, and the strike rate above should be read as a floor. **Quarto is outside the method
+and the link is ambiguous in 24 boundaries of 24. The fault is narrow and specific
+to the boundary: *inside* a quire consecutive formes share only 9% of the time at
+folio, so the premise is largely honoured, but the gathering boundary is where the
+model distributes hardest and the next quire's first forme is set out of a case
+that has just been refilled. [ROADMAP §1](ROADMAP.md) has the measurements. **Quarto is outside the method
 entirely** — a quarto gathering is two formes, which have one order up to reversal,
 so the criterion is vacuously satisfied and says nothing. The report says that
 rather than printing a hollow 100%. [ROADMAP §1](ROADMAP.md).

@@ -355,21 +355,38 @@ shares type with the previous quire's last forme cannot be this quire's first
 
 The cause is not the method. The last forme of one quire shares **six to ten**
 identifiable types with the first forme of the next, where Hinman's premise says
-they cannot share at all — and the measurement two entries above already showed
-it book-wide: consecutive formes here share about 40% of the time (offset 1 is
-empty in only 54 of 91 pairs at one forme standing). **This shop does not obey the
-premise Hinman's method rests on.**
+they cannot share at all.
+
+**But the book-wide figure first quoted here was the wrong format's**, and the
+correction matters because two sessions of work were aimed at it. "Consecutive
+formes share about 40% of the time" is a **quarto** measurement — 84 of 182 pairs.
+At folio in sixes, which is Hinman's format and the only one the criterion can
+speak of at all, consecutive formes share **9% of the time (12 of 130)**. The
+premise is largely honoured at folio already, and the shop is not generally in
+breach of it.
+
+**So the silence is specific to the boundary, not general.** Adjacent formes
+inside a quire mostly do not share; the pair spanning two quires shares every
+time, at both ends, in 24 boundaries of 24. That is a much narrower fault than
+"this shop disobeys the premise", and it points somewhere definite: the gathering
+boundary is where the model distributes hardest, so the first forme of a new quire
+is set out of a case that has just received a flood of returned type. **That is
+the thing to look at next**, and it was invisible while the quarto figure stood in
+for the folio one.
 
 `book.rkt` distributes on the type ceiling as well as on the count of formes
 standing, so a forme can go back to the case early and its type reach the very
 next forme. Hinman's shop evidently did not do that.
 
-**Which cuts the opposite way to every correction in this file.** The rule at the
-top is that each parameter checked against a book has made the shop poorer or the
-evidence thinner. Here the simulation is making a *bibliographer's method* look
-worse than it was: the 50–80% strike rate is depressed by the model's own eager
-distribution, and a shop honouring the premise would determine more quires than
-this one does. The figure to quote is therefore a floor, not an estimate.
+**A one-line fix was proposed for this and is a no-op.** The reasoning was that
+the ceiling loop, having distributed the forme two back, went on to distribute the
+one immediately before — so the guard was to let it empty the queue to one forme
+and never to none. Measured with and without: **identical on every figure**,
+because once one forme has gone back the standing sorts are already under the
+ceiling and the loop stopped there of its own accord. It was a fix for a mechanism
+that was not misbehaving, proposed on the strength of the misattributed 40%.
+Reverted rather than kept, since it changes nothing and would read as though it
+did.
 
 **The experiment first proposed here was the wrong one, and Hinman says so
 himself two chapters earlier.** It was "raise the fount until consecutive formes
@@ -1845,6 +1862,15 @@ rather than statistical" — and it was buried under a weighting function anyway
 **Having the finding is not the same as using it.** When the literature contains
 practitioners, read how they actually proceeded before designing a method for
 them.
+
+**A figure measured in one format will be quoted against another, and nothing in
+its name will stop you.** "Consecutive formes share 40% of the time" was a quarto
+measurement used to diagnose a folio problem, where the real rate is 9%. It
+survived two sessions, drove a proposed fix that turned out to be a no-op, and was
+only caught by measuring both formats side by side in one table. The lessons
+already warn that a parameter anchored on one example is anchored on that
+example's end of the range; a *measurement* carries its conditions just as
+silently. **Put the format in the number.**
 
 **A parameter can be alive in one format and inert in another, which reads as
 alive everywhere.** The type ceiling never fires at quarto at any value from 2/3
