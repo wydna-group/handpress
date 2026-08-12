@@ -256,6 +256,77 @@ attempt starts, and it should carry the permutation test as its own control:
 **if the truth is not beaten by a random order, the search is the thing at
 fault.**
 
+### Hinman's own method, read at last — and it is not an optimisation at all
+
+Three attempts were made before anyone opened the book by the man who invented
+the method and executed it on the largest body of evidence it has ever had.
+*Sources beat first principles*, and this is the most expensive demonstration of
+it in this file. Hinman i. 76–81, §3 "Order of Formes".
+
+**The criterion is a hard constraint, and it is exactly the hole.**
+
+> "As a general rule, however, the second of two consecutive Folio formes was set
+> before the first was distributed, and hence **the two cannot ordinarily have
+> types in common**. Throughout most of the book, therefore, **any supposed order
+> of formes in which the same types appear in consecutive formes must be
+> considered wrong**, the more especially if, given some other order, types do
+> not so appear; and **whenever there is only one order in which none of the
+> types in the quire appear in consecutive formes, this order may confidently be
+> taken as the one actually followed.**" (i. 80)
+
+Not a profile, not a similarity, not a score. A forme pair either shares type or
+does not, and sharing **forbids adjacency**. The order is whatever arrangement
+satisfies every prohibition — a constraint-satisfaction problem, and the answer
+is trustworthy exactly when the solution is unique.
+
+**And the unit is the quire, not the book.** Hinman orders the six formes of one
+quire at a time, the quire being given by the signatures. Six formes is 720
+arrangements and can be enumerated exhaustively; there is no search problem here
+at all. Every attempt above was solving a global thirteen-forme ordering that
+Hinman never poses.
+
+**He names the terminal formes by degree.** "Clearly formes 3ᵛ:4 and 1:6ᵛ are the
+terminal formes, **since each has types in common with all but one of the other
+formes in the quire**" (i. 80). The ends of the chain are the formes prohibited
+from fewest positions.
+
+**He states the reversal ambiguity himself**, which independently confirms what
+§2 predicted for this evidence before it was tried: "And this could be true of no
+other order save one — **the exact reverse of the one shown**."
+
+**And he fixes the direction by chaining across quires** (i. 81): "the last forme
+of the preceding quire has types in common with Gg1:6ᵛ but not with Gg3ᵛ:4. So
+Gg1:6ᵛ cannot have been the first forme of its quire, though Gg3ᵛ:4 can have."
+The same evidence that orders a quire internally also links it to its neighbours,
+so one anchor propagates through the book. **The global flip is real, it is
+resolved, and it is resolved by the type evidence itself rather than by an
+imported assumption** — which is a better answer than §2 could give for the press
+variants, where nothing internal breaks the symmetry.
+
+One exception he flags, worth building in rather than discovering: "In the
+initial quires of the Folio, and occasionally (but very rarely) elsewhere, the
+same types do appear in consecutive formes — but for special reasons which can be
+satisfactorily explained."
+
+**What this costs the three attempts.** All of them. The bump, the Gram matrix
+and the alternating fit were general-purpose instruments applied to a problem
+with an exact domain rule. Worse, the measurement committed in this file two
+entries above had already found the rule — "the strongest evidence in the matrix
+is an absence, and it is absolute rather than statistical" — and it was then
+buried under a weighting function. **The finding was in hand and the wrong tool
+was reached for anyway.**
+
+**The fourth attempt, therefore:** per quire, enumerate the orders in which no
+two adjacent formes share an identifiable type; report the count of admissible
+orders as the measure of confidence, since Hinman's own claim is conditional on
+uniqueness; take the unique one where there is one; chain quires to fix
+direction. The gradeable questions become his, not an invented tau — *how often
+is the admissible order unique*, and *how often is the unique one right*. And
+Blayney's threshold acquires its real meaning: at quarto density the admissible
+set should stop being a singleton, which is precisely what "not nearly enough to
+allow the page-order of a quarto to be determined with any great precision"
+predicts, and it is now a countable quantity rather than a correlation.
+
 ### Turner's rule is built and graded
 
 The principle is that "in a quarto set by formes, type from the first forme of
@@ -1546,6 +1617,19 @@ omission branch, and the crowding devices. Turn-over was wrongly added to that l
 and taken off again. To which that episode adds a corollary: **a report that prints
 a bare zero cannot distinguish a thing that did not happen from a thing that could
 not.** Both look like evidence and only one is.
+
+**A general-purpose instrument reached for where the domain has an exact rule is
+the most expensive mistake in this file.** Three forme-order inferences were
+built — a weighted bump, spectral seriation, an alternating fit — before anyone
+read the man who invented the method. Hinman does not score orders at all: two
+formes sharing a type **cannot be adjacent**, and the order is whatever
+satisfies every such prohibition, per quire, in 720 enumerable arrangements.
+Worse, the measurement recorded here two entries earlier had already found that
+rule — "the strongest evidence in the matrix is an absence, and it is absolute
+rather than statistical" — and it was buried under a weighting function anyway.
+**Having the finding is not the same as using it.** When the literature contains
+practitioners, read how they actually proceeded before designing a method for
+them.
 
 **Test whether the answer is in the evidence before blaming either the evidence
 or the instrument.** Three searches for the forme order all returned chance, and
