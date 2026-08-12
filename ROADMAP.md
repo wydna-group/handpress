@@ -759,6 +759,11 @@ Davis & Carter, annotating p. 103, are explicit and go further:
 
 Three problems follow, of which the first is the serious one.
 
+**Now with a measurement behind it.** Blayney's *Lear* gives 9% internal space by
+area; this program sets 13.2%, and scaling the space metal to Moxon's thick of 1/4
+em gives 10.2% against Jacobi's 1/3 at 13.2%. See §4a. The documentary case below
+was always sound; it is now also the only reading that fits a measured book.
+
 **(a) The values are dated 1890 and used for 1600.** This is the same error
 `metrics.rkt` already documents and rejects twenty lines above, for the ranging
 figures — "an eighteenth-century convention read back into the sixteenth". The
@@ -918,13 +923,49 @@ reproducing that strain is the asymmetry being modelled, and the open question i
 only whether the box is the right depth — which is precisely what he gives no
 number for.
 
-**And there is an unused anchor: 9% internal space by area.** That is a measured
-figure from a real quarto and this program has never been tested against it. It is
-not the 16% the code quotes, which is a count of sorts rather than an area: the
-comparable quantity is the summed width of the space bodies set inside the measure
-divided by the width of everything set inside it, excluding marginal space and the
-titlepage, on prose pages. **That is the next concrete piece of §4a**, it is
-cheap, and unlike the en-quad question it has an answer.
+### And the 9% anchor, run — it lands on §4 and confirms it from outside
+
+His one measured figure for space was never tested against this program. It is not
+the 16% the code quotes, which counts sorts rather than area. The comparable
+quantity is the summed width of the space bodies set within the measure over the
+width of everything set within it, titlepage excluded. Four seeds:
+
+| | internal space, share of type + space |
+|---|---|
+| *Areopagitica*, prose | **13.2%** |
+| *Much Ado*, a play | 12.1% |
+| **Blayney, off *Lear*** | **≈ 9%** |
+
+**The program sets about half as much white again as he measured.** And the size
+of the gap is the size of the error §4 already documents from Moxon. `NORMAL-SPACE`
+is the thick space at **1/3 em**, which is Jacobi 1890; Moxon's thick is **1/4**,
+or **1/6** on Davis & Carter's reading of the casting instructions. Scale the space
+metal accordingly and the share follows:
+
+| thick space | internal space share |
+|---|---|
+| 1/3 em — Jacobi 1890, in use here | 13.2% |
+| **1/4 em — Moxon** | **10.2%** |
+| 1/6 em — Davis & Carter's derivation | 7.1% |
+
+**Blayney's 9% lies between Moxon's two readings and nowhere near Jacobi's.** That
+is an independent confirmation of §4 by a different source, a different method and
+a different century — Blayney with a ruler on a real quarto, against Moxon in
+prose — and neither knew about the other. §4 has been the most consequential open
+item on this list for a year on documentary grounds alone; it now has a
+measurement behind it.
+
+Three honest caveats, none of which move the direction. Justification stretches
+and squeezes, so the share reflects the whole regime and not `NORMAL-SPACE` alone.
+His 9% is ten 20-line samples and "approximately". And his phrase, "internal space
+in a given area of visible type", is read here as space over space-plus-type; read
+as space over type alone the program gives 15.2%, which is further from him, not
+nearer.
+
+**This does not license changing the constant on its own.** 1/4 needs
+`UNITS-PER-EM` to carry quarters and sevenths exactly, which is the 840 decision
+§4 describes, and the calibration table goes with it. What has changed is that the
+change is now owed to a measurement rather than to an argument.
 
 One caution he supplies about the change just made: Smith's bill "is inapplicable
 to the early seventeenth century" **in some respects** — and the respects he names
