@@ -280,7 +280,7 @@ things it is easy to forget are type at all:
 
   | | Jacobi | Moxon | measured |
   |---|---|---|---|
-  | internal space | 13.49% | 11.57% | ~9% (Blayney, off *Lear*) |
+  | internal space | 13.76% | 11.57% | ~9% (Blayney, off *Lear*) |
   | divisions / 100 lines | 4.94 | 5.88 | 6.41 (Norton, prose plays) |
 
   The division rate is the independent corroboration: the ladder was picked on

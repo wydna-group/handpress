@@ -1322,9 +1322,9 @@ right way — one nobody had consulted when choosing the ladder.
 
 | | Jacobi | Moxon | measured |
 |---|---|---|---|
-| internal space, share of type area | 13.49% | 11.57% | ~9% (Blayney, off *Lear*) |
+| internal space, share of type area | 13.76% | 11.57% | ~9% (Blayney, off *Lear*) |
 | word divisions per 100 lines | 4.94 | 5.88 | 6.41 (Norton, prose plays) |
-| mean gap | 0.344 em | 0.291 em | 0.223 em (inverted from Blayney) |
+| mean gap | 0.359 em | 0.291 em | 0.223 em (inverted from Blayney) |
 
 Internal space is the quantity §4a chose the ladder on, so its improvement is not
 evidence — it is the thing that was fitted. **The division rate is evidence.** It
@@ -1351,8 +1351,18 @@ number.**
 decided the ladder, neither appears in the report, and the 13.2% that stood in
 this file for two sessions had to be recomputed by hand every time it was
 questioned — which is how it came to be quoted against a sample nobody could
-reproduce. (It is 13.49% over the four seeds the tool uses; the old figure was
-one run.)
+reproduce. (It is 13.76% over the four seeds and two formats the tool uses; the
+old figure was one run.)
+
+And the first version of the table above got this wrong in the way the paragraph
+below it warns against. Jacobi's 13.49% was quarto only; Moxon's 11.57% was
+quarto and octavo together. Both columns now cover the same eight runs, and the
+corrected figure is 13.76% -- which makes the change slightly larger, not
+smaller, so nothing rests on it. **The population error was committed inside the
+same table as the lesson about population errors**, which is worth recording
+precisely because knowing the rule plainly does not prevent it. Only running both
+sides through one instrument does, and that is the better argument for
+`tools/measure-spacing.rkt` than convenience ever was.
 
 ### What the change broke, and what that was worth
 
