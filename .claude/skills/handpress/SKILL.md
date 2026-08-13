@@ -123,6 +123,42 @@ zero on prose because only a verse line can be turned over. Which gives the
 corollary: **a bare zero cannot distinguish *did not happen* from *could not
 happen here*.** Say which.
 
+### Counting it in the report is necessary and not sufficient
+
+Three mechanisms were added in one session *with* their report rows, and all
+three were still wrong on the page — found only because a reader hovered a word
+and saw the tooltip call a comma a misreading. There are six places, and a
+mechanism is not finished until it is in all of them:
+
+| | what goes wrong without it |
+|---|---|
+| a row in `deviation-counts`, and the report | the original rule: nothing counts it |
+| a pattern in `tools/audit-mechanisms.py` | the one instrument that watches for dead mechanisms cannot see it |
+| a branch in `word-deviation` | the tooltip names it as whatever shares its stage |
+| a branch in `classify` | it borrows another kind's colour and legend filter |
+| an entry in `DEVIATION-KINDS` (`vocabulary.rkt`) | no CSS, no filter rule, no legend text — all three are generated from there |
+| a test naming the note it must produce | the table and the tooltip drift apart silently |
+
+**The table and the tooltip must agree about the same word.** `deviation-counts`
+told pointing apart from misreading the morning it was built; `word-deviation`
+did not, so the report said one thing and the page another. One property, one
+decision point — and this module is where that rule is oftenest broken, because
+the counting and the naming live thirty lines apart.
+
+And one check no test will make for you. On a rendered page, **count the marked
+words whose tooltip opens with a fault other than the one they are coloured by.
+It must be nought.** A word carries several notes joined in stage order while the
+class is the most significant of them, so a word underlined as want of metal can
+open "habit: …" — about forty of two thousand in one book, and exactly what gets
+reported as a mislabelled tooltip.
+
+Last: ask whether the new fault **changes a reading**. If it does not, it cannot
+be a press variant and must be kept out of that count — mending a risen space or
+a wrong-fount sort alters nothing a collation can find, and folding them in
+inflates a figure compared against Hinman's, which was got by collating. Two of
+the four mechanisms added that session could never have moved the variant count,
+by construction, and that was knowable before either was written.
+
 ## Traps that have caught us
 
 - **A bug can pass for a finding.** Space-metal was picked and never returned,
