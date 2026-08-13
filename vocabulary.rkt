@@ -59,6 +59,24 @@
    (deviation-kind
     "misreading" "dev-misread" "140,47,22" ".30" "0.10"
     "Misread from the copy: minims, secretary-hand confusions, memory.")
+   ;; His pointing and his place are not his eye, and were coloured as though
+   ;; they were. Both differ from the copy at the same stage as a misreading, so
+   ;; `classify' sent all three to "misreading" -- the legend offered one filter
+   ;; for three faults, and the tooltip said the compositor had misread a comma.
+   (deviation-kind
+    "pointing" "dev-pointing" "120,60,130" ".28" "0.10"
+    (string-append "A stop dropped, changed, or set where the copy had none. "
+                   "The pointing of a book is largely the compositor's, and "
+                   "correcting it is the commonest thing a corrector did: two "
+                   "of the twenty corrections on the one proof-corrected page "
+                   "of the First Folio that survives."))
+   (deviation-kind
+    "resumption" "dev-resumed" "40,90,120" ".30" "0.11"
+    (string-append "A word or two dropped or set twice where the compositor "
+                   "took up his copy again after setting a page. McKerrow's "
+                   "mechanism, and his proof that the catchword was set from "
+                   "the manuscript: the catchword is right and the page it "
+                   "faces is wrong."))
    (deviation-kind
     "division" "dev-divided" "120,110,95" ".35" "0.10"
     (string-append "Half of a word broken at the end of a line. Not a "
