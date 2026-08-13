@@ -406,7 +406,7 @@
          ;; the omission branch something to fire on.
          [(eq? kind 'verse)
           (define tight (+ (width-of-word (string-replace text " " ""))
-                           (* HAIR (length (regexp-match* #px" " text)))))
+                           (* FINEST-SPACE (length (regexp-match* #px" " text)))))
           (if (<= tight measure) 1 2)]
          [else
           (define n (max 1 (exact-ceiling (/ w measure))))
@@ -856,16 +856,24 @@
   ;; in the case, because that is the compositor's own test. Judged at the
   ;; ordinary space the casting off held back seven or eight lines of copy a
   ;; page and two thirds of the book came out spun out.
-  ;; This line is 2,199 units at the hair and 2,424 at the normal space,
-  ;; against a 2,400-unit measure -- so it is exactly the case the two tests
-  ;; disagree on, and `set-verse' squeezes it in.
+  ;; This line is 15,361 units at the finest space and 16,936 at the normal
+  ;; one, against a 16,800-unit measure -- so it is exactly the case the two
+  ;; tests disagree on, and `set-verse' squeezes it in.
+  ;;
+  ;; The figures read 2,199 / 2,424 / 2,400 until now, which was this same line
+  ;; measured in 1/120 em, and they went stale the moment the unit moved to
+  ;; 1/840. The test never noticed because it asserts the *relations*, and the
+  ;; relations are linear in the unit. A comment carrying absolute numbers past
+  ;; the constant that gave them their meaning is a comment that will lie, and
+  ;; the assertions being unit-free is exactly why nothing caught it.
   (let* ([line "No, rather I abiure all roofes, and chuse to wage"]
          [u (copy-unit 'verse line 0 #f)]
          [measure (* 20 UNITS-PER-EM)]
          [content (width-of-word (string-replace line " " ""))]
          [gaps (length (regexp-match* #px" " line))]
          [segs (cast-off (list u) measure 66 (make-rng 5) 1.0)])
-    (check-true (<= (+ content (* HAIR gaps)) measure) "it goes in at a hair")
+    (check-true (<= (+ content (* FINEST-SPACE gaps)) measure)
+                "it goes in at the finest space in the case")
     (check-false (<= (+ content (* NORMAL-SPACE gaps)) measure)
                  "and not at the normal space")
     (check-equal? (cast-off-segment-estimated-lines (car segs)) 1

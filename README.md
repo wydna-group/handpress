@@ -147,7 +147,7 @@ set twice sixty years apart, so you can see what the shop contributes.
 
 ```sh
 raco pkg install --link .     # require modules as handpress/compositor
-raco test test-all.rkt        # 1,190 checks, about fifteen seconds
+raco test test-all.rkt        # 1,192 checks, about fifteen seconds
 raco scribble --html --dest doc scribblings/handpress.scrbl
 ```
 

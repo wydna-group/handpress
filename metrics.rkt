@@ -21,11 +21,11 @@
 ;;; eighths together, so Jacobi's ladder and Moxon's can both be stated exactly
 ;;; and compared without either being rounded to suit the other. Roadmap §4.
 
-(require racket/math)
+(require racket/math racket/list)
 
 (provide UNITS-PER-EM
          EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR
-         SPACE-LADDER NORMAL-SPACE
+         SPACE-LADDER NORMAL-SPACE FINEST-SPACE
          width-of width-of-word ems describe-space space-bodies
          AVERAGE-LOWERCASE measure-in-characters)
 
@@ -44,6 +44,22 @@
 ;; Coarsest to finest; the compositor works down this list when a line will
 ;; not justify.
 (define SPACE-LADDER (list EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
+
+;; The finest thing in the case, and a role rather than a body.
+;;
+;; `justify' works down the ladder and gives up here: below this width there is
+;; no piece of metal to make the white out of, so the line will not go and the
+;; compositor must respell, divide a word, or turn it over. Ten places in
+;; `compositor.rkt' and two in `imposition.rkt' meant exactly that and said
+;; HAIR, which is true only so long as the hair space is the last rung.
+;;
+;; It is the last rung here, so this changes nothing today. It is named because
+;; Moxon's fount has no hair space at all -- four bodies, thick and thin and the
+;; two quadrats, his thin being "the seventh part of the Body" -- and under that
+;; ladder the floor is the thin at 1/7, near Jacobi's hair at 1/8 and not the
+;; same thing. Naming the role separately is what lets the ladder be changed
+;; without twelve call sites quietly coming to mean something else. Roadmap §4.
+(define FINEST-SPACE (last SPACE-LADDER))
 
 ;; The pieces of metal that make up a gap of this width, largest first. There
 ;; is no space narrower than a hair, so a width the ladder cannot reach leaves
@@ -185,6 +201,14 @@
                 "the em divides by seven, so Moxon's thin is expressible")
   (check-equal? (* 6 (quotient UNITS-PER-EM 6)) UNITS-PER-EM
                 "and by six, for Davis & Carter's reading of his thick")
+  ;; The ladder runs coarsest to finest, and the floor is its last rung. Both
+  ;; are asserted because `justify' gives up at FINEST-SPACE and would give up
+  ;; in the wrong place if either failed -- silently, since a line that will not
+  ;; go is a normal event.
+  (check-equal? (sort SPACE-LADDER >) SPACE-LADDER
+                "the ladder is ordered coarsest to finest")
+  (check-equal? FINEST-SPACE (apply min SPACE-LADDER)
+                "and the floor is the narrowest body in it")
   ;; A long s is narrower than a short one -- which is why the conventions of
   ;; the case have to be applied before any width is computed.
   (check-true (< (width-of #\ſ) (width-of #\s)))
