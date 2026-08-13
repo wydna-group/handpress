@@ -729,13 +729,23 @@
   ;; disorder finer than the spacing of the copies collated**, which is a
   ;; sharper statement than the old one and the opposite of a small-sample
   ;; effect: the sample is not too small, it is too sparse.
+  ;;
+  ;; Each call sets the book again, at half a second a call, and that is not an
+  ;; extravagance. `run-press' wears the type it prints from: twenty-five runs
+  ;; over one book leave it with twenty-five impressions' worth of damage, and
+  ;; damage is precisely what `variant-groupings' keys on. One book shared by
+  ;; the calls below made this block's result depend on the order they were
+  ;; written in -- the sparse rate read 1.0 when it ran first and 0.96 when it
+  ;; ran third, off the same model and the same seeds. So the loop was not
+  ;; twenty-five draws from one distribution; it was one press working the same
+  ;; forme twenty-five times, and its later runs had more to see than its first.
   (let ()
-    (define book
-      (set-book (make-house #:fmt QUARTO #:seed 21)
-                (file->string greg-sample)))
     ;; A rate over 25 runs, not one seed. Runs offering fewer than three
     ;; groupings cannot exercise the condition and are not counted.
     (define (consistent-share disorder #:copies [copies 10])
+      (define book
+        (set-book (make-house #:fmt QUARTO #:seed 21)
+                  (file->string greg-sample)))
       (define-values (ok n)
         (for/fold ([ok 0] [n 0]) ([seed (in-range 25)])
           (define r (run-press book #:copies copies #:seed seed #:proof-rate 1.0
@@ -747,28 +757,45 @@
       (if (zero? n) 1.0 (/ ok (exact->inexact n))))
 
     ;; Gaskell's "case of remarkable regularity" -- nothing moved, so every
-    ;; grouping is a prefix or suffix of one order.
+    ;; grouping is a prefix or suffix of one order. This one is asserted
+    ;; exactly, because with nothing moved it is structural and not statistical:
+    ;; no amount of accumulated damage makes a prefix stop being a prefix.
     (check-equal? (consistent-share 0.0) 1.0
                   "heaps gathered in order satisfy Greg's consistency rule")
-    (check-equal? (consistent-share 0.0 #:copies 60) 1.0
+    (define dense-ordered (consistent-share 0.0 #:copies 60))
+    (check-equal? dense-ordered 1.0
                   "and however many copies are collated")
 
     ;; Sparse collation: the disorder is there and cannot be seen.
-    (check-equal? (consistent-share 1.0) 1.0
-                  "ten copies are too far apart in the heap to sample the disorder")
+    ;;
+    ;; A bound, not a value. This read exactly 1.0 for as long as the book was
+    ;; shared, which made it a test of where the line stood in the block; run on
+    ;; its own type it reads 1.0 over 25 seeds and 0.98 over 200, the drift being
+    ;; the wear the loop itself puts on. What is asserted is blindness, and
+    ;; blindness against the 0.04 the dense case gives is not a matter of the
+    ;; third decimal place.
+    (define sparse (consistent-share 1.0))
+    (check-true (> sparse 0.9)
+                (format "ten copies are too far apart in the heap to sample the disorder: ~a"
+                        sparse))
 
     ;; Dense enough to reach inside a handful of doublings, and it shows.
     ;; Assert the ordering of the rates rather than their values: what is
     ;; being tested is that the detector responds to the disorder, and
     ;; pinning the numbers would make this a test of the seed sequence.
-    (define dense-ordered (consistent-share 0.0 #:copies 60))
     (define dense-slack (consistent-share 0.15 #:copies 60))
     (define dense-shuffled (consistent-share 1.0 #:copies 60))
     (check-true (< dense-shuffled 0.25)
                 (format "sixty copies do sample it: ~a" dense-shuffled))
     (check-true (< dense-shuffled dense-slack dense-ordered)
                 (format "and the more the warehouse lost, the less consistent: ~a ~a ~a"
-                        dense-ordered dense-slack dense-shuffled)))
+                        dense-ordered dense-slack dense-shuffled))
+    ;; And the sparse rate is not merely above a bound but in a different
+    ;; regime from the dense one. Stated as a comparison so that it cannot be
+    ;; satisfied by both sides drifting together.
+    (check-true (> sparse (* 3 dense-shuffled))
+                (format "blind at ten copies, seeing at sixty: ~a against ~a"
+                        sparse dense-shuffled)))
 
   (define sample
     (string-append
