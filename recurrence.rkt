@@ -386,15 +386,38 @@
 ;; what makes the two methods differ: set by formes the outer goes 1 4 5 8 as a
 ;; block and is done at position 4; set seriatim the inner's last page is 7 and
 ;; the outer's is 8, so the inner is done first.
+;; The answer is a fact about a SHEET, and it used to be asked of a gathering.
+;; A quarto gathering is one sheet, so `(= 2 (length done))' held and the guard
+;; was invisible; a folio in sixes is three sheets quired one within another, so
+;; `done' had six entries, the guard failed, and this returned #f for the whole
+;; format. Nothing downstream tested for that, so `turner-report' scored every
+;; pattern against #f, printed a hard `0 of 37 times', and put the false itself
+;; on the page as "the #f forme". A rule that cannot be scored read as a rule
+;; that is always wrong -- which is this project's own lesson about a bare zero,
+;; arriving in the one place that had no test.
 (define (true-first-forme fmt by-formes? [gathering 0])
   (define order (setting-order fmt gathering by-formes?))
   (define pos (for/hash ([p (in-list order)] [i (in-naturals)]) (values p i)))
-  (define done
-    (for/list ([fm (in-list (formes-for-gathering fmt gathering))])
-      (cons (forme-side fm)
-            (apply max (for/list ([p (in-list (forme-page-numbers fm))])
-                         (hash-ref pos p 0))))))
-  (and (= 2 (length done)) (car (argmin cdr done))))
+  ;; A forme is distributed when it comes off the press, so it finishes with its
+  ;; last page.
+  (define (finished fm)
+    (apply max (for/list ([p (in-list (forme-page-numbers fm))])
+                 (hash-ref pos p 0))))
+  (define by-sheet (make-hash))
+  (for ([fm (in-list (formes-for-gathering fmt gathering))])
+    (hash-update! by-sheet (forme-sheet fm)
+                  (lambda (l) (cons (cons (forme-side fm) (finished fm)) l))
+                  '()))
+  ;; A sheet worked and turned has one forme and no order to have; it is left
+  ;; out rather than counted. Where the sheets of a gathering disagree there is
+  ;; no single answer for the book and the honest return is #f, which the report
+  ;; now handles.
+  (define answers
+    (for/list ([(_ sides) (in-hash by-sheet)] #:when (= 2 (length sides)))
+      (car (argmin cdr sides))))
+  (and (pair? answers)
+       (for/and ([a (in-list answers)]) (equal? a (car answers)))
+       (car answers)))
 
 ;; page signature -> the identifiable types visible on it. A type setting more
 ;; than once in one page counts once: what the investigator has is a list of
@@ -563,4 +586,30 @@
     (check-equal? (map (lambda (tp) (cons (turner-pair-from tp) (turner-pair-to tp)))
                        tbl)
                   '(("A sheet 1" . "B sheet 1") ("B sheet 1" . "H sheet 1"))
-                  "H is printed last however early it is bound")))
+                  "H is printed last however early it is bound"))
+
+  ;; THE ANSWER KEY ITSELF. It had no test, and for as long as it had none it
+  ;; returned #f at every format whose gathering is more than one sheet -- so
+  ;; `turner-report' scored the rule against a false, printed "0 of 37 times",
+  ;; and set the word "#f" in the report. The rule is about a sheet, and a
+  ;; folio in sixes has three of them quired one within another.
+  ;;
+  ;; Set by formes the house works outward from the middle, 5 8 / 6 7 / 3 10 /
+  ;; 4 9 / 1 12 / 2 11, so every sheet's outer forme finishes before its inner.
+  ;; Set seriatim the pages go 1 .. 12, and the outer of each sheet holds the
+  ;; LAST page of the two -- 12, 10, 8 -- so the inner finishes first. That
+  ;; reversal is the whole reason the key can score the rule at all.
+  (check-equal? (true-first-forme FOLIO-IN-SIXES #t) "outer"
+                "folio in sixes, by formes: the outer of each sheet is done first")
+  (check-equal? (true-first-forme FOLIO-IN-SIXES #f) "inner"
+                "folio in sixes, seriatim: the inner of each sheet is done first")
+  ;; And the quarto, the format Turner states the rule for, is unmoved by the
+  ;; change: one sheet to the gathering, which is the case that always worked.
+  (check-equal? (true-first-forme QUARTO #t) "outer")
+  (check-equal? (true-first-forme QUARTO #f) "inner")
+  ;; Never the false again, at any format the program can set.
+  (for ([f (in-list (list FOLIO FOLIO-IN-SIXES QUARTO OCTAVO))])
+    (for ([by-formes? (in-list '(#t #f))])
+      (check-true (string? (true-first-forme f by-formes?))
+                  (format "~a has an answer to score against"
+                          (book-format-name f))))))
