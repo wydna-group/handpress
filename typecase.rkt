@@ -20,7 +20,7 @@
          case-depletion take! replenish! inversion-boost cannibalize!
          take-space! distribute-space! note-white! SPACE-BODIES
          supply-factor box-fraction
-         ADJACENT TURNED-PAIRS INVERSION-RATES FOUNT-SORTS
+         ADJACENT SHAPE-CONFUSIONS TURNED-PAIRS INVERSION-RATES FOUNT-SORTS
          LONG-S-LIGATURES LIGATURE-PRINTS take-ligature!
          LOWER-CASE-LEFT LOWER-CASE-RIGHT UPPER-CASE-LAY
          damage-vocabulary damage-for damage-phrase CONDITIONS batter!
@@ -108,6 +108,41 @@
         #\b #\q  #\q #\b
         #\d #\p  #\p #\d
         #\6 #\9  #\9 #\6))
+
+;; ---------------------------------------------------------------------------
+;; The second cause of foul case
+;; ---------------------------------------------------------------------------
+;; Hornschuch's *Orthotypographia* (1608), reported by Simpson (pp. 130-1), is a
+;; proof-corrector's manual from inside this period, and it names TWO causes of
+;; foul case where this module had one:
+;;
+;;   "Foul case must be cleared; it arises from two causes: letters slip over
+;;    from `loculamenta vicina sive contigua', or LETTERS SIMILAR IN FORM ELUDE
+;;    THE PRINTER, for example, r t, n u, e c, a v, e o, ct &c."
+;;
+;; The first is `ADJACENT', built from the lay. The second is not adjacency at
+;; all -- it is the eye failing on two sorts that look alike, wherever their
+;; boxes happen to sit -- and it is the commoner of the two in the one itemised
+;; census of a real English proof sheet there is. Simpson's account of Treveris's
+;; 1526 proof of `The Grete Herball' (pp. 63-4) lists `femeth' for `semeth',
+;; `anayled' for `auayled', `laudaue' for `laudane', and among the two misprints
+;; the corrector MISSED, `monnteth'. Three of those are n/u and one is long-s/f.
+;;
+;; `a v' is left out deliberately: Simpson's own footnote to that item says
+;; "Hornschuch is thinking of German gothic", and this fount is not.
+;;
+;; NO NEW RATE. These are candidates for the same draw the adjacency confusion
+;; already makes, so the number of accidents is unchanged and only the choice of
+;; wrong sort widens -- which is what Hornschuch describes, one fault with two
+;; causes. The foul-case rate is anchored (Roadmap §12) and must not move to
+;; admit this.
+(define SHAPE-CONFUSIONS
+  (hash #\n '(#\u)      #\u '(#\n)
+        #\r '(#\t)      #\t '(#\r #\c)
+        #\c '(#\t #\e)  #\e '(#\c #\o)
+        #\o '(#\e)
+        ;; The English one, and the one the Grete Herball proof shows twice.
+        #\ſ '(#\f)      #\f '(#\ſ)))
 
 ;; ---------------------------------------------------------------------------
 ;; The turn that changes nothing
@@ -1072,8 +1107,16 @@
   (define g (tcase-rng tc))
   (let ()
      (take! tc ch)
-     (define neighbours
+     ;; Hornschuch's two causes, drawn from one pool: the boxes that adjoin this
+     ;; one, and the sorts that look like it wherever they lie. A pair that is
+     ;; both -- n and u are neighbours in the lay and twins on the page -- is in
+     ;; the pool twice and is confused oftener, which is the right answer and
+     ;; falls out rather than being weighted in.
+     (define adjoining
        (filter (lambda (n) (same-kind? ch n)) (hash-ref ADJACENT ch '())))
+     (define alike
+       (filter (lambda (n) (same-kind? ch n)) (hash-ref SHAPE-CONFUSIONS ch '())))
+     (define neighbours (append adjoining alike))
      (cond
        [(and (pair? neighbours)
              (< (rnd g) (* (tcase-foulness tc) careless (reach-factor ch)))
@@ -1083,7 +1126,14 @@
              (take! tc wrong)
              (hash-update! boxes ch add1)   ; the right sort went back
              (draw ch (string wrong) 'foul-case
-                   (format "~a for ~a (adjoining box)" wrong ch) #f))]
+                   (format "~a for ~a (~a)" wrong ch
+                           ;; Which cause it was, because the report distinguishes
+                           ;; them and a corrector reading by sense does not.
+                           (cond [(and (memv wrong adjoining) (memv wrong alike))
+                                  "adjoining box, and alike on the page"]
+                                 [(memv wrong alike) "letters alike on the page"]
+                                 [else "adjoining box"]))
+                   #f))]
        [(and (hash-has-key? TURNED-PAIRS ch)
              (< (rnd g) (tcase-turn-rate tc)))
         (define t (hash-ref TURNED-PAIRS ch))
@@ -1236,6 +1286,34 @@
   (check-false (same-kind? #\a #\.))
   (check-false (same-kind? #\? #\ﬄ))
   (check-true (same-kind? #\n #\h))
+
+  ;; HORNSCHUCH'S SECOND CAUSE. Foul case "arises from two causes: letters slip
+  ;; over from adjoining boxes, or letters similar in form elude the printer"
+  ;; (Orthotypographia 1608, in Simpson pp. 130-1). The first was modelled and
+  ;; the second was not, so the program could only ever confuse letters that
+  ;; happened to be neighbours in the lay.
+  ;;
+  ;; The pairs he names that this fount can show, and the one it cannot: `a v'
+  ;; is excluded because Simpson's footnote to it says "Hornschuch is thinking
+  ;; of German gothic".
+  (check-not-false (memv #\u (hash-ref SHAPE-CONFUSIONS #\n)) "n and u are alike")
+  (check-not-false (memv #\t (hash-ref SHAPE-CONFUSIONS #\r)) "r and t are alike")
+  (check-not-false (memv #\e (hash-ref SHAPE-CONFUSIONS #\c)) "c and e are alike")
+  (check-not-false (memv #\f (hash-ref SHAPE-CONFUSIONS #\ſ)) "long s and f are alike")
+  (check-false (hash-ref SHAPE-CONFUSIONS #\a #f)
+               "a/v is German gothic and is not this fount's confusion")
+  ;; It must be a different relation from adjacency, or it adds nothing: e and
+  ;; c are alike on the page and sit in opposite halves of the divided case.
+  (check-false (memv #\c (hash-ref ADJACENT #\e '()))
+               "c does not adjoin e in the lay")
+  (check-not-false (memv #\c (hash-ref SHAPE-CONFUSIONS #\e))
+                   "but the eye confuses them, which is the whole point")
+  ;; And the two causes overlap where the sources say they should. Treveris's
+  ;; 1526 proof of the Grete Herball shows n/u three times, and n and u are both
+  ;; neighbours in the lay and twins on the page -- so that pair is in the pool
+  ;; twice and is confused oftener, without being weighted in by hand.
+  (check-not-false (memv #\u (hash-ref ADJACENT #\n '()))
+                   "n and u adjoin as well as resembling")
 
   ;; Moxon's principle: the biggest boxes hold the commonest sorts and sit
   ;; nearest the hand, so a rare sort is likelier to be fouled than e.
