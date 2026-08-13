@@ -267,15 +267,29 @@ things it is easy to forget are type at all:
   in a fount as the letter `e` — which Smith's bill confirms outright, 12,000
   thick spaces against 13,000 `e`. Justification is therefore *quantised*: a
   compositor can only set combinations of the bodies he has, so a line fills the
-  measure to within less than a hair rather than exactly.
+  measure to within less than the finest space rather than exactly.
 
-  **How many bodies he has is an open question.** The program carries six — em,
-  en, thick 1/3, middle 1/4, thin 1/5, hair 1/8 — which is Smith's set of 1755.
-  Moxon (1683) has **two**: "Spaces Thick and Thin, n Quadrats, m Quadrats and
-  Quadrats", his thin is 1/7 em and his thick 1/4 or 1/6, and Davis & Carter date
-  the program's values to Jacobi in 1890. Since the program's period is 1580–1640,
-  this is probably an anachronism of the same kind the figures already caught.
-  **[ROADMAP §4](ROADMAP.md)**, which is the most consequential open item here.
+  **How many bodies he has was an open question, and it is now Moxon's four.**
+  The program carried six — em, en, thick 1/3, middle 1/4, thin 1/5, hair 1/8 —
+  which Davis & Carter date to Jacobi in 1890, against a period of 1580–1640. It
+  now carries Moxon's (1683): "Spaces Thick and Thin, n Quadrats, m Quadrats and
+  Quadrats", the thin "the seventh part of the Body" and the thick a quarter.
+
+  Two quantities can be measured against real books, and the change moves both
+  toward the measurement — the second of them one it was not chosen on:
+
+  | | Jacobi | Moxon | measured |
+  |---|---|---|---|
+  | internal space | 13.49% | 11.57% | ~9% (Blayney, off *Lear*) |
+  | divisions / 100 lines | 4.94 | 5.88 | 6.41 (Norton, prose plays) |
+
+  The division rate is the independent corroboration: the ladder was picked on
+  Blayney's ruler and Moxon's prose, and it then closed 60% of a gap in a
+  statistic counted off 790 plates. Both still fall short, in the same direction
+  and by about the same amount — which is the residual **[ROADMAP §5](ROADMAP.md)**
+  now has a target for: lines ending about 0.6 em short, which is the crowding
+  devices' business and not the ladder's. `tools/measure-spacing.rkt` recomputes
+  both figures; neither is tuned to.
 - **Ligatures**, including `ſt`, `ſh`, `ſi` and `ſſ`, which in an English fount
   outnumbered `ﬀ`, `ﬁ` and `ﬂ` together. They print as their two letters; what
   differs is which box emptied.

@@ -739,7 +739,7 @@ may be Turned**", which names the fault the care is against.
 
 ---
 
-## 4. The space bodies are Jacobi's, 1890 **[manuals]**
+## 4. The space bodies are Jacobi's, 1890 — *done; and a second measurement, not chosen on, agreed* **[manuals]**
 
 `metrics.rkt` sets six space bodies — em, en, **thick 1/3, middle 1/4, thin
 1/5**, hair 1/8 — and calls them "the spaces and quads, as they lie in the lower
@@ -1313,6 +1313,96 @@ Bill**, and proportion all the other Sorts by them; so that a whole Bill of Pica
 makes 500 lb" (p. 46 n.) — which is `typecase.rkt`'s "a bill is a fount
 proportioned to 3,000 m", now from the source rather than through Blayney.
 
+### Merged — and a second measurement, which the ladder was not chosen on, agreed
+
+The ladder is now Moxon's four: em, en, **thick 1/4, thin 1/7**, and no middle or
+hair at all. What settled it was not the documentary case above, which had been
+sound and unacted-on for two sessions. It was that a *second* quantity moved the
+right way — one nobody had consulted when choosing the ladder.
+
+| | Jacobi | Moxon | measured |
+|---|---|---|---|
+| internal space, share of type area | 13.49% | 11.57% | ~9% (Blayney, off *Lear*) |
+| word divisions per 100 lines | 4.94 | 5.88 | 6.41 (Norton, prose plays) |
+| mean gap | 0.344 em | 0.291 em | 0.223 em (inverted from Blayney) |
+
+Internal space is the quantity §4a chose the ladder on, so its improvement is not
+evidence — it is the thing that was fitted. **The division rate is evidence.** It
+comes from a different source (the Norton Facsimile, 790 plates), a different
+method (counting hyphens at line-ends), and a different mechanism (the floor for
+squeezing rising from 1/8 to 1/7, so the compositor reaches for a division
+sooner). Nothing about the choice of 1/4 and 1/7 was tuned to it, and it closed
+60% of its gap.
+
+Both still fall short, in the same direction and by about the same proportion.
+That is the residual §4 had already localised and handed to §5: lines ending
+about 0.6 em short. The ladder was never going to close it, and it did not.
+
+**Read the row that matches the sample.** The prose plays divide at 6.41 per 100
+lines and the verse ones at 0.40, because verse turns over where prose divides.
+The sample used here is prose, so 6.41 is its row; judged against the whole
+book's 2.03 the same run would look three times too loose. This is the third time
+a figure in this file has been quoted against the wrong population — after the
+quarto-for-folio forme overlap and the five-scenes-for-whole-book division rate —
+and the lesson is the same one, unlearned twice: **put the population in the
+number.**
+
+`tools/measure-spacing.rkt` computes both quantities. It exists because they
+decided the ladder, neither appears in the report, and the 13.2% that stood in
+this file for two sessions had to be recomputed by hand every time it was
+questioned — which is how it came to be quoted against a sample nobody could
+reproduce. (It is 13.49% over the four seeds the tool uses; the old figure was
+one run.)
+
+### What the change broke, and what that was worth
+
+Three fixtures. None was patched to agree, and two turned out to be about
+something other than the ladder.
+
+**A count that was measuring the ladder and calling it the copy.**
+`compositor.rkt` asserted that 24 words stand in type for 24 words of copy. A
+divided word is two pieces sharing one `word-copy` — "ſho-" and "vld" are both
+*should* — so the count reads 25 the moment the compositor divides anything, and
+reads it as a *loss* when it is the opposite. It held while the normal space was
+1/3 em and broke on 1/4, which divides oftener. It now rejoins the pieces and
+asserts the copy string itself: unmovable by any ladder, and strictly stronger,
+since 24 would also have survived two words swapping places.
+
+**A fixture whose premise had quietly stopped holding.** `imposition.rkt` needs a
+verse line the two casting-off tests *disagree* about — one that overflows at the
+normal space and goes at the finest. That band is a property of the ladder, not
+of the line. *Lear*'s "No, rather I abiure all roofes" sat in it at 1/3 em and
+simply fits at 1/4 (16,306 against a 16,800 measure). The premise is asserted
+rather than assumed, so it failed loudly instead of leaving the real check
+testing nothing — which is the only reason this was a two-minute problem. The
+replacement is from `samples/hamlet.txt`, so the figures can be checked, and is
+the furthest from either edge of the band of the seven candidates in that sample.
+
+**And one that was not about the ladder at all.** The heap test's sparse rate
+read exactly 1.0, and 0.96 under the new ladder. It also reads 1.0 when moved to
+the top of its block and 0.96 when left where it was — same model, same book,
+same twenty-five seeds. `run-press` **wears the type it prints from**: serialise
+the book before and after and it grows, the rules picking up "printing heavy at
+one end" and "a break a third of the way down". So twenty-five runs over one book
+are not twenty-five draws from one distribution; they are one press working the
+same forme twenty-five times, and the later runs have more to see than the first.
+
+That is worse here than it would be anywhere else, because accumulated damage is
+exactly what `variant-groupings` keys on. **The measurement loop was feeding the
+detector evidence it had itself manufactured.** Each call now sets the book
+again, at 1.3 seconds on the suite.
+
+The comment eleven lines below the broken assertion already stated the rule it
+broke — "assert the ordering of the rates rather than their values … pinning the
+numbers would make this a test of the seed sequence". The dense assertions
+followed it; the sparse one did not; the sparse one broke. **A rule written down
+next to the code that violates it is not a rule, it is a note.**
+
+The general form, which is new to this file: **a measurement loop that reuses a
+mutable object is measuring an accumulating process, whatever it says it is
+measuring.** Anywhere a book is built once and pressed many times, the runs are
+not exchangeable and their order is part of the result.
+
 ---
 
 ## 5. Casting off is two regimes, not one dial **[manuals]**
@@ -1361,6 +1451,40 @@ books, and against the compositor introducing them. And **headings are allotted
 an explicit depth in lines**, marked in the margin; Moxon adds that the whites
 round a heading must make "a just number of Lines" with the text body, so the
 page still justifies in length.
+
+### What §4 hands this section: a number to hit
+
+§5 has had its sources for two sessions and no way to tell whether an
+implementation of them was right. It now has one, and it did not come from the
+casting-off literature at all.
+
+After the space-ladder went to Moxon's four bodies, two quantities measured off
+real books both still fall short — internal space 11.57% against Blayney's ~9%,
+divisions 5.88 per 100 lines against the Norton prose plays' 6.41. They fall
+short in the same direction and by about the same proportion, and the mechanical
+statement of the shortfall is the one §4 arrived at by inverting Blayney's
+figure: **lines end about 0.6 em short of where a real compositor left them,
+which is roughly a quarter of a word.**
+
+So the test of any crowding-device work is arithmetic rather than aesthetic:
+
+- **it should recover about 0.6 em a line**, and
+- **`tools/measure-spacing.rkt` is how you would know** — internal space toward
+  9%, divisions toward 6.41 on a prose sample, both without either being tuned.
+
+Two cautions carried forward from §4, both earned the hard way. Read the
+*population* that matches the sample — 6.41 for prose, 2.03 for the whole book,
+0.40 for verse — because quoting the wrong one has now misled this file three
+times. And the two figures are a check, never a target: the whole value of the
+programme is that the analyser inverts the generator, and a constant moved until
+a report comes out right destroys exactly that.
+
+The prediction, worth writing down before anything is built so it can be wrong:
+Smith says the devices are *conditional* on the casting-off regime, firing only
+where copy was cast off close. If that is modelled honestly, the recovery should
+appear in the close-cast regime and be **absent** in the other — which means the
+0.6 em should not close uniformly, and a uniform improvement would be a sign the
+implementation is a global fudge wearing the sources as a costume.
 
 ---
 
