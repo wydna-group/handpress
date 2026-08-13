@@ -69,6 +69,9 @@ COUNTS = [
     # for the one instrument here whose whole purpose is to notice mechanisms
     # nobody is watching, and the other two are anchored the same way even
     # though neither is ambiguous today.
+    ("the compositor lost his place",
+     r"the compositor lost his place\s+(\d+)\s+[\d.]+\s+per 1000 pages",
+     "a page whose copy resumes where the last left off"),
     ("pages crowded",
      r"crowded\s+(\d+)\s+[\d.]+\s+per 1000 pages", "casting off going wrong short"),
     ("pages spun out",
@@ -76,6 +79,11 @@ COUNTS = [
     ("lines of copy dropped (the omission branch)",
      r"lines of copy dropped\s+(\d+)\s+[\d.]+\s+per 1000 pages",
      "a page that cannot hold its cast-off copy"),
+    # A fault of impression is not a press variant and is deliberately counted
+    # apart, so it needs its own pattern here or it would be invisible to the
+    # one instrument that watches for dead mechanisms.
+    ("faults of impression",
+     r"Faults of impression:\s+(\d+)", "a space rising or a sort standing proud"),
     ("distinctive types made at press",
      r"Made distinctive at press:\s+(\d+)", "a forme distributed during the run"),
     ("sorts that touched nought",

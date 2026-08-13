@@ -102,7 +102,77 @@
   (check-regexp-match #rx"no capital U"
                       (word-deviation (set-as "PICTURE" "PICTVRE")))
   (check-regexp-match #rx"^copy" (word-deviation (set-as "PICTURE" "PICTORE"))
-                      "but a letter that really differs still is"))
+                      "but a letter that really differs still is")
+
+  ;; EVERY MECHANISM MUST NAME ITSELF IN THE APPARATUS, and three did not.
+  ;;
+  ;; The tooltip is the only place most readers meet the model, and for a while
+  ;; it called a mis-pointed word and a dropped word "misreading" -- his eye
+  ;; going wrong, which is a different fault at a different stage. The counts in
+  ;; `deviation-counts' had told pointing apart since it was built, so the table
+  ;; and the tooltip disagreed about the same word: one property, two decision
+  ;; points, and the reader was told the wrong thing.
+  ;;
+  ;; Each row here is a mechanism the program actually has, with the note it must
+  ;; produce. A new mechanism belongs in this list before it is built.
+  (let ()
+    (define (mk copy read printed [causes '()])
+      (word copy read read read read printed 100 causes #f '() 'picked))
+    (define (note . args) (word-deviation (apply mk args)))
+    ;; want of metal, in its three forms -- none of them an error
+    (check-regexp-match #rx"w box was empty" (note "works" "works" "vvorks"))
+    (check-regexp-match #rx"laid face down" (note "is" "is" "i▮"))
+    (check-regexp-match #rx"wrong-fount"
+                        (note "Cassio!" "Cassio!" "Cassio!"
+                              '("! wanting; a wrong-fount ! borrowed")))
+    ;; the case going wrong, by either of Hornschuch's two causes
+    (check-regexp-match #rx"foul case" (note "honourable" "honourable" "hanourable"))
+    (check-regexp-match #rx"foul case" (note "semeth" "semeth" "femeth"))
+    ;; his pointing, which is NOT his eye
+    (check-regexp-match #rx"^pointing:" (note "peace," "peace" "peace"))
+    (check-regexp-match #rx"^pointing:" (note "peace," "peace;" "peace;"))
+    (check-false (regexp-match? #rx"misreading" (note "peace," "peace" "peace"))
+                 "a stop is not a misreading")
+    ;; his place, which is not his eye either
+    (check-regexp-match
+     #rx"dropped where he took up"
+     (note "my brother" "brother" "brother"
+           '("resumption: a word or two dropped where he took up again")))
+    (check-regexp-match
+     #rx"stands where the copy has nothing"
+     (note "" "the" "the"
+           '("resumption: a word or two repeated where he took up again")))
+    ;; and a real misreading is still one
+    (check-regexp-match #rx"^misreading:" (note "tongues" "tongnes" "tongnes"))
+    ;; A cause named by a branch must not be printed twice by the loop that
+    ;; prints unclaimed ones.
+    (check-equal?
+     (length (regexp-match* #rx"took up again"
+                            (note "my brother" "brother" "brother"
+                                  '("resumption: a word or two dropped where he took up again"))))
+     1 "each fault is named once")
+
+    ;; THE NOTE OPENS WITH THE FAULT THE WORD IS COLOURED BY. A word carrying
+    ;; several notes had them joined in the order the stages happened, while the
+    ;; class is the most significant of them -- so a word underlined as want of
+    ;; metal could open "habit:", and one underlined as a shift could open
+    ;; "pointing:". The colour and the first words of the hover disagreed, which
+    ;; is what a reader reports as a mislabelled tooltip.
+    ;;
+    ;; Both of these carry two faults at once, and each must lead with its own.
+    (let* ([shifted (mk "courſe;" "courſe" "courſe" '())]
+           ;; pointed AND set from an empty box: classed a substitution
+           [shifted* (word "courſe;" "courſe" "courſe" "courſe" "courſe" "course"
+                           100 '() #f '() 'picked)]
+           [tip (word-deviation shifted*)])
+      (check-equal? (classify shifted*) "substitution" "the class is the shift")
+      (check-true (string-prefix? tip "the ")
+                  (format "and the note opens with it, not with the pointing: ~s" tip))
+      (check-true (regexp-match? #rx"pointing" tip)
+                  "the other fault is still told, after it"))
+    ;; And a word with only one fault is unaffected by the reordering.
+    (check-true (string-prefix? (note "peace," "peace" "peace") "pointing:")
+                "one fault, one note, unmoved")))
 
 (define (word-deviation w)
   (define (d a b) (and a b (not (string=? a b))))
@@ -130,26 +200,61 @@
   (define (staged stage note)
     (define ds (devices-for stage))
     (if (null? ds) note (format "~a (~a)" note (string-join ds ", "))))
+  ;; "resumption" is claimed too: the branch below names it, and without this it
+  ;; would also fall through to the loop that prints unclaimed causes and appear
+  ;; twice in one tooltip.
   (define claimed
-    (for*/list ([stage (in-list '("misreading" "habit" "justification"))]
+    (for*/list ([stage (in-list '("misreading" "habit" "justification" "resumption"))]
                 [d (in-list (devices-for stage))])
       (string-append stage ": " d)))
-  (define notes
+  ;; Each note is tagged with the class it belongs to, so that the one the word
+  ;; is COLOURED by can be brought to the front below.
+  (define notes*
     (append
-     (if divide-note (list divide-note) '())
+     (if divide-note (list (cons "division" divide-note)) '())
+     ;; COPY AGAINST READ IS THREE FAULTS, NOT ONE, and this said "misreading"
+     ;; to all of them. A misreading is his eye going wrong on a word; a stop set
+     ;; otherwise than the copy had it is his pointing; and a word dropped or
+     ;; doubled where he took up the copy again is his place, not his eye. They
+     ;; happen at the same stage and are told apart by what differs.
+     ;;
+     ;; The counts in `deviation-counts' have distinguished pointing since it was
+     ;; built and this did not, so the table and the tooltip disagreed about the
+     ;; same word -- one property, two decision points, and the reader hovering
+     ;; over `peace' was told the compositor had misread it.
      (if (and (not divide-note) (d (word-copy w) (word-read w)))
-         (list (staged "misreading"
-                       (format "misreading: copy “~a” → read “~a”"
-                               (word-copy w) (word-read w))))
+         (list
+          (cond
+            ;; named by the mechanism itself, which knows which it was
+            [(for/or ([c (in-list (word-causes w))])
+               (and (string-prefix? c "resumption: ") (substring c 12)))
+             => (lambda (what)
+                  (cons "resumption"
+                        (if (string=? (word-copy w) "")
+                            (format "~a: “~a” stands where the copy has nothing"
+                                    what (word-read w))
+                            (format "~a: the copy read “~a”" what (word-copy w)))))]
+            [(pointing-only? (word-copy w) (word-read w))
+             (cons "pointing"
+                   (format "pointing: the copy had “~a” and he set “~a”"
+                           (word-copy w) (word-read w)))]
+            [else
+             (cons "misreading"
+                   (staged "misreading"
+                           (format "misreading: copy “~a” → read “~a”"
+                                   (word-copy w) (word-read w))))]))
          '())
      (if (and (not (stages-cancel? w)) (d (word-read w) (word-habit w)))
-         (list (staged "habit"
-                       (format "habit: “~a” → “~a”" (word-read w) (word-habit w))))
+         (list (cons "habit"
+                     (staged "habit"
+                             (format "habit: “~a” → “~a”"
+                                     (word-read w) (word-habit w)))))
          '())
      (if (and (not (stages-cancel? w)) (d (word-habit w) (word-final w)))
-         (list (staged "justification"
-                       (format "justification: “~a” → “~a”"
-                               (word-habit w) (word-final w))))
+         (list (cons "justification"
+                     (staged "justification"
+                             (format "justification: “~a” → “~a”"
+                                     (word-habit w) (word-final w)))))
          '())
      ;; A box that was empty is not a box that was foul. See
      ;; `substitution-only?': the reading is untouched, and calling it foul case
@@ -157,19 +262,41 @@
      (if (d (word-composed w) (word-printed w))
          (list (cond
                  [(placeholder? (word-printed w))
-                  (format "no sort to set “~a” with: a type laid face down to hold the place, to be put right at proof"
-                          (word-composed w))]
+                  (cons "sort-wanting"
+                        (format "no sort to set “~a” with: a type laid face down to hold the place, to be put right at proof"
+                                (word-composed w)))]
                  [(substitution-only? (word-composed w) (word-printed w))
-                  (substitution-phrase (word-composed w) (word-printed w))]
+                  (cons "substitution"
+                        (substitution-phrase (word-composed w) (word-printed w)))]
                  [else
-                  (format "foul case: “~a” set for “~a”"
-                          (word-printed w) (word-composed w))]))
+                  (cons "foul-case"
+                        (format "foul case: “~a” set for “~a”"
+                                (word-printed w) (word-composed w)))]))
          '())
      ;; the device that did it, in the compositor's own terms, where no stage
      ;; above has already named it
      (for/list ([c (in-list (word-causes w))]
                 #:unless (or (regexp-match? #rx"divid" c) (member c claimed)))
-       c)))
+       (cons #f c))))
+
+  ;; THE NOTE MUST OPEN WITH THE FAULT THE WORD IS COLOURED BY.
+  ;;
+  ;; A word can carry several notes, and they were joined in the order the
+  ;; stages happened -- while the class is the single most significant of them,
+  ;; chosen by `classify'. So a word underlined as want of metal could open
+  ;; "habit: ...", and one underlined as a shift could open "pointing: ...":
+  ;; the colour said one thing and the first words of the hover another. Some
+  ;; forty of two thousand marked words in one book, and it is exactly what a
+  ;; reader reports as a mislabelled tooltip -- the `VV' for `W' whose note
+  ;; began with an earlier stage and read as though the substitution were the
+  ;; misreading.
+  ;;
+  ;; The chronology is kept behind it, because which letters moved and in what
+  ;; order is the thing worth knowing once the kind is settled.
+  (define lead (classify w))
+  (define notes
+    (append (for/list ([n (in-list notes*)] #:when (equal? (car n) lead)) (cdr n))
+            (for/list ([n (in-list notes*)] #:unless (equal? (car n) lead)) (cdr n))))
   (cond
     [(pair? notes) (string-join notes "; ")]
     ;; This branch is for a difference nothing above accounts for, so the
@@ -267,6 +394,15 @@
     [(divided? w) "division"]
     [(for/or ([c (in-list (word-causes w))]) (string-prefix? c "justification"))
      (if (stages-cancel? w) (if variant? "press-variant" "copy") "justification")]
+    ;; Three faults share this stage and must not share a colour: his place,
+    ;; his pointing, and his eye. Asked in that order because the mechanism
+    ;; names itself where it can, and the shape of the difference names it
+    ;; where it cannot.
+    [(for/or ([c (in-list (word-causes w))]) (string-prefix? c "resumption: "))
+     "resumption"]
+    [(and (differ? (word-copy w) (word-read w))
+          (pointing-only? (word-copy w) (word-read w)))
+     "pointing"]
     [(differ? (word-copy w) (word-read w)) "misreading"]
     [(stages-cancel? w) (if variant? "press-variant" "copy")]
     [(differ? (word-read w) (word-habit w)) "habit"]
@@ -291,6 +427,14 @@
 (define (differs? a b)
   (and a b (not (string=? (string-downcase a) (string-downcase b)))))
 
+;; Do these two differ in their pointing and in nothing else?
+(define (strip-stops s)
+  (list->string (for/list ([ch (in-string s)] #:unless (memv ch STOPS)) ch)))
+
+(define (pointing-only? a b)
+  (and a b (string=? (strip-stops (string-downcase a))
+                     (strip-stops (string-downcase b)))))
+
 (define (deviation-counts b [r #f])
   (define words
     (for*/list ([p (in-list (book-pages b))]
@@ -307,6 +451,20 @@
     (for/sum ([w (in-list words)])
       (if (and (not (divided? w)) (differs? (from w) (to w))) 1 0)))
 
+  ;; Which of the three the printed form is, or #f where it stands as composed.
+  ;; The order matters and is `word-deviation''s: a placeholder is not a
+  ;; substitution, and a substitution is not foul case.
+  (define (printed-as w)
+    (and (not (divided? w))
+         (differs? (word-composed w) (word-printed w))
+         (cond
+           [(placeholder? (word-printed w)) 'wanting]
+           [(substitution-only? (word-composed w) (word-printed w)) 'substituted]
+           [else 'accident])))
+
+  (define (count-printed-as k)
+    (for/sum ([w (in-list words)]) (if (eq? (printed-as w) k) 1 0)))
+
   (define (lines-with rx)
     (for/sum ([l (in-list lines)])
       (if (ormap (lambda (w) (ormap (lambda (c) (regexp-match? rx c))
@@ -319,10 +477,84 @@
    'lines (length lines)
    'pages (length (book-pages b))
    ;; the stages
-   'misreading (count-stage word-copy word-read)
+   ;; A stop set otherwise than the copy had it is not a misreading of a word,
+   ;; and lumping the two would hide the commonest thing a corrector did behind
+   ;; the rarest. They are separated on the difference itself: strip the stops
+   ;; from both sides and if nothing is left of the difference, it was pointing.
+   'misreading (for/sum ([w (in-list words)])
+                 (if (and (not (divided? w))
+                          (differs? (word-copy w) (word-read w))
+                          (not (pointing-only? (word-copy w) (word-read w))))
+                     1 0))
+   'mis-pointed (for/sum ([w (in-list words)])
+                  (if (and (not (divided? w))
+                           (differs? (word-copy w) (word-read w))
+                           (pointing-only? (word-copy w) (word-read w)))
+                      1 0))
    'habit      (count-stage word-read word-habit)
    'fitting    (count-stage word-habit word-final)
-   'accident   (count-stage word-composed word-printed)
+   ;; THREE THINGS MAKE THE PRINTED WORD DIFFER FROM THE COMPOSED ONE, and only
+   ;; one of them is an accident of the case. `word-deviation' in this same
+   ;; module has told them apart since the day a note read
+   ;; `foul case: "officers" set for "officers"'; this count did not, and rang
+   ;; every one of them as foul case under a label naming foul case, turned
+   ;; letters and wrong fount.
+   ;;
+   ;; Measured on Areopagitica at folio in sixes: 317 words differ and NINE are
+   ;; accidents. The rest are the shift ladder -- overwhelmingly a sort laid
+   ;; face down to hold the place, plus VV for W and the ligature inversions.
+   ;; A thirty-five-fold over-count, and on the Folio it read 2,313 against 813
+   ;; accident events logged in the same run.
+   ;;
+   ;; That matters beyond the label. Roadmap §12 wants the compositor's error
+   ;; rate separated from the surviving one, and neither can be measured against
+   ;; a row that is nine parts want of metal.
+   ;;
+   ;; **Third time in this program that a stage comparison has rung something
+   ;; else as foul case** -- the lessons name the other two. The remedy is the
+   ;; same each time and was already twelve lines above: ask which of the three
+   ;; it is, with the predicates `typecase.rkt' exports for the purpose.
+   ;;
+   ;; This counts accidents VISIBLE IN THE PRINTED FORM, which is why it reads a
+   ;; little under the accident events logged for the same run -- 6 against 9 on
+   ;; the sample above. The difference is the turns that change nothing, an `o'
+   ;; or an `s' put in upside down, which this module's own note calls "the turn
+   ;; that changes nothing". That is the right population here: a corrector can
+   ;; only catch what shows on the page, and §12 wants this row to be what he had
+   ;; to work with.
+   'accident   (count-printed-as 'accident)
+   ;; A box that was empty, not a box that was foul: the sort was laid face down
+   ;; to hold the place and the reading is untouched.
+   'wanting    (count-printed-as 'wanting)
+   ;; VV for W and the like -- the compositor's own remedy, not a mistake.
+   'substituted (count-printed-as 'substituted)
+   ;; ERRORS MADE AND ERRORS SURVIVING ARE DIFFERENT NUMBERS (Roadmap §12).
+   ;;
+   ;; Every rate in the calibration table was diffed out of a printed book -- the
+   ;; _Much Ado_ quarto against the Folio set from it -- so each counts what got
+   ;; PAST the corrector. The row above counts what the compositor did, which is
+   ;; the larger population by whatever was caught at proof. One number has been
+   ;; doing both jobs, and Simpson gives the size of that from the other end:
+   ;; twenty corrections on the one proof-corrected page of the First Folio that
+   ;; survives, against about two and a half correctable errors a page here.
+   ;;
+   ;; A caught error does not leave the edition. The forme was mended in the
+   ;; middle of the run, so the sheets already worked off keep it: it survives in
+   ;; `fraction-uncorrected' of the copies and is gone from the rest. What a
+   ;; bibliographer diffing ONE copy would find is therefore the number made,
+   ;; less the mended ones weighted by the share of the run that got the
+   ;; correction, less the ones mended before the press began at all -- which
+   ;; leave no variant and no trace, and are Carter's point.
+   'accidents-mended
+   (if r
+       (+ (for*/sum ([(k s) (in-hash (press-run-states r))]
+                     [v (in-list (forme-state-variants s))]
+                     #:when (regexp-match? #rx"^literal corrected at press"
+                                           (pvariant-note v)))
+            (- 1.0 (forme-state-fraction-uncorrected s)))
+          (for/sum ([(k s) (in-hash (press-run-states r))])
+            (forme-state-silent s)))
+       0.0)
    ;; any departure at all, word by word
    'any (for/sum ([w (in-list words)])
           (if (and (not (divided? w)) (differs? (word-copy w) (word-printed w)))
@@ -369,6 +601,11 @@
                            (not (differs? (strip-conventions (word-copy w))
                                           (strip-conventions (word-printed w)))))
                       1 0))
+   ;; The compositor mistaking the point at which he left off, between one page
+   ;; and the next -- McKerrow's mechanism, counted from the events because a
+   ;; dropped word leaves nothing on the page to count.
+   'mis-resumed (for/sum ([e (in-list (book-events b))])
+                  (if (eq? (event-kind e) 'resumption) 1 0))
    ;; what happened to pages
    'crowded   (for/sum ([p (in-list (book-pages b))])
                 (if (> (page-pressure p) 0) 1 0))
@@ -429,6 +666,8 @@
           "before the compositor saw it")
      (row "misread from the copy" (g 'misreading) n
           "his eye, not his judgement")
+     (row "pointed otherwise than the copy" (g 'mis-pointed) n
+          "a stop dropped, changed, or set where none stood; no source gives a rate")
      (row "respelt by habit" (g 'habit) n
           "what he sets left to himself")
      (row "habit given up for the measure" (g 'habit-suspended) n
@@ -437,6 +676,28 @@
           "forced by the line, not chosen")
      (row "accident of the case" (g 'accident) n
           "foul case, turned letter, wrong fount")
+     ;; The two stages of that one quantity, directly under it because they
+     ;; qualify it and nothing else. The calibration table has been conflating
+     ;; them; see `accidents-mended' above and Roadmap §12.
+     (if (and r (> (g 'accident) 0))
+         (let* ([mended (g 'accidents-mended)]
+                [surviving (max 0.0 (- (g 'accident) mended))])
+           (string-append
+            (row "    of those, mended at proof" (exact-round mended) n
+                 "gone from the copies printed after the correction")
+            "\n"
+            (row "    left standing in one copy" (exact-round surviving) n
+                 "what a diff against the copy-text would find")))
+         "")
+     ;; Split out rather than dropped: both used to be counted on the accident
+     ;; row, and a reader who knew the old total would otherwise see it fall by
+     ;; an order of magnitude with nothing to account for it. Neither is an
+     ;; error -- the first is want of metal and the second the compositor's own
+     ;; remedy.
+     (row "set face down for want of a sort" (g 'wanting) n
+          "a box that was empty, not a box that was foul")
+     (row "a sort substituted for another" (g 'substituted) n
+          "VV for W and the like; the reading is untouched")
      (row "corrected at press" (g 'variants) n
           "and so standing two ways")
      (row "long s, u for v, i for j" (g 'conventions) n
@@ -461,6 +722,11 @@
      (row "quadded out" (g 'quadded) (g 'lines) "per 1000 lines")
      ""
      "    WHAT WAS DONE TO PAGES"
+     ;; McKerrow's slip, which is a fault of PAGES rather than of words: it
+     ;; happens where the compositor returns to his copy, and the report has to
+     ;; say so beside the count because no source gives a rate for it.
+     (row "the compositor lost his place" (g 'mis-resumed) (g 'pages)
+          "per 1000 pages — a word or two dropped or doubled at the join; no source gives a rate")
      (row "crowded" (g 'crowded) (g 'pages) "per 1000 pages")
      (row "spun out" (g 'spun-out) (g 'pages) "per 1000 pages")
      (row "lines of copy dropped" (g 'omitted) (g 'pages) "per 1000 pages")
@@ -580,4 +846,48 @@
   ;; choice but the house's conventions, and a report that did not say so
   ;; would leave the arithmetic unexplained.
   (check-true (> (hash-ref f 'conventions) (hash-ref f 'fitting))
-              "long s and u/v outweigh every deliberate change"))
+              "long s and u/v outweigh every deliberate change")
+
+  ;; A BOX THAT WAS EMPTY IS NOT A BOX THAT WAS FOUL, and this count used to say
+  ;; it was. Three things make the printed word differ from the composed one --
+  ;; foul case, a sort laid face down for want of metal, and a substitution like
+  ;; VV for W -- and `'accident' rang all three under a label naming foul case,
+  ;; turned letters and wrong fount. On Areopagitica it read 317 where nine
+  ;; accidents were logged; on the Folio, 2,313 against 813.
+  ;;
+  ;; `word-deviation' in this module has told them apart for a long time, and the
+  ;; comment beside it records the note that forced it -- `foul case: "officers"
+  ;; set for "officers"'. The count did not, which is one property with two
+  ;; decision points. **Third time a stage comparison in this program has rung
+  ;; something else as foul case**, so it is pinned here rather than left to the
+  ;; next reader's arithmetic.
+  ;;
+  ;; Asserted as an ordering and a bound, not as values: the point is that the
+  ;; three are separated and that accidents are the rare one, which no seed can
+  ;; reverse.
+  ;; Ordering only. This carried a second assertion that foul case was under a
+  ;; quarter of the other two together -- a ratio computed from SIX TO ELEVEN
+  ;; events on this sample, and fitted to Areopagitica where it is 0.03 while on
+  ;; this text it runs 0.30 to 0.50 by format. It broke the day a mechanism
+  ;; altered a word or two on two pages in a hundred, which is all it takes when
+  ;; the denominator is ten.
+  ;;
+  ;; **Three events is not a rate** -- written into this project's rules earlier
+  ;; the same day, and violated here by the person who wrote it. The ordering is
+  ;; the claim that matters and it holds at every format: want of metal is
+  ;; commoner than foul case, and the two are counted apart.
+  (check-true (> (hash-ref f 'wanting) (hash-ref f 'accident))
+              "want of metal is commoner than foul case, and is counted apart")
+  ;; And the row must stay in the same country as the accident events logged for
+  ;; the same run. It sits a little under them because a turned `o' prints as an
+  ;; `o' and never reaches the page, which is the population a corrector sees.
+  (let* ([b (set-book (make-house #:fmt FOLIO-IN-SIXES #:compositors '("A" "B")
+                                  #:seed 5)
+                      txt 'prose)]
+         [logged (for/sum ([e (in-list (book-events b))])
+                   (if (eq? (event-kind e) 'accident) 1 0))]
+         [counted (hash-ref (deviation-counts b) 'accident)])
+    (check-true (<= counted logged)
+                "no more accidents are reported than the run recorded")
+    (check-true (>= counted (* 0.4 logged))
+                "and not an order of magnitude fewer, which is what a lumped count hid")))

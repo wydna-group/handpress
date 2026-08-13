@@ -98,6 +98,9 @@
                        #:find-prelims? [find-prelims? #f]
                        #:contents? [contents? #t]
                        #:binding-error [binding-error #f]
+                       #:impression-faults [impression-faults #f]
+                       #:mis-resume [mis-resume #f]
+                       #:mis-point [mis-point #f]
                        #:cancel-rate [cancel-rate 0.0]
                        #:cancels [cancels 0]
                        #:imprint-change? [imprint-change? #f]
@@ -188,6 +191,7 @@
                         #:conventions cv
                         #:case-scale case-scale
                         #:cast-off-accuracy cast-off
+                        #:mis-resume (or mis-resume MIS-RESUME-RATE)
                         #:skeletons skeletons
                         #:formes-standing standing
                         #:stint-sheets stint
@@ -203,11 +207,16 @@
                         #:find-prelims? find-prelims?
                         #:sig-alphabet (if jaggard? JAGGARD-LETTERS SIG-LETTERS)
                         #:prelim-style prelim-style))
-  (define b (set-book h copy kind))
+  ;; The pointing rate is read inside `make-word', so it is bound here rather
+  ;; than threaded through the house.
+  (define b (parameterize ([current-mis-point (or mis-point MIS-POINT-RATE)])
+              (set-book h copy kind)))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
                        #:proof-rate proof-rate
                        #:edition edition
                        #:binding-error (or binding-error BINDING-ERROR-RATE)
+                       #:impression-faults (or impression-faults
+                                               IMPRESSION-FAULT-RATE)
                        #:cancel-rate cancel-rate
                        #:cancels cancels
                        #:imprint-change? imprint-change?
@@ -363,6 +372,9 @@
   (define find-prelims? #f)
   (define contents? #t)
   (define binding-error #f)
+  (define impression-faults #f)
+  (define mis-resume #f)
+  (define mis-point #f)
   (define cancel-rate 0.0)
   (define cancels 0)
   (define imprint-change? #f)
@@ -435,6 +447,12 @@
       (set! contents? #f)]
      [("--binding-error") x "faults per gathering per copy at the folding (no source gives a rate)"
       (set! binding-error (string->number x))]
+     [("--impression-faults") x "chance per line that a space rises to print or a sort stands proud (no source gives a rate)"
+      (set! impression-faults (string->number x))]
+     [("--mis-resume") x "chance per page that the compositor mistakes where he left off, dropping or doubling a word or two (no source gives a rate)"
+      (set! mis-resume (string->number x))]
+     [("--mis-point") x "chance per word that a stop is dropped, changed, or set where the copy has none (no source gives a rate)"
+      (set! mis-point (string->number x))]
      [("--cancels") n "leaves cancelled for reasons outside the simulation"
       (set! cancels (string->number n))]
      [("--cancel-rate") x "chance that an error surviving the proof is thought worth cutting a leaf out for"
@@ -492,7 +510,10 @@
                        #:printer printer #:publisher publisher
                        #:titlepage? titlepage? #:find-prelims? find-prelims?
                        #:contents? contents?
-                       #:binding-error binding-error #:jaggard? jaggard?
+                       #:binding-error binding-error
+                       #:impression-faults impression-faults
+                       #:mis-resume mis-resume #:mis-point mis-point
+                       #:jaggard? jaggard?
                        #:prelim-style prelim-style
                        #:cancel-rate cancel-rate #:cancels cancels
                        #:imprint-change? imprint-change? #:heap-disorder heap-disorder

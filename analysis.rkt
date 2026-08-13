@@ -445,7 +445,18 @@
          "")))
 
 (define (castingoff-report b)
-  (define bad (filter (lambda (p) (> (abs (page-pressure p)) 0.35)) (book-pages b)))
+  ;; TWO POPULATIONS, and they must be named apart. `deviation.rkt' counts a
+  ;; page crowded when its pressure is above nought at all, which is an overflow
+  ;; of more than two lines; the list below has always taken the pages under
+  ;; serious strain, a third of a page or worse. On the Folio those are 570 and
+  ;; 11 -- the same word for two counts fifty times apart, in one report, with
+  ;; nothing saying which was which. A session was spent trying to reconcile a
+  ;; harvest against "the crowded figure" without either number stating its own
+  ;; threshold. The header line below now states both.
+  (define pages (book-pages b))
+  (define bad (filter (lambda (p) (> (abs (page-pressure p)) 0.35)) pages))
+  (define crowded (filter (lambda (p) (> (page-pressure p) 0)) pages))
+  (define spun (filter (lambda (p) (< (page-pressure p) 0)) pages))
   (string-join
    (append
     (list "THE CASTING OFF, RECOVERED FROM CROWDED AND GAPING PAGES"
@@ -455,10 +466,27 @@
           "  Where the copy was measured out wrong the compositor had to"
           "  make it fit. Pages that are visibly crowded or visibly spun out"
           "  mark the joins."
+          ""
+          (format "  ~a page(s) of ~a were miscast by more than two lines — ~a"
+                  (+ (length crowded) (length spun)) (length pages)
+                  (format "~a crowded, ~a spun out." (length crowded) (length spun)))
+          (format "  Listed below are the ~a under serious strain, which is a third"
+                  (length bad))
+          "  of a page or worse. That is a narrower test than the summary"
+          "  table's, and the two counts are not interchangeable."
           "")
     (if (null? bad)
-        (list "  No page shows serious strain; the casting off was good,"
-              "  or the book was set seriatim and the surplus carried on."
+        (list
+              ;; The distinction the header exists to keep. "No page shows
+              ;; serious strain; the casting off was good" was printed
+              ;; unconditionally here, so a book with two-thirds of its pages
+              ;; miscast by three or four lines read as one cast off well.
+              (if (null? (append crowded spun))
+                  "  No page was miscast at all; the casting off was good,"
+                  "  No page shows SERIOUS strain, though the count above is not")
+              (if (null? (append crowded spun))
+                  "  or the book was set seriatim and the surplus carried on."
+                  "  nought: it erred, and erred within a third of a page.")
               ""
               "  Note that verse casts off almost exactly and prose does not"
               "  (Gaskell, p. 41), so in verse copy the strain is expected to"
@@ -711,6 +739,29 @@
               (format "    Proofed:                ~a" (tally proofed formes "formes"))
               (format "    Corrected mid-run:      ~a" (tally corrected formes "formes"))
               (format "    Press variants:         ~a" variants)
+              ;; Counted here rather than folded into the variants above, because
+              ;; mending one changes no reading and no collation can find it.
+              (let* ([faults (for/sum ([(k s) (in-hash (press-run-states r))])
+                               (forme-state-faults s))]
+                     [mended (for/sum ([(k s) (in-hash (press-run-states r))])
+                               (forme-state-faults-mended s))])
+                (string-append
+                 (format "    Faults of impression:   ~a — ~a"
+                         faults
+                         (if (zero? faults)
+                             "none; a space rising to print is a knob with no source behind it"
+                             (format "~a mended at proof, ~a printing to the end of the run"
+                                     mended (- faults mended))))
+                 "\n"
+                 "        A space risen far enough to take ink, or a sort standing\n"
+                 "        proud so its neighbours print faint. Hornschuch gives the\n"
+                 "        corrector a mark of its own for these and Treveris's 1526\n"
+                 "        proof shows two caught on one sheet — but **no source\n"
+                 "        gives a rate**, so the count above is a parameter and not\n"
+                 "        a finding.\n"
+                 "        None of them is a press variant: mending one alters no\n"
+                 "        reading, so collating every copy in the world would not\n"
+                 "        turn up one. They are visible on the page and nowhere else."))
               (format "    Leaves cancelled:       ~a"
                       (tally (length cancels) nleaves "leaves"
                              (and (zero? (length cancels))
@@ -727,12 +778,45 @@
 ;; The bibliographer's view of a page: its signature, the sheet that printed
 ;; it, and which side of that sheet. All three are on the leaf or follow from
 ;; the format and the fold; none of them says anything about setting order.
+;; Pages in the order their formes were worked, which for a quired format is not
+;; the order they are bound in.
+;;
+;; `turner-table' reads the order of this list as the order the sheets were
+;; printed, and says so: the rule is about *succeeding* sheets. A folio in sixes
+;; is three sheets quired one within another, so gathering A is printed sheet 3,
+;; then 2, then 1, and bound 1, 2, 3. Handed the bound order the rule was asked
+;; about every pair backwards -- A1 into A2 where the succession is A3 into A2 --
+;; and on the Folio it named the first-distributed forme rightly 0 times out of
+;; 37, which reads as a rule that is always wrong rather than one always asked
+;; the wrong question.
+;;
+;; `recurrence.rkt' already carries this lesson for the other case that breaks
+;; it: preliminaries cut from the white paper of the last sheet are printed last
+;; and bound first, which produced a confident table for "H into A". The remedy
+;; there was to order the sheets by first appearance in the bound order, and
+;; quiring is precisely what defeats that remedy. `forme-order' is numbered in
+;; the order the formes are set, so it answers both cases at once.
+;; The sheet and the side are taken from the forme rather than parsed back out
+;; of its printed name. The name is "MARK sheet N SIDE" and this used to split
+;; it on whitespace and call the last token the side, which is right for "inner"
+;; and "outer" and wrong for the third one there is: a half sheet worked and
+;; turned is "A sheet 1 work and turn", giving the sheet "A sheet 1 work and"
+;; and the side "turn". `turner-table' then dropped it for not having two sides,
+;; which is the correct treatment reached by accident.
 (define (page-views b)
-  (for/list ([p (in-list (book-pages b))])
-    (define parts (string-split (page-forme-name p)))
-    (list (page-sig p)
-          (string-join (take parts (sub1 (length parts))) " ")
-          (last parts))))
+  (define info
+    (for/hash ([fm (in-list (book-formes b))])
+      (values (forme-name fm)
+              (list (forme-order fm)
+                    (format "~a sheet ~a" (forme-mark fm) (forme-sheet fm))
+                    (forme-side fm)))))
+  (define (of p) (hash-ref info (page-forme-name p) #f))
+  (define worked
+    (sort (filter of (book-pages b)) <
+          #:key (lambda (p) (first (of p)))))
+  (for/list ([p (in-list worked)])
+    (define i (of p))
+    (list (page-sig p) (second i) (third i))))
 
 (define (turner-report b)
   (define ev (recurrence-evidence (book-case b)))
@@ -787,11 +871,25 @@
                     "  standing, a forme is distributed too late for its type to\n"
                     "  reach both formes of the next sheet. Turner's statement\n"
                     "  does not mention the condition it depends on.")
-                   (format
-                    (string-append
-                     "  Where it appears it names the first-set forme rightly ~a\n"
-                     "  of ~a times. The truth for this book is the ~a forme.")
-                    right (length fired) truth))
+                   ;; `true-first-forme' answers for a sheet, and returns #f
+                   ;; where this book gives it nothing to answer from -- every
+                   ;; sheet worked and turned, or the sheets of a gathering
+                   ;; disagreeing. Scoring against that prints a hard zero for a
+                   ;; rule that was never asked, which is the difference this
+                   ;; report exists to keep: a bare zero cannot tell `did not
+                   ;; happen' from `could not happen here'.
+                   (if truth
+                       (format
+                        (string-append
+                         "  Where it appears it names the forme distributed first\n"
+                         "  rightly ~a of ~a times. The truth for this book is the\n"
+                         "  ~a forme.")
+                        right (length fired) truth)
+                       (string-append
+                        "  Which forme of a sheet was distributed first is not\n"
+                        "  defined for this book -- no sheet in it has two formes\n"
+                        "  whose order could differ -- so the pattern is counted\n"
+                        "  and left unscored rather than scored against nothing.")))
                ""
                "  What it does NOT show is that composition was by formes."
                "  Turner's further claim -- \"when type reappears in this manner,"
@@ -1453,4 +1551,33 @@ CANCELS
   (define ev (spelling-evidence b))
   (check-true (> (length (filter (lambda (e) (not (string=? (page-evidence-verdict e) "?"))) ev))
                  0))
-  )
+
+  ;; `page-views' hands `turner-table' the order it reads as the order the
+  ;; sheets were PRINTED. A folio in sixes is three sheets quired one within
+  ;; another, printed 3, 2, 1 and bound 1, 2, 3, so the bound order pairs every
+  ;; sheet with its predecessor instead of its successor -- which scored
+  ;; Turner's rule 0 of 37 on the Folio and read as the rule always failing.
+  ;; A quarto gathering is one sheet, so the fault was invisible at the format
+  ;; the rule is stated for.
+  ;; B is the text here and A the preliminaries, which are set last and bound
+  ;; first -- so B leads, and inside each gathering the sheets run 3, 2, 1.
+  (let* ([b6 (set-book (make-house #:fmt FOLIO-IN-SIXES #:seed 1623) sample)]
+         [sheets (remove-duplicates (map second (page-views b6)))])
+    (check-equal? sheets
+                  '("B sheet 3" "B sheet 2" "B sheet 1"
+                    "A sheet 3" "A sheet 2" "A sheet 1")
+                  "a quired gathering is worked from its innermost sheet outward"))
+  ;; Quarto is one sheet to the gathering, so only the preliminaries move -- and
+  ;; the worked-and-turned half sheet keeps its whole side name.
+  (let* ([bq (set-book (make-house #:fmt QUARTO #:seed 1623) sample)]
+         [vs (page-views bq)])
+    (check-equal? (remove-duplicates (map second vs))
+                  '("B sheet 1" "A sheet 1")
+                  "the text gathering is printed before the preliminaries")
+    (check-not-false (member "work and turn" (map third vs))
+                     "a worked-and-turned side is named in full, not cut to its last word"))
+  ;; And the rule must be scored against a real answer, never against #f.
+  (check-true (string? (true-first-forme FOLIO-IN-SIXES #t))
+              "the answer key answers at the format the Folio is set in")
+  (check-false (regexp-match? #px"#f" (full-report b r))
+               "no Racket false reaches the page"))

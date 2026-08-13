@@ -56,7 +56,8 @@
          (struct-out printed-copy) (struct-out press-run)
          run-press copy-reading-map collate run-variants
          forme-state-corrected? book-quires
-         variant-groupings greg-consistent? HEAP-TRAVEL-BOUND PROOF-RATE)
+         variant-groupings greg-consistent? HEAP-TRAVEL-BOUND PROOF-RATE
+         IMPRESSION-FAULT-RATE)
 
 ;; Plausible sophistications: what a corrector puts in when he decides a
 ;; perfectly good reading must be wrong.
@@ -96,9 +97,23 @@
 ;; default and a second literal is a second place for it to drift.
 (define PROOF-RATE 0.224)
 
+;; Irregularities of impression, per line of type. **No source gives a rate**,
+;; and this one is not derived from anything: it is set so that a Folio forme
+;; carries a fault or two, which is the order Treveris's proof sheet shows, and
+;; that sheet is one sheet of 1526. Every count taken from it carries the
+;; disclaimer in the report. See `impression-faults' in `run-press'.
+(define IMPRESSION-FAULT-RATE 0.004)
+
 (struct pvariant (forme page line word uncorrected corrected note) #:transparent)
 
-(struct forme-state (forme proofed? fraction-uncorrected variants silent)
+;; `faults' and `faults-mended' are irregularities of IMPRESSION rather than of
+;; letter -- a space risen far enough to take ink, a sort standing proud of its
+;; neighbours. They are counted apart from `variants' on purpose: mending one
+;; changes no reading, so no collation of copies can detect it, and folding them
+;; into the variant count would inflate a figure that is compared against
+;; Hinman's, which was got by collating. See `impression-faults' below.
+(struct forme-state (forme proofed? fraction-uncorrected variants silent
+                           faults faults-mended)
   #:transparent)
 
 (define (forme-state-corrected? s)
@@ -126,6 +141,16 @@
 (struct press-run (states copies events silent-readings edition binding-error
                           cancels perfecting heap-disorder cancel-rate)
   #:transparent)
+
+;; Do these two differ in their pointing and in nothing else? Kept here rather
+;; than imported, because `deviation.rkt' requires this module and the arrow may
+;; not be turned round.
+(define (strip-stops s)
+  (list->string (for/list ([ch (in-string s)] #:unless (memv ch STOPS)) ch)))
+
+(define (pointing-only? a b)
+  (and a b (string=? (strip-stops (string-downcase a))
+                     (strip-stops (string-downcase b)))))
 
 (define (run-variants r)
   (append* (for/list ([(k s) (in-hash (press-run-states r))])
@@ -209,6 +234,36 @@
                    ;; once both are accounted for. Two wrongs stop making a
                    ;; right, which is the only reason the arithmetic is spelt
                    ;; out here rather than the number simply changed.
+                   ;;
+                   ;; AND EVERY FIGURE ABOVE WAS READ OFF ONE RUN. The whole
+                   ;; calibration history here -- 0.6, then 0.28, then 0.224,
+                   ;; each justified by a full Folio -- compared single draws of
+                   ;; a statistic whose spread nobody had measured. Measured at
+                   ;; last, three seeds of the same book and the same code:
+                   ;; **366, 851 and 563 press variants**. A 2.3-fold spread,
+                   ;; larger than any difference this file has ever attributed
+                   ;; to a change in the model.
+                   ;;
+                   ;; Corrected formes came out 87, 100 and 108 against Hinman's
+                   ;; hundred -- a mean of 98, so THIS constant was well set and
+                   ;; the run that read 87 was a low draw, not a regression.
+                   ;;
+                   ;; The spread was not in this rate. It was all in one route:
+                   ;; literals corrected 155, 178, 168 -- steady -- against
+                   ;; readings restored from the copy 204, 663, 395. See the
+                   ;; vigilance note below, which is where it came from and is
+                   ;; now fixed. **The rule this yields: a rate quoted from one
+                   ;; Folio is a draw, and this file must say how many runs are
+                   ;; behind any figure it prints.**
+                   ;;
+                   ;; With the vigilance mended, the same three seeds give 280,
+                   ;; 291 and 330, a spread of 1.18 -- and a fourth gives 432,
+                   ;; taking it to 1.54 over four. The variance is reduced and
+                   ;; not abolished, and the honest figure for the count is a
+                   ;; range. Corrected formes over the four are 96, 98, 100, 121:
+                   ;; mean 104 against Hinman's hundred, and the steadiest of
+                   ;; these quantities, which is why it is the one this constant
+                   ;; is set against.
                    #:proof-rate [proof-rate PROOF-RATE]
                    #:catches-accident [catches-accident 0.75]
                    #:catches-misreading [catches-misreading 0.10]
@@ -220,6 +275,30 @@
                    ;; elbow. Set it to 1.0 for a house following Moxon's
                    ;; method, where the copy is read aloud throughout.
                    #:consults-copy [consults-copy 0.12]
+                   ;; IRREGULARITIES OF IMPRESSION, per line of type in the
+                   ;; forme: a space risen far enough to take ink, or a sort
+                   ;; standing proud so that its neighbours print faint.
+                   ;;
+                   ;; Hornschuch gives the corrector a mark of its own for this
+                   ;; -- "anything printed awry or aslant, or anything standing
+                   ;; out above the line, so that the nearest letters have a
+                   ;; fainter impression" -- and Simpson's account of Treveris's
+                   ;; 1526 proof of `The Grete Herball' shows it caught twice on
+                   ;; one sheet, "a cross to call attention to a lead showing
+                   ;; between the words `Gyue it'", besides a letter "printed too
+                   ;; high" and a broken face. The corrector marked all of those
+                   ;; with "a curled stroke like an elongated six", distinct from
+                   ;; his marks for a wrong letter: HIS OWN VOCABULARY SEPARATES
+                   ;; a fault of impression from a fault of reading.
+                   ;;
+                   ;; **NO SOURCE GIVES A RATE.** This is a knob, like
+                   ;; `--binding-error' and `--heap-disorder', and the report
+                   ;; prints the disclaimer beside the count. What is not
+                   ;; invented is the number of CHANCES: every line of type has
+                   ;; gaps in it, so a forme of more type has more places for a
+                   ;; space to rise, and the count follows the format and the
+                   ;; copy rather than being a flat rate per forme.
+                   #:impression-faults [impression-faults IMPRESSION-FAULT-RATE]
                    #:sophisticates [sophisticates 0.16]
                    #:first-proof [first-proof 0.0]
                    ;; Faults per gathering per copy at the folding and sewing.
@@ -285,6 +364,17 @@
            #:when r)
       (work-rule! r edition g))
 
+    ;; The forme is locked up, and the lock-up is where a space rides up and a
+    ;; sort fails to sit down. One draw per line of type, so a forme carrying
+    ;; more matter has more places to go wrong -- the chances are a property of
+    ;; the format and the copy, and only the rate per chance is invented.
+    (define type-lines
+      (for*/sum ([p (in-list pages)] [l (in-list (page-all-lines p))])
+        (if (null? (set-line-words l)) 0 1)))
+    (define faults
+      (for/sum ([_ (in-range type-lines)])
+        (if (< (rnd g) impression-faults) 1 0)))
+
     ;; Proof-reading was not spread evenly. Hinman found it "in considerable
     ;; measure confined to some six or eight plays in one section of the book,
     ;; and especially to material set by a particular compositor" (i. 227) --
@@ -317,10 +407,15 @@
                                         silent)
                                 (page-sig (car pages)) 0 -1 "" "" "")
                          log)))
-       (hash-set! states forme-name (forme-state forme-name #t 1.0 '() silent))]
+       ;; Mended before the run, so the whole edition is clean of them.
+       (hash-set! states forme-name
+                  (forme-state forme-name #t 1.0 '() silent faults faults))]
 
+      ;; Never proofed: nothing is caught, and every fault of impression prints
+      ;; in every copy.
       [(not (< (rnd g) rate))
-       (hash-set! states forme-name (forme-state forme-name #f 1.0 '() 0))]
+       (hash-set! states forme-name
+                  (forme-state forme-name #f 1.0 '() 0 faults 0))]
 
       [else
        ;; How much of the run was worked off before the marked proof came
@@ -343,9 +438,33 @@
 
        ;; Is the copy at the reader's elbow for this forme? `vigilant' carries
        ;; over from a forme where consulting it turned up something serious.
+       ;;
+       ;; THE CARRY-OVER RAN AWAY, and it is what made the press-variant count
+       ;; unquotable. The header states the source exactly -- Hinman's reader,
+       ;; having found "a considerable omission", grew "somewhat more careful
+       ;; ... at least for a time", so **a serious catch raises vigilance and
+       ;; the vigilance decays**. The code did neither. It re-armed on *any*
+       ;; misreading, once per caught word, at even odds: six or so chances on a
+       ;; forme, so vigilance continued with probability about 0.98 and the mean
+       ;; chain was tens of formes. Once begun it swallowed most of the book.
+       ;;
+       ;; Measured on the Folio, three seeds: literals corrected 155, 178, 168 --
+       ;; steady, because every proofed forme catches those. Readings restored
+       ;; from the copy 204, 663, 395 -- a threefold swing, and the whole of the
+       ;; run-to-run spread in the total. It also stood the book against its
+       ;; source: Hinman's variants are "mostly obvious blunders", and copy
+       ;; restoration was the *majority* of ours at 57%, reaching 79%.
+       ;;
+       ;; Now raised at most once for the forme, and only where consulting the
+       ;; copy actually turned something up. That is a geometric decay with a
+       ;; mean of two formes, which is "for a time". The severity Hinman names
+       ;; is NOT modelled: every misreading here is a single word, so there is no
+       ;; considerable omission to distinguish, and "serious" is approximated by
+       ;; "found anything at all". Said plainly rather than dressed as his.
        (define with-copy?
          (or (unbox vigilant) (< (rnd g) consults-copy)))
        (set-box! vigilant #f)
+       (define found-by-copy (box 0))
 
        (for ([p (in-list pages)])
          (for ([e (in-list (hash-ref events-by-page (page-sig p) '()))])
@@ -378,10 +497,11 @@
                           (word-copy w))]
                     [else #f])))
            (when (and restored (< (rnd g) threshold))
-             ;; the scare: having found a real corruption against the copy,
-             ;; the reader is more careful for a while
-             (when (and with-copy? (eq? (event-kind e) 'copy) (< (rnd g) 0.5))
-               (set-box! vigilant #t))
+             ;; the scare: having found a real corruption against the copy, the
+             ;; reader is more careful for a while. Counted here and settled
+             ;; once for the whole forme, below.
+             (when (and with-copy? (eq? (event-kind e) 'copy))
+               (set-box! found-by-copy (add1 (unbox found-by-copy))))
              (set! variants
                    (cons (pvariant forme-name (page-sig p) (event-line e)
                                    (event-word e) (word-printed w) restored
@@ -391,6 +511,55 @@
                                        (format "reading restored from the copy (~a)"
                                                (event-detail e))))
                          variants))))
+
+         ;; POINTING IS CAUGHT BY SENSE, and Simpson settles it. Of the Folio
+         ;; leaf -- whose twenty corrections include two of punctuation -- he
+         ;; says the corrector "probably made them **at sight, without reference
+         ;; to the copy**". So a stop set otherwise than the copy had it does not
+         ;; wait for the copy to be fetched; it is read wrong and mended, and it
+         ;; is caught at the rate he catches a literal by.
+         ;;
+         ;; This is the kind that reaches the variant count. A wrong stop changes
+         ;; the reading, so a collation finds it -- unlike a risen space or a
+         ;; wrong-fount sort, which change none.
+         (for ([l (in-list (page-all-lines p))] [li (in-naturals 1)])
+           (for ([w (in-list (set-line-words l))] [wi (in-naturals)])
+             (when (and (word-copy w) (word-read w)
+                        (not (string=? (word-copy w) (word-read w)))
+                        (pointing-only? (word-copy w) (word-read w))
+                        (not (string=? (word-printed w) (word-copy w)))
+                        (< (rnd g) catches-accident))
+               (set! variants
+                     (cons (pvariant forme-name (page-sig p) li wi
+                                     (word-printed w) (word-copy w)
+                                     (format "pointing mended at press: ~s for ~s"
+                                             (word-copy w) (word-printed w)))
+                           variants)))))
+
+         ;; A WORD SET TWICE IS VISIBLE WITHOUT THE COPY, and this is the one
+         ;; place the two methods of correcting part company in the compositor's
+         ;; favour. `mis-resume' in book.rkt marks the word standing at the join
+         ;; with an empty copy reading where he set a word the copy has not, and
+         ;; a doubled word is exactly the "obvious blunder" Hinman says the Folio
+         ;; corrector caught by sense: he strikes it out without reference to
+         ;; anything.
+         ;;
+         ;; The dropped half of the same slip is deliberately NOT here. He can
+         ;; see the sense break -- McKerrow's whole point is that the catchword
+         ;; tells him a word is missing -- but he cannot supply the word without
+         ;; the copy, so omission is left to the scan below, where the copy is at
+         ;; his elbow. That asymmetry is the mechanism, not a convenience.
+         (for ([l (in-list (page-all-lines p))] [li (in-naturals 1)])
+           (for ([w (in-list (set-line-words l))] [wi (in-naturals)])
+             (when (and (equal? (word-copy w) "")
+                        (not (string=? (word-printed w) ""))
+                        (< (rnd g) catches-accident))
+               (set! variants
+                     (cons (pvariant forme-name (page-sig p) li wi
+                                     (word-printed w) ""
+                                     (format "a word set twice struck out at press: ~s"
+                                             (word-printed w)))
+                           variants)))))
 
          ;; Misreadings have to be found on the page rather than in the event
          ;; log. They are recorded at the moment the compositor reads his copy,
@@ -409,13 +578,20 @@
                ;; whole word as their copy reading, so `pri-' and `nce' would
                ;; otherwise look like corruptions of `prince' and get
                ;; "restored" into a line that has no room for them.
+               ;; Pointing is excluded here because the scan above has already
+               ;; had it. A mis-pointed word satisfies both conditions -- copy
+               ;; differs from read, and print differs from copy -- so without
+               ;; this it is caught twice and counted twice, which put the Folio
+               ;; at 815 variants where the same run gives about 400. **One
+               ;; fault, one place that catches it.**
                (when (and (word-copy w) (word-read w)
                           (not (ormap (lambda (c) (regexp-match? #rx"divided" c))
                                       (word-causes w)))
                           (not (string=? (word-copy w) (word-read w)))
+                          (not (pointing-only? (word-copy w) (word-read w)))
                           (not (string=? (word-printed w) (word-copy w)))
                           (< (rnd g) (max catches-misreading 0.80)))
-                 (when (< (rnd g) 0.5) (set-box! vigilant #t))
+                 (set-box! found-by-copy (add1 (unbox found-by-copy)))
                  (set! variants
                        (cons (pvariant forme-name (page-sig p) li wi
                                        (word-printed w) (word-copy w)
@@ -440,8 +616,25 @@
                                              (word-copy w)))
                            variants))))))
 
+       ;; The scare, settled once for the forme rather than once per word. Even
+       ;; odds that the reader carries his care into the next forme, so the run
+       ;; of vigilant formes is geometric with a mean of two -- Hinman's "at
+       ;; least for a time" -- instead of the near-certain continuation that made
+       ;; one consultation spread across the book.
+       (when (and with-copy? (> (unbox found-by-copy) 0) (< (rnd g) 0.5))
+         (set-box! vigilant #t))
+
+       ;; A fault of impression is on the page, not in the sense, so the reader
+       ;; catches it whether or not he has the copy at his elbow -- it is the one
+       ;; class the two methods agree about. Caught at the rate he catches a
+       ;; literal by, being the same kind of looking.
+       (define mended
+         (for/sum ([_ (in-range faults)])
+           (if (< (rnd g) catches-accident) 1 0)))
+
        (hash-set! states forme-name
-                  (forme-state forme-name #t fraction (reverse variants) 0))]))
+                  (forme-state forme-name #t fraction (reverse variants) 0
+                               faults mended))]))
 
   ;; The sheets are gathered, collated, folded and sewn -- and every copy is
   ;; folded separately, so this is where the copies stop being interchangeable.
@@ -697,6 +890,54 @@
 (module+ test
   (require rackunit "imposition.rkt" racket/file racket/runtime-path)
 
+  ;; FAULTS OF IMPRESSION ARE NOT PRESS VARIANTS, and the whole reason for
+  ;; keeping them in their own fields is that nothing downstream should be able
+  ;; to confuse the two. Mending a risen space alters no reading, so a collation
+  ;; of every copy in the world would not turn one up -- and the corrected-forme
+  ;; count is compared against Hinman's, which was got by collating.
+  ;;
+  ;; Asserted at a rate high enough that the mechanism certainly fires, so this
+  ;; is a test of the wiring rather than of the seed.
+  (let* ([sample (apply string-append
+                        (for/list ([i (in-range 8)])
+                          (string-append
+                           "King. And can you by no drift of conference\n"
+                           "Get from him why he puts on this confusion,\n\n"
+                           "Queen. Did he receive you well, and was he free\n"
+                           "In his reply, or niggard of his question?\n\n")))]
+         [b (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
+                                  #:seed 1623)
+                      sample)]
+         [r (run-press b #:copies 4 #:seed 1623 #:impression-faults 0.5)]
+         [ss (hash-values (press-run-states r))]
+         [faults (for/sum ([s (in-list ss)]) (forme-state-faults s))]
+         [mended (for/sum ([s (in-list ss)]) (forme-state-faults-mended s))])
+    (check-true (> faults 0) "a space rises to print, at a rate that guarantees it")
+    (check-true (<= mended faults) "no more are mended than were made")
+    ;; The property the design exists for.
+    (for ([s (in-list ss)])
+      (check-true (or (zero? (forme-state-faults s))
+                      (andmap (lambda (v)
+                                (not (regexp-match? #rx"impression|space ris|proud"
+                                                    (pvariant-note v))))
+                              (forme-state-variants s)))
+                  "a fault of impression never becomes a press variant"))
+    ;; And a forme carrying nothing but faults of impression is not "corrected"
+    ;; in the sense the report counts, because a bibliographer could not tell.
+    (for ([s (in-list ss)])
+      (when (and (forme-state-corrected? s))
+        (check-true (pair? (forme-state-variants s))
+                    "a corrected forme is one with a reading that differs"))))
+
+  ;; Nothing is mended on a forme nobody proofed.
+  (let* ([b (set-book (make-house #:fmt QUARTO #:seed 7)
+                      "King. And can you by no drift of conference\nGet from him why he puts on this confusion,\n")]
+         [r (run-press b #:copies 2 #:seed 7 #:proof-rate 0.0
+                       #:impression-faults 0.5)])
+    (for ([(k s) (in-hash (press-run-states r))])
+      (check-equal? (forme-state-faults-mended s) 0
+                    "an unproofed forme has nobody to mend it")))
+
   ;; A committed sample, reached relative to this module rather than to the
   ;; working directory. It used to read `areopagitica.txt' from
   ;; (current-directory), which is gitignored -- so this test, which is the one
@@ -785,8 +1026,21 @@
     ;; pinning the numbers would make this a test of the seed sequence.
     (define dense-slack (consistent-share 0.15 #:copies 60))
     (define dense-shuffled (consistent-share 1.0 #:copies 60))
-    (check-true (< dense-shuffled 0.25)
-                (format "sixty copies do sample it: ~a" dense-shuffled))
+    ;; This read `(< dense-shuffled 0.25)' and broke at 0.29 the day the
+    ;; mis-resumption mechanism was added, which alters a word or two on two
+    ;; pages in a hundred. It was a test of the seed AND of the book, exactly as
+    ;; the comment above it forbids: `consistent-share' averages 25 press runs
+    ;; but only ONE composition, so anything that changes what is set moves it
+    ;; and nothing in the averaging can absorb that.
+    ;;
+    ;; **A rule written down next to the code that violates it is not a rule, it
+    ;; is a note** -- the second time in this file, after the sparse rate three
+    ;; assertions above. What is claimed here is a difference of regime: ten
+    ;; copies are blind to the disorder and sixty see it. Asserted as the gap,
+    ;; which no reordering of the stream can satisfy by accident.
+    (check-true (> (- sparse dense-shuffled) 0.5)
+                (format "blind at ten copies, seeing at sixty: ~a against ~a"
+                        sparse dense-shuffled))
     (check-true (< dense-shuffled dense-slack dense-ordered)
                 (format "and the more the warehouse lost, the less consistent: ~a ~a ~a"
                         dense-ordered dense-slack dense-shuffled))

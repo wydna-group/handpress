@@ -44,7 +44,7 @@
 (require racket/list racket/string racket/match racket/contract racket/math
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt" "rng.rkt")
 
-(provide WORD-STAGES at-stage
+(provide WORD-STAGES at-stage current-mis-point MIS-POINT-RATE STOPS
          (struct-out word) (struct-out set-line) (struct-out event)
          (struct-out profile) (struct-out page-spec)
          PROFILES make-comp comp? comp-profile comp-events comp-rng comp-case
@@ -262,9 +262,86 @@
 ;; ---------------------------------------------------------------------------
 
 ;; `wd' is either a copy token or a (copy . as-read) pair.
+;; MIS-POINTING: the stop the compositor set is not the stop the copy had.
+;;
+;; The commonest thing a corrector actually did, and the one this program had no
+;; way to produce. Simpson's account of the only proof-corrected page of the First
+;; Folio that survives has him deleting a comma after "that" and inserting one
+;; after "Horse" in a single line -- both directions of the same fault on one
+;; page of some 900 words. The corrected proof of Cartwright's `Royal Slave' has
+;; "three corrections of the punctuation", one of them a comma altered to a
+;; semicolon. Hornschuch gives a stop its own place in his first mark ("a letter,
+;; a word, or a stop" left out) and a mark of its own for the full stop.
+;;
+;; Three faults, all of them his:
+;;   - the stop dropped          (Hornschuch's omission; "most poets leave out
+;;                                the stops altogether", so the compositor is
+;;                                supplying them and can fail to)
+;;   - the wrong stop set        (the Royal Slave's comma for a semicolon)
+;;   - a stop the copy has not   (the Folio's comma after "that", struck out)
+;;
+;; It is a fault of READING -- `copy' keeps what the copy had and `read' carries
+;; what he set -- so the corrector's existing scan against the copy finds it, and
+;; a wrong stop is visible by sense besides. That is why this is the kind that
+;; can reach the variant count where the two before it could not.
+;;
+;; **No source gives a rate.** The Folio proof gives an order of magnitude and one
+;; page is one page; `--mis-point' is a knob and the report says so. It is NOT set
+;; to make the variant total come out at Hinman's figure -- that total is an
+;; outcome to be read afterwards, and tuning to it would destroy the only thing
+;; this programme is for.
+(define STOPS '(#\, #\. #\; #\: #\?))
+
+;; THE PROOF PAGE GIVES A PROPORTION, NOT A DENSITY, and this was set from the
+;; density first and overshot eightfold.
+;;
+;; Simpson's Folio leaf carries two punctuation corrections in about 900 words,
+;; which reads as 2.2 per 1,000 caught and, at the rate a literal is caught by,
+;; near three per thousand made. That was the first value here, 0.003, and on the
+;; Folio it produced 412 pointing variants in a total of 934 -- against Hinman's
+;; "just over 500" for the whole book, every kind included.
+;;
+;; The fault is in the page, not the arithmetic. **That leaf carries twenty
+;; corrections where Hinman's figure implies two and a half to a page** -- 500
+;; variants over about a hundred corrected formes -- so it is eight times the
+;; book's average and cannot set a density for anything. §12 of the roadmap says
+;; so in as many words, and the density was taken off it anyway.
+;;
+;; What survives from one page is the SHARE: punctuation is two of its twenty
+;; corrections, about a tenth of what the corrector caught. A proportion does not
+;; care that the page was a bad one, so long as it was not bad in a way peculiar
+;; to pointing. Set so that pointing is about a tenth of the variants, which is
+;; 0.0003.
+;;
+;; Note what this does NOT do: the total still comes out short of Hinman's 500.
+;; The rate is fixed against the share and the total is left where it falls,
+;; because a rate moved until the total agreed would be the analyser inverting
+;; the generator -- the one thing this programme exists not to do.
+(define MIS-POINT-RATE 0.0003)
+(define current-mis-point (make-parameter MIS-POINT-RATE))
+
+(define (mis-point w g)
+  (define n (string-length w))
+  (cond
+    [(or (zero? n) (>= (rnd g) (current-mis-point))) w]
+    [else
+     (define last-ch (string-ref w (sub1 n)))
+     (define core (substring w 0 (sub1 n)))
+     (cond
+       ;; a stop stood there: drop it, or set the wrong one
+       [(memv last-ch STOPS)
+        (if (< (rnd g) 0.5)
+            core
+            (string-append core (string (rnd-choice g (remv last-ch STOPS)))))]
+       ;; none stood there: he points where the copy does not
+       [(char-alphabetic? last-ch)
+        (string-append w (string (rnd-choice g '(#\, #\.))))]
+       [else w])]))
+
 (define (make-word c wd #:italic? [italic? #f])
-  (define-values (copy-word read-word)
+  (define-values (copy-word read-word0)
     (if (pair? wd) (values (car wd) (cdr wd)) (values wd wd)))
+  (define read-word (mis-point read-word0 (comp-rng c)))
   (define prof (comp-profile c))
   (define cv (comp-conventions c))
   (define g (comp-rng c))
@@ -1005,17 +1082,9 @@
   (define g (comp-rng c))
   (define n0 (cond [(<= pressure 0) 4] [(> pressure 0.6) 2] [else 3]))
   (define n (if (< (rnd g) 0.18) (min (string-length name) (+ n0 2)) n0))
-  (define cut (substring name 0 (max 2 (min (string-length name) n))))
-  (define trimmed
-    (if (string=? cut name)
-        cut
-        (let loop ([s cut])
-          (if (and (> (string-length s) 2)
-                   (memv (char-downcase (string-ref s (sub1 (string-length s))))
-                         '(#\a #\e #\i #\o #\u)))
-              (loop (substring s 0 (sub1 (string-length s))))
-              s))))
-  (define wd (make-word c (string-append trimmed ".") #:italic? #t))
+  ;; The cut itself is `abbreviate-prefix' in copytext.rkt, because the casting
+  ;; off has to allow the same room this sets.
+  (define wd (make-word c (abbreviate-prefix name n) #:italic? #t))
   (struct-copy word wd [causes (list "speech prefix abbreviated")]))
 
 ;; ---------------------------------------------------------------------------
@@ -1095,6 +1164,41 @@
 
 (module+ test
   (require rackunit)
+
+  ;; MIS-POINTING. The three faults the sources name, and the one property that
+  ;; makes them correctable: the COPY reading is untouched, so the corrector has
+  ;; something to compare against and the word can become a press variant.
+  ;;
+  ;; Exercised at a rate that guarantees it fires. The default is derived from a
+  ;; share on one proof page and a test of it at the default would be a test of
+  ;; the seed.
+  (let ()
+    (define c (make-comp (hash-ref PROFILES "A")
+                         (make-type-case #:rng (make-rng 2))
+                         (conventions #t #t #t #t #t 1600)
+                         (make-rng 4)))
+    (define outcomes
+      (parameterize ([current-mis-point 1.0])
+        (for/list ([i (in-range 200)])
+          (define w (make-word c (if (even? i) "peace," "peace")))
+          (cons (word-copy w) (word-read w)))))
+    ;; The copy is never altered -- that is what the corrector reads against.
+    (check-true (for/and ([o (in-list outcomes)])
+                  (and (member (car o) '("peace," "peace")) #t))
+                "the copy reading stands whatever he set")
+    (define reads (map cdr outcomes))
+    (check-not-false (member "peace" reads) "a stop dropped")
+    (check-not-false (for/or ([r (in-list reads)])
+                       (and (regexp-match? #rx"^peace[.;:?]$" r) #t))
+                     "or the wrong stop set for it")
+    (check-not-false (for/or ([r (in-list reads)])
+                       (and (regexp-match? #rx"^peace[,.]$" r) #t))
+                     "or a stop where the copy had none")
+    ;; And nothing at all when the knob is shut.
+    (check-equal? (parameterize ([current-mis-point 0.0])
+                    (word-read (make-word c "peace,")))
+                  "peace,"
+                  "at nought he points as the copy does"))
 
   ;; One property, one writer. The stages of a word are a chronology and no
   ;; stage may write a field a later one owns -- which is checked rather than

@@ -26,7 +26,7 @@
          make-house set-book house-layout book-layout
          page-sig page-all-lines page-text book-gatherings book-collation
          book-find-page book-runs plan-bound-leaves
-         PRELIM-SCHEMES PRELIM-SCHEME-NAMES)
+         PRELIM-SCHEMES PRELIM-SCHEME-NAMES MIS-RESUME-RATE)
 
 ;; The field is `pref', not `ref': `page-ref' is already the struct that names
 ;; a leaf and side in imposition.rkt, and two bindings of that name in one
@@ -91,7 +91,7 @@
                    cast-off-accuracy n-skeletons formes-standing
                    prepare-copy? title profiles condition stint-sheets
                    paging-error find-prelims? titlepage? book-title author
-                   printer publisher sig-alphabet prelim-style)
+                   printer publisher sig-alphabet prelim-style mis-resume)
   #:transparent)
 
 ;; The leaf this house's paper and format make, and where the type page sits on
@@ -196,7 +196,12 @@
                     ;; signed its front matter the same way every time; the
                     ;; mixture is what you see across a trade, not within a
                     ;; shop.
-                    #:prelim-style [prelim-style #f])
+                    #:prelim-style [prelim-style #f]
+                    ;; How often the compositor mistakes the point at which he
+                    ;; left off, between one page and the next. McKerrow gives
+                    ;; the mechanism and calls it a "comparative frequency",
+                    ;; which is not a number -- **no source gives a rate**.
+                    #:mis-resume [mis-resume MIS-RESUME-RATE])
   (house fmt paper names seed by-formes? cv case-scale acc nsk
          (max 1 standing) prep? title profiles condition
          (cond
@@ -205,7 +210,14 @@
            [(<= (length names) 5) 2]
            [else 1])                     ; takes, shared about
          paging-error find-prelims? titlepage? book-title author
-         printer publisher alphabet prelim-style))
+         printer publisher alphabet prelim-style mis-resume))
+
+;; How often the compositor mistakes the point at which he left off, per page.
+;; **No source gives a rate.** McKerrow says "comparative frequency" and names
+;; five books for the repetition case; that is a demonstration that it happened,
+;; not a measurement of how often. Set low enough that a Folio shows it a few
+;; dozen times, and disclaimed wherever it is counted.
+(define MIS-RESUME-RATE 0.02)
 
 (define (house-spec h)
   (page-spec (exact-round (* (book-format-measure-ems (house-fmt h)) UNITS-PER-EM))
@@ -1154,8 +1166,103 @@
 
 ;; ---------------------------------------------------------------------------
 
-(define (set-page h man units r fm spec capacity signs)
+;; MIS-RESUMING: the compositor loses his place between pages.
+;;
+;; McKerrow's mechanism, and the one this program has never had (Roadmap §5,
+;; §12). He is explaining why a catchword can be right while the page it faces
+;; is wrong: "the compositor having **mistaken the point at which he left off
+;; and consequently omitted or repeated a word or two**" -- the catchword was
+;; set from the manuscript and is therefore correct, and the fault is in the
+;; page. That is his proof that catchwords come from the copy.
+;;
+;; So the PLACE is his and only the rate is invented. It happens where he
+;; returns to the copy after setting a page away from it, which is the head of
+;; the next page -- not spread evenly through the text, which is what a bare
+;; rate per word would have given.
+;;
+;; Both directions, and together, because they are one slip: he resumes a word
+;; early and repeats, or a word late and drops. McKerrow's proof (1) is the
+;; repetition case, "the last line or the last few words of one page being
+;; repeated at the beginning of the next", and he names five books.
+;;
+;; The dropped or doubled words are carried on `word-copy' of the word that
+;; stands at the join, so that the corrector's existing scan against the copy
+;; finds them and mends them into a press variant -- which is the whole point of
+;; building this: it is a fault that CHANGES A READING, where the two mechanisms
+;; added before it could not, by construction, move the variant count at all.
+;;
+;; **No source gives a rate.** "Comparative frequency" is McKerrow's phrase, and
+;; it is not a number; `--mis-resume' is a knob and the report says so.
+(define (mis-resume-units units g rate)
+  (define (first-text-index)
+    (for/first ([u (in-list units)] [i (in-naturals)]
+                #:when (and (memq (copy-unit-kind u) '(prose verse))
+                            (> (length (string-split (copy-unit-text u))) 3)))
+      i))
+  (define i (first-text-index))
+  (cond
+    [(or (not i) (>= (rnd g) rate)) (values units #f)]
+    [else
+     (define u (list-ref units i))
+     (define ws (string-split (copy-unit-text u)))
+     ;; A word or two, as he says.
+     (define n (if (< (rnd g) 0.7) 1 2))
+     (define drop? (< (rnd g) 0.5))
+     (define-values (text* note)
+       (if drop?
+           (values (string-join (list-tail ws n) " ")
+                   (cons 'dropped (string-join (take ws n) " ")))
+           (values (string-join (append (take ws n) ws) " ")
+                   (cons 'repeated (string-join (take ws n) " ")))))
+     (values (list-set units i (struct-copy copy-unit u [text text*]))
+             note)]))
+
+;; Write the mis-resumption onto the first word of the page, and log it.
+;;
+;; For a DROPPED word the copy read "my brother" where the print has "brother",
+;; so the word's `copy' carries both and the corrector restores the pair. For a
+;; REPEATED one the print has a word the copy has not, so its `copy' is empty and
+;; the corrector strikes it out. Either way the existing scan in `press.rkt'
+;; against `word-copy' finds it, which is why no new machinery is needed at press.
+(define (mark-slip picked slip man sig)
+  (define kind (car slip))
+  (define words (cdr slip))
+  (define done? #f)
+  (define out
+    (for/list ([l (in-list picked)] [li (in-naturals 1)])
+      (cond
+        [(or done? (null? (set-line-words l))) l]
+        [else
+         (set! done? #t)
+         (define ws (set-line-words l))
+         (define w (car ws))
+         (add-event! man (make-ev 'resumption
+                                  (format "~a at the head of the page: ~s"
+                                          (if (eq? kind 'dropped)
+                                              "a word or two dropped"
+                                              "a word or two repeated")
+                                          words)
+                                  sig (comp-profile man)))
+         ;; The cause is what names it in the apparatus. Without it the tooltip
+         ;; falls through to the misreading branch and calls a dropped word an
+         ;; eye-slip, which is a different fault at a different stage.
+         (struct-copy set-line l
+                      [words (cons (struct-copy word w
+                                                [copy (if (eq? kind 'dropped)
+                                                          (string-append words " "
+                                                                         (or (word-copy w) ""))
+                                                          "")]
+                                                [causes
+                                                 (append (word-causes w)
+                                                         (list (format "resumption: a word or two ~a where he took up again"
+                                                                       kind)))])
+                                   (cdr ws))])])))
+  out)
+
+(define (set-page h man units0 r fm spec capacity signs)
   (define sig (page-ref-signature r))
+  (define-values (units slip)
+    (mis-resume-units units0 (comp-rng man) (house-mis-resume h)))
   (define has-copy?
     (for/or ([u (in-list units)]) (not (eq? (copy-unit-kind u) 'blank))))
 
@@ -1193,9 +1300,16 @@
     (fit-page man lines0 capacity spec (house-by-formes? h) sig))
 
   ;; pick the sorts for what actually stands in the forme
-  (define picked
+  (define picked0
     (for/list ([l (in-list lines)] [i (in-naturals 1)])
       (pick-line! man l sig i)))
+
+  ;; Put the slip on the record. The word standing at the join carries what the
+  ;; copy actually read, which is what the corrector compares against -- a
+  ;; dropped word shows as copy longer than print, a repeated one as copy
+  ;; shorter. Nothing about the metal changes; the line is already set and this
+  ;; only says what it ought to have been.
+  (define picked (if slip (mark-slip picked0 slip man sig) picked0))
 
   (values (page r
                 (split-columns picked (book-format-columns (house-fmt h))
@@ -1384,26 +1498,82 @@
                                     #:seed 1 #:cast-off-accuracy 0.45)
                         txt 'prose))
     (define ps (book-pages b))
+    ;; MIS-RESUMING, McKerrow's mechanism. Asserted at a rate that guarantees it
+    ;; fires, because the default is a knob with no source and a test of it at
+    ;; the default would be a test of the seed.
+    ;;
+    ;; What is pinned is the shape, not the count: the slip lands where he
+    ;; returns to the copy, both directions occur, and the word standing at the
+    ;; join carries what the copy read -- which is the whole reason this can
+    ;; become a press variant where the two mechanisms built before it could not.
+    (let* ([bb (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
+                                     #:seed 3 #:mis-resume 0.9)
+                         txt 'prose)]
+           [evs (filter (lambda (e) (eq? (event-kind e) 'resumption))
+                        (book-events bb))])
+      (check-true (> (length evs) 3) "he loses his place, at a rate that says he must")
+      (check-true (for/or ([e (in-list evs)])
+                    (regexp-match? #rx"dropped" (event-detail e)))
+                  "a word or two dropped")
+      (check-true (for/or ([e (in-list evs)])
+                    (regexp-match? #rx"repeated" (event-detail e)))
+                  "and a word or two repeated: one slip, two directions")
+      ;; The evidence has to be on the page, or the corrector can never see it.
+      (check-true
+       (for*/or ([p (in-list (book-pages bb))]
+                 [l (in-list (page-all-lines p))]
+                 [w (in-list (set-line-words l))])
+         (and (word-copy w) (word-read w)
+              (not (string=? (word-copy w) (word-read w)))))
+       "the word at the join says what the copy read"))
+    ;; And nothing happens when the knob is shut.
+    (check-equal?
+     (for/sum ([e (in-list (book-events
+                            (set-book (make-house #:fmt QUARTO #:seed 3
+                                                  #:mis-resume 0.0)
+                                      txt 'prose)))])
+       (if (eq? (event-kind e) 'resumption) 1 0))
+     0 "at nought he never loses his place")
+
     (check-true (for/or ([p (in-list ps)]) (> (page-pressure p) 0))
                 "some page is crowded")
     (check-true (for/or ([p (in-list ps)]) (< (page-pressure p) 0))
                 "some page is spun out")
-    ;; Omission is rare even under bad casting off -- measured, it happens on
-    ;; about a third of seeds -- so asking one run for it is asking the seed,
-    ;; not the program. Scanned over several instead.
+    ;; Omission is rare even under bad casting off -- so asking one run for it
+    ;; is asking the seed, not the program. Scanned over several instead.
+    ;;
+    ;; IT GOT RARER, AND ON PURPOSE. These two checks ran at accuracy 0.45 and
+    ;; both failed the day `estimate' was made to allow room for the speech
+    ;; prefix it had been scoring at nought. That is the effect ROADMAP §5
+    ;; predicted in writing before the change: "a mechanism that can only fire
+    ;; as a side-effect of a bug will read as healthy while the bug lasts and
+    ;; vanish when it is fixed." The omission branch was firing off a systematic
+    ;; over-allotment of about four per cent, not off the deliberate error these
+    ;; checks name -- so they were passing for the wrong reason.
+    ;;
+    ;; Measured over 24 seeds after the change, seeds dropping copy: 3 at 0.45,
+    ;; 4 at 0.30, 3 at 0.20, 7 at 0.10, 5 at 0.00 -- and the count of seeds with
+    ;; a failed catchword is identical at every one of those, which is the same
+    ;; single fact seen twice that §5 already records. At accuracy 0.0, the
+    ;; worst casting off there is, seeds 0, 5 and 8 all fire: three independent
+    ;; hits in nine, which is a test of the program rather than of a seed.
+    ;;
+    ;; The rate is now McKerrow's "as occasionally happens" rather than the two
+    ;; thirds of a book it was, and the mechanism is still reachable -- which is
+    ;; what these checks exist to guarantee.
     (check-true
-     (for/or ([seed (in-range 8)])
+     (for/or ([seed (in-range 9)])
        (define bb (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
-                                        #:seed seed #:cast-off-accuracy 0.45)
+                                        #:seed seed #:cast-off-accuracy 0.0)
                             txt 'prose))
        (for/or ([p (in-list (book-pages bb))]) (pair? (page-omitted p))))
      "copy is dropped where the page will not hold it")
     (check-true
-     (for/or ([seed (in-range 8)])
+     (for/or ([seed (in-range 9)])
        (define pp (book-pages (set-book (make-house #:fmt QUARTO
                                                     #:compositors '("A" "B")
                                                     #:seed seed
-                                                    #:cast-off-accuracy 0.45)
+                                                    #:cast-off-accuracy 0.0)
                                         txt 'prose)))
        (for/or ([p (in-list pp)] [n (in-list (cdr pp))])
          (define opens
