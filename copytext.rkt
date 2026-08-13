@@ -16,7 +16,7 @@
 (require racket/string racket/list racket/match racket/set "rng.rkt")
 
 (provide (struct-out copy-unit) (struct-out misreading)
-         parse-copy misread EDITORIAL
+         parse-copy misread EDITORIAL abbreviate-prefix
          MINIM-CONFUSIONS HAND-CONFUSIONS MEMORIAL)
 
 ;; kind is one of 'verse 'prose 'prefix 'stage 'heading 'blank
@@ -271,6 +271,28 @@
 ;; between stanzas of a poem is the poet's and is set; so is the white round an
 ;; act heading, which `compose' supplies for itself in any case.
 (define EDITORIAL "editorial break")
+
+;; How a speaker's name is cut down to the prefix that stands at the head of his
+;; line -- "Hamlet" to "Ham.", trailing vowels taken off so it does not break on
+;; one. It lives here rather than in `compositor.rkt' because two stages need the
+;; same answer and must not each have their own: the compositor sets the prefix,
+;; and the man casting off has to allow room for it. While only the first of
+;; those knew the rule, the casting off measured a verse line without the prefix
+;; that would be set in front of it, and could not see the turn-overs the prefix
+;; caused -- 156 of them in 1,110 speeches on a slice of the Folio. One property,
+;; one decision point.
+(define (abbreviate-prefix name [chars 4])
+  (define cut (substring name 0 (max 2 (min (string-length name) chars))))
+  (string-append
+   (if (string=? cut name)
+       cut
+       (let loop ([s cut])
+         (if (and (> (string-length s) 2)
+                  (memv (char-downcase (string-ref s (sub1 (string-length s))))
+                        '(#\a #\e #\i #\o #\u)))
+             (loop (substring s 0 (sub1 (string-length s))))
+             s)))
+   "."))
 
 (define (mark-editorial-blanks us k)
   (cond

@@ -369,8 +369,26 @@
   ;; How reliably each kind of copy can be measured out beforehand.
   (define slip (hash 'verse 0.06 'heading 0.30 'stage 0.45 'prose 1.0))
 
-  (define (estimate u)
+  ;; The room a speech prefix takes on the front of the line that follows it.
+  ;;
+  ;; `compose' holds a prefix unit and hands it to the next verse or prose unit
+  ;; as `lead', where it is set at the head of that unit's first line -- so
+  ;; "Ham." is what pushes "To be, or not to be, that is the Question" past the
+  ;; measure and turns it over. This estimated the verse line's own text and
+  ;; scored the prefix at nought, so every line the prefix turned over was a line
+  ;; the casting off could not see. Measured on a slice of the Folio: 1,110
+  ;; speeches, 156 lines invisible, about five lines to a page -- which is the
+  ;; order of the whole crowding residual.
+  ;;
+  ;; It is measured at the unpressed cut of four characters, because a man
+  ;; casting off is doing arithmetic beforehand and cannot know that the
+  ;; compositor will squeeze this particular prefix to two.
+  (define (prefix-width name)
+    (+ (width-of-word (abbreviate-prefix name)) NORMAL-SPACE))
+
+  (define (estimate u [pending #f])
     (define kind (copy-unit-kind u))
+    (define lead (if pending (prefix-width pending) 0))
     (cond
       ;; A blank the compositor will not set takes no room, and the man
       ;; casting off knows that as well as the man at the frame -- they are
@@ -385,7 +403,8 @@
       [(eq? kind 'prefix) 0]
       [else
        (define text (copy-unit-text u))
-       (define w (+ (width-of-word (string-replace text " " ""))
+       (define w (+ lead
+                    (width-of-word (string-replace text " " ""))
                     (* NORMAL-SPACE
                        (length (regexp-match* #px" " text)))))
        (cond
@@ -405,7 +424,8 @@
          ;; the other way by 1.4 lines a page and leaves the crowded pages and
          ;; the omission branch something to fire on.
          [(eq? kind 'verse)
-          (define tight (+ (width-of-word (string-replace text " " ""))
+          (define tight (+ lead
+                           (width-of-word (string-replace text " " ""))
                            (* FINEST-SPACE (length (regexp-match* #px" " text)))))
           (if (<= tight measure) 1 2)]
          [else
@@ -446,7 +466,15 @@
                                      [text (string-join rest " ")])))]
            [else (take (cdr rest) (cons (car rest) head) l* n*)])])))
 
-  (let loop ([us units] [current '()] [used 0] [segments '()])
+  ;; `pending' is the speech prefix waiting for a line to stand in front of, and
+  ;; is carried exactly as `compose' carries it: set by a prefix unit, spent by
+  ;; the next verse or prose unit, passed over anything else.
+  (let loop ([us units] [current '()] [used 0] [segments '()] [pending #f])
+    (define (next-pending u)
+      (case (copy-unit-kind u)
+        [(prefix) (copy-unit-text u)]
+        [(verse prose) #f]
+        [else pending]))
     (cond
       [(null? us)
        (reverse (if (null? current)
@@ -456,7 +484,7 @@
                           segments)))]
       [else
        (define u (car us))
-       (define est0 (estimate u))
+       (define est0 (estimate u pending))
        (define est
          (if (> (rnd g) (- 1.0 (* (- 1.0 accuracy)
                                   (hash-ref slip (copy-unit-kind u) 1.0))))
@@ -507,21 +535,29 @@
                 (values #f #f)))
           (cond
             [head
+             ;; The head of a split paragraph has spent the prefix; the tail
+             ;; carries on without one.
              (loop (cons tail (cdr us)) '() 0
                    (cons (cast-off-segment (length segments)
                                            (reverse (cons head current))
                                            lines-per-page "")
-                         segments))]
+                         segments)
+                   #f)]
+            ;; The page closes and `u' is not consumed, so the prefix waiting
+            ;; for it is still waiting on the next page.
             [(pair? current)
              (loop us '() 0
                    (cons (cast-off-segment (length segments) (reverse current)
                                            used "")
-                         segments))]
+                         segments)
+                   pending)]
             ;; Nothing on the page and nothing to be done: a single unit that
             ;; will not divide takes its own page and overruns it. That is what
             ;; a heading or a verse line too long for the measure really does.
-            [else (loop (cdr us) (cons u current) (+ used est) segments)])]
-         [else (loop (cdr us) (cons u current) (+ used est) segments)])])))
+            [else (loop (cdr us) (cons u current) (+ used est) segments
+                        (next-pending u))])]
+         [else (loop (cdr us) (cons u current) (+ used est) segments
+                     (next-pending u))])])))
 
 ;; ---------------------------------------------------------------------------
 ;; The skeleton
@@ -885,7 +921,33 @@
     (check-false (<= (+ content (* NORMAL-SPACE gaps)) measure)
                  "and not at the normal space")
     (check-equal? (cast-off-segment-estimated-lines (car segs)) 1
-                  "so the casting off allows it one line, not two"))
+                  "so the casting off allows it one line, not two")
+
+    ;; AND THE SPEECH PREFIX IS PART OF THE LINE. `compose' sets the prefix at
+    ;; the head of the verse line that follows it, so a line which just goes on
+    ;; its own may not go with "Ham." in front of it. The casting off scored a
+    ;; prefix at nought and measured the line's own text, which made every
+    ;; turn-over the prefix caused invisible to it: 156 of them in 1,110
+    ;; speeches on a slice of the Folio, about five lines to a page, against a
+    ;; whole crowding residual of six. It is the single largest error in the
+    ;; casting off that has been measured.
+    ;;
+    ;; This line clears the measure by 364 units at the finest space, and the
+    ;; shortest prefix there is -- two characters and a point -- is wider than
+    ;; that, so it must turn over.
+    (let* ([with-prefix (cast-off (list (copy-unit 'prefix "Hamlet" 0 #f) u)
+                                  measure 66 (make-rng 5) 1.0)])
+      (check-equal? (cast-off-segment-estimated-lines (car with-prefix)) 2
+                    "with the prefix allowed for, the same line takes two"))
+    ;; The allowance must never shorten a line, at any measure.
+    (for ([m (in-list (list (* 14 UNITS-PER-EM) (* 20 UNITS-PER-EM)
+                            (* 40 UNITS-PER-EM)))])
+      (define bare (cast-off (list u) m 66 (make-rng 5) 1.0))
+      (define led (cast-off (list (copy-unit 'prefix "Hamlet" 0 #f) u)
+                            m 66 (make-rng 5) 1.0))
+      (check-true (>= (cast-off-segment-estimated-lines (car led))
+                      (cast-off-segment-estimated-lines (car bare)))
+                  "a prefix can only ever cost room, never save it")))
 
   ;; ---- Rules ----------------------------------------------------------
   ;; "Five box rules appear, since one is used below as well as one above the
