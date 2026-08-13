@@ -55,12 +55,27 @@ COUNTS = [
      r"turned over or under\s+(\d+)", "VERSE lines; prose cannot be turned over"),
     ("quadded out",
      r"quadded out\s+(\d+)", "short lines: speech ends, paragraph ends"),
+    # Anchored to the summary table by its "per 1000 pages" tail, and not to
+    # the bare word. `crowded' read 27 where the report said 570, because the
+    # pattern was r"crowded\s+(\d+)\s" and took the first match in the file --
+    # which, once crowding became common, was a narrative line reading "the
+    # page is crowded / 27 line(s) of ...", eleven of them standing ahead of
+    # the table. It had been right for as long as crowding was rare enough to
+    # produce no such lines.
+    #
+    # So the pattern was correct only while the thing it counts was
+    # uncommon, and it failed silently at the moment there was most to see:
+    # a twentyfold undercount, reported as a fall. That is the wrong way round
+    # for the one instrument here whose whole purpose is to notice mechanisms
+    # nobody is watching, and the other two are anchored the same way even
+    # though neither is ambiguous today.
     ("pages crowded",
-     r"crowded\s+(\d+)\s", "casting off going wrong short"),
+     r"crowded\s+(\d+)\s+[\d.]+\s+per 1000 pages", "casting off going wrong short"),
     ("pages spun out",
-     r"spun out\s+(\d+)\s", "casting off going wrong long"),
+     r"spun out\s+(\d+)\s+[\d.]+\s+per 1000 pages", "casting off going wrong long"),
     ("lines of copy dropped (the omission branch)",
-     r"lines of copy dropped\s+(\d+)", "a page that cannot hold its cast-off copy"),
+     r"lines of copy dropped\s+(\d+)\s+[\d.]+\s+per 1000 pages",
+     "a page that cannot hold its cast-off copy"),
     ("distinctive types made at press",
      r"Made distinctive at press:\s+(\d+)", "a forme distributed during the run"),
     ("sorts that touched nought",
