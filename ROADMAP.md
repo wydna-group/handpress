@@ -1562,6 +1562,80 @@ jobs rather than one:
 The order matters. Building the devices first would let them soak up the
 over-allotment and read as a success.
 
+### The sources were mined for a yardstick, and they moved the diagnosis
+
+Neither of the two quantities called regressions above had a measured rate
+anywhere in this project, which meant they were being called wrong on judgement.
+Two sources give bounds rather than rates, and the bounds are enough.
+
+**Blayney, p. 30**, describing *Lear* — in the paragraph whose whole purpose is
+to say how badly it was printed, and this is the concession before the
+criticism: "Register was satisfactorily made, **the page-depth is almost entirely
+consistent, and most of the catchwords are right**."
+
+**McKerrow, p. 66**: "when, **as occasionally happens**, we find a page too long
+or too short, we need not suspect an author's correction at the last moment … it
+may merely be that lines were omitted or repeated by the compositor in the
+original setting-up, for even if this were discovered immediately on proofing, it
+would not have been thought worth while to overrun later pages."
+
+Both are bounds, and the program fails them in **both** columns:
+
+| per 1000 pages | Jacobi | Moxon | the bound |
+|---|---|---|---|
+| miscast either way | **717** | **650** | "almost entirely consistent" |
+| catchwords not answering | 37 | **515** | "most … are right" |
+
+**Which changes the diagnosis.** The entry above blames the ladder for exposing a
+coupling. That is true and too kind: at 717 per 1000 the casting off was already
+failing Blayney's bound by a wide margin *before* the ladder, and had been for as
+long as the figure has been printed. The ladder did not break casting off. It
+moved the failure from spun-out pages to crowded ones, and **white paper is
+quieter than lost text** — which is the only reason the old number looked
+tolerable. §10 recorded "two thirds of the book came out spun out" as a defect
+and it was the same defect.
+
+**And two of the four regressions are one.** `add-catchwords` already follows
+McKerrow: the catchword is set from the copy, not from the next page, which is
+right and was fixed for good reasons. It reads the first word of whatever the
+next page *dropped*, and falls back to that page's own opening word when nothing
+was dropped — so where nothing is dropped the two agree by construction. **A
+catchword can only fail to answer where the next page dropped copy.** 515 and
+2,780 are one number seen twice, and reporting them as two independent
+confirmations was double-counting.
+
+### A mechanism the sources describe and this program cannot produce
+
+McKerrow's catchword evidence is not the overflow case at all. His is the
+compositor losing his place:
+
+> The comparative frequency with which we find a correct catchword in cases where
+> the opening words of the next page are wrong, owing to **the compositor having
+> mistaken the point at which he left off and consequently omitted or repeated a
+> word or two**.
+
+A word or two, from mis-resuming — and it is *why* he can prove the catchword was
+set from the manuscript. This program has no such mechanism. Its only route to a
+disagreeing catchword is a page overflowing its cast-off allocation, so:
+
+- in a correctly cast book it would produce **zero** catchword failures, where
+  McKerrow reports "comparative frequency"; and
+- every catchword failure it does produce is a symptom of a different defect.
+
+That is worse than a dead mechanism, and the lessons do not yet have the shape:
+**a mechanism that can only fire as a side-effect of a bug will read as healthy
+while the bug lasts and vanish when it is fixed.** Fix §5's casting off and this
+count goes to nought — which will look like an improvement and will actually be
+the loss of the one piece of evidence McKerrow says the phenomenon exists to
+give.
+
+It is not built here, because no source gives a rate: "comparative frequency" is
+not a number. It belongs with binder's faults and heap disorder as **a knob with
+no source**, and it should be added with the *repetition* case at the same time —
+McKerrow's proof (1) is the same slip in the other direction, "the last line or
+the last few words of one page being repeated at the beginning of the next", and
+he lists five books where it happens.
+
 ---
 
 ## 6. Watermarks and chain-lines
@@ -2485,6 +2559,28 @@ and hand arithmetic, and used to justify abandoning a change. It passed on its o
 all along. **When a failure resists explanation, clear `compiled/` before
 believing it**; the arithmetic was right and the bytecode was not, which is the
 one possibility the reasoning never considered.
+
+**A mechanism that can only fire as a side-effect of a bug reads as healthy
+while the bug lasts.** The catchword that fails to answer its page is McKerrow's
+evidence that catchwords were set from the copy, and he reports it with
+"comparative frequency". This program can produce it only where a page overflows
+its cast-off allocation and drops copy — so it fires 515 times per 1000 pages
+today, and would fire *nought* times in a correctly cast book. Fixing §5 will
+therefore take this count to zero, which will look like an improvement and will
+be the loss of the one phenomenon McKerrow says exists. The lessons already warn
+that a bare zero cannot distinguish *did not happen* from *could not happen
+here*; this is the case before that one, where a healthy-looking count is
+measuring something else entirely. **Ask of a live mechanism what would have to
+be true for it to fire, and check that it is the same thing the source says.**
+
+**A count and a rate in one table will be read as the same kind of number.** The
+table above had five rows headed "per 1000 pages" and one of them held raw
+counts — 706 and 601 miscast pages out of 990 and 924, where the rates are 717
+and 650. It was written in the same commit as the correction of a
+quarto-against-quarto-and-octavo comparison, by someone who had just written the
+lesson about populations. Which is the point: **the failure mode is not ignorance
+of the rule, it is arithmetic done in prose.** The defence is a table whose
+column heading is true of every cell in it.
 
 **A pattern that resolves by position is calibrated to how rare its subject is,
 and nothing in it records the assumption.** `audit-mechanisms.py` read the

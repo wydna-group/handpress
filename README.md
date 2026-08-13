@@ -1089,18 +1089,38 @@ Moxon's prose, and these are what came out.
 
 **But the same run drops copy, and the cause is worth more than the gains.**
 
-| | Jacobi | Moxon |
-|---|---|---|
-| pages spun out | 646 | **31** |
-| pages crowded | 60 | **570** |
-| lines of copy dropped | 142 | **2,569** |
-| catchwords not answering | 37 | **476** |
+| per 1000 pages | Jacobi | Moxon | recorded |
+|---|---|---|---|
+| pages spun out | 656 | **34** | — |
+| pages crowded | 61 | **617** | — |
+| *either* — the page miscast | **717** | **650** | "the page-depth is almost entirely consistent" |
+| lines of copy dropped | 144 | **2,780** | "as occasionally happens" |
+| catchwords not answering | 37 | **515** | "most of the catchwords are right" |
 
-The book was two-thirds spun out, which is a defect this file has carried for
-some time. It is now two-thirds crowded, and crowding drops copy — the
-catchwords stop answering because the page they anticipate has lost its opening.
-The total of mis-cast pages barely moved (706 per 1000 to 601); what changed is
-the *direction* of the error.
+The two yardsticks are Blayney and McKerrow, and neither gives a rate — but both
+give a bound, and the program fails them in *both* columns.
+
+Blayney is describing *Lear* in the paragraph where he is at pains to say how
+badly it was printed: "Register was satisfactorily made, **the page-depth is
+almost entirely consistent, and most of the catchwords are right**" (p. 30). That
+is his *concession* before the criticism starts. A book two-thirds miscast is not
+in the same world.
+
+McKerrow: "when, **as occasionally happens**, we find a page too long or too
+short … it may merely be that lines were omitted or repeated by the compositor in
+the original setting-up" (p. 66). Occasional.
+
+**So casting off has always been badly wrong, and the ladder only changed which
+way.** 717 per 1000 miscast before and 650 after; the book was two-thirds spun
+out and is now two-thirds crowded. The old figures looked better only because
+white paper is quieter than lost text.
+
+**And two of these rows are one fact.** `add-catchwords` follows McKerrow — the
+catchword is taken from the copy, not from the next page — so it reads the first
+word of whatever the next page *dropped*, and falls back to the page's own first
+word when nothing was dropped. A catchword can therefore only fail to answer
+where the next page dropped copy. The 515 and the 2,780 are the same regression
+seen twice.
 
 One cause, and it is not the ladder. `imposition.rkt` casts off by assuming
 `NORMAL-SPACE` at every gap, while justification actually averages well above it
