@@ -2486,6 +2486,20 @@ all along. **When a failure resists explanation, clear `compiled/` before
 believing it**; the arithmetic was right and the bytecode was not, which is the
 one possibility the reasoning never considered.
 
+**A pattern that resolves by position is calibrated to how rare its subject is,
+and nothing in it records the assumption.** `audit-mechanisms.py` read the
+crowded-page count with `crowded\s+(\d+)\s` and took the first match in the
+file. That was the summary table for as long as crowding was rare; when the space
+ladder changed and crowding became common, the report began printing narrative
+lines ahead of the table and the audit read 27 where the truth was 570 — a
+twentyfold undercount, reported as a *fall* when the real movement was a tenfold
+rise. The tool exists to watch the mechanisms nobody watches, and it was least
+reliable at the moment one of them woke up. **An instrument that degrades as its
+subject becomes common is worse than no instrument**, because its failure looks
+like a reading. Anchor to something structural — here the table's "per 1000
+pages" tail — and do it for the patterns that are unambiguous today too, since
+the ambiguity is a property of the data.
+
 **A figure measured in one format will be quoted against another, and nothing in
 its name will stop you.** "Consecutive formes share 40% of the time" was a quarto
 measurement used to diagnose a folio problem, where the real rate is 9%. It
