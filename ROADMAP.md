@@ -1415,7 +1415,7 @@ not exchangeable and their order is part of the result.
 
 ---
 
-## 5. Casting off is two regimes, not one dial **[manuals]**
+## 5. Casting off is two regimes, not one dial — *the critical path; it drops 2,569 lines of copy* **[manuals]**
 
 `--cast-off` is a single scalar accuracy. Both manuals describe something with
 structure, and Smith describes two regimes whose *errors behave differently*.
@@ -1495,6 +1495,72 @@ where copy was cast off close. If that is modelled honestly, the recovery should
 appear in the close-cast regime and be **absent** in the other — which means the
 0.6 em should not close uniformly, and a uniform improvement would be a sign the
 implementation is a global fudge wearing the sources as a costume.
+
+### And then the Folio was run, and this became the critical path
+
+§4's ladder was merged and the standard hard case run against it. Four
+calibration rows moved a long way toward the record, none of them aimed at:
+
+| | Jacobi | Moxon | recorded |
+|---|---|---|---|
+| pages | 990 | **924** | 908 |
+| press variants | 773 | **543** | "just over 500" |
+| formes corrected mid-run | 137 of 493 | **102 of 462** | ~100 of ~450 |
+| word divisions / 100 lines | 1.66 | **1.71** | 2.03 |
+
+And four moved the other way, hard:
+
+| | Jacobi | Moxon |
+|---|---|---|
+| pages spun out | 646 | **31** |
+| pages crowded | 60 | **570** |
+| lines of copy dropped | 142 | **2,569** |
+| catchwords not answering | 37 | **476** |
+
+**The error did not grow; it changed sign.** Mis-cast pages went from 706 per
+1000 to 601. The book was two-thirds spun out — the defect recorded in §10 — and
+is now two-thirds crowded. Crowding drops copy, and the catchwords stop answering
+because the page they anticipate has lost its opening line. Some of the page
+improvement above is therefore not density but loss: 2,569 lines at 132 to the
+page is about 19 pages of the 66 that went.
+
+**The cause is one line, and it is not the ladder.** `imposition.rkt` casts off
+by assuming `NORMAL-SPACE` at every gap:
+
+```racket
+(define w (+ (width-of-word (string-replace text " " ""))
+             (* NORMAL-SPACE (length (regexp-match* #px" " text)))))
+```
+
+Justification does not average `NORMAL-SPACE`. It averages 0.359 em against a
+nominal 0.333 under Jacobi — an under-count of 7.8% — and 0.291 against 0.250
+under Moxon, an under-count of **16.4%**. The estimate was always optimistic; the
+ladder doubled it, and over-allotted pages overflow.
+
+That the old figures looked better is not evidence the old ladder was right. The
+casting-off estimate had been *calibrated against it*: the comment directly above
+this code says so, having chosen the verse test "at a hair" precisely to leave
+"the crowded pages and the omission branch something to fire on". A constant
+tuned to a second constant will always flatter the pair, and moving one of them
+is how you find out. **This is the concurrency objection in miniature** — the
+analyser inverting the generator — showing up inside the generator itself.
+
+So §5 is no longer an enrichment; it is the critical path, and it now has two
+jobs rather than one:
+
+1. **Break the coupling.** Casting off must not assume the nominal space. Moxon's
+   own method sidesteps the question — he counts *letters*, 43 to a line and 35
+   lines to a page, never words or spaces — which is one reason to prefer his
+   procedure to a corrected constant. **Do not simply raise `NORMAL-SPACE` in the
+   cast-off, or fit a fudge factor to the observed 16.4%.** That is tuning a
+   number to make a report come out right, and it would re-create exactly the
+   calibration that has just been caught.
+2. **Then the crowding devices**, against the 0.6 em target above — which can
+   only be judged once the casting off is no longer supplying a systematic error
+   of its own for them to absorb.
+
+The order matters. Building the devices first would let them soak up the
+over-allotment and read as a success.
 
 ---
 

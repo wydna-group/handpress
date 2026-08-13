@@ -1067,15 +1067,51 @@ nothing smaller does. Where it stands against the record:
 
 | | model | recorded | source |
 |---|---|---|---|
-| verse share of the text | 73.2% | 73% | solved from the Norton plates |
-| word divisions per 100 lines | 1.66 | 2.03 | measured, 790 plates |
-| press variants in the book | 773 | "just over 500" | Hinman, Norton, p. xx |
-| formes corrected mid-run | 137 of 493 | ~100 of ~450 | ibid. |
-| impressions before correction | median 8% | "about 100" of 1,200 | ibid. |
-| identifiable types per page | 12.7 | 11–12 | Blayney i. 96 on Hinman |
-| characters to a line of type | 37.7 mean, 41 median | 39.6 mean, 42 median | measured, 220 plates / 27,884 lines |
+| pages | **924** | 908 | the book |
+| press variants in the book | **543** | "just over 500" | Hinman, Norton, p. xx |
+| formes corrected mid-run | **102 of 462** | ~100 of ~450 | ibid. |
+| word divisions per 100 lines | **1.71** | 2.03 | measured, 790 plates |
 | type page | 20 ems × 2 × 66 | 20 ems × 2 × 66 | Hinman i. 35 |
-| pages | 990 | 908 | the book |
+| verse share of the text | 73.2% † | 73% | solved from the Norton plates |
+| impressions before correction | median 8% † | "about 100" of 1,200 | ibid. |
+| identifiable types per page | 12.7 † | 11–12 | Blayney i. 96 on Hinman |
+| characters to a line of type | 37.7 mean, 41 median † | 39.6 mean, 42 median | measured, 220 plates / 27,884 lines |
+
+† not recomputed since the space-ladder changed; these four are measured outside
+the report and the figures are from the previous run. The last of them is the one
+to redo first: narrower spaces put more characters on a line, and the model was
+already *under* the plates.
+
+The first four moved a long way, and all four toward the record — 990 pages to
+924 against the book's 908, and Hinman's press-variant count reached from twice
+his figure. None of it was aimed at: the ladder was chosen on Blayney's ruler and
+Moxon's prose, and these are what came out.
+
+**But the same run drops copy, and the cause is worth more than the gains.**
+
+| | Jacobi | Moxon |
+|---|---|---|
+| pages spun out | 646 | **31** |
+| pages crowded | 60 | **570** |
+| lines of copy dropped | 142 | **2,569** |
+| catchwords not answering | 37 | **476** |
+
+The book was two-thirds spun out, which is a defect this file has carried for
+some time. It is now two-thirds crowded, and crowding drops copy — the
+catchwords stop answering because the page they anticipate has lost its opening.
+The total of mis-cast pages barely moved (706 per 1000 to 601); what changed is
+the *direction* of the error.
+
+One cause, and it is not the ladder. `imposition.rkt` casts off by assuming
+`NORMAL-SPACE` at every gap, while justification actually averages well above it
+— 0.359 em against a nominal 0.333 under Jacobi, but 0.291 against 0.250 under
+Moxon. The under-count doubled, from 7.8% to 16.4%, so pages are over-allotted
+and the overflow is dropped. The casting-off estimate had been *calibrated to the
+old ladder*, which the comment above it says outright, having tuned the verse
+test "at a hair".
+
+So this is the coupling **[ROADMAP §5](ROADMAP.md)** now has to break, and it is
+the critical path. Nothing here has been tuned to hide it.
 
 **These are the run of commit `45b75fc` and four fixes have landed since.** Every figure
 will have moved and none has been re-measured at Folio scale. What is measured, on a
