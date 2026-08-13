@@ -856,17 +856,25 @@
   ;; in the case, because that is the compositor's own test. Judged at the
   ;; ordinary space the casting off held back seven or eight lines of copy a
   ;; page and two thirds of the book came out spun out.
-  ;; This line is 15,361 units at the finest space and 16,936 at the normal
-  ;; one, against a 16,800-unit measure -- so it is exactly the case the two
-  ;; tests disagree on, and `set-verse' squeezes it in.
   ;;
-  ;; The figures read 2,199 / 2,424 / 2,400 until now, which was this same line
-  ;; measured in 1/120 em, and they went stale the moment the unit moved to
-  ;; 1/840. The test never noticed because it asserts the *relations*, and the
-  ;; relations are linear in the unit. A comment carrying absolute numbers past
-  ;; the constant that gave them their meaning is a comment that will lie, and
-  ;; the assertions being unit-free is exactly why nothing caught it.
-  (let* ([line "No, rather I abiure all roofes, and chuse to wage"]
+  ;; So the line has to be one the two tests disagree about: wide enough to
+  ;; overflow at the normal space, narrow enough to go at the finest. That band
+  ;; is a property of the ladder, not of the line, and it moves whenever the
+  ;; ladder does. The first two checks below *are* that band -- they are the
+  ;; premise, asserted rather than assumed, so that a ladder change which takes
+  ;; the line out of the band says so instead of quietly leaving the third check
+  ;; testing nothing.
+  ;;
+  ;; It has moved once already. The line here was _Lear_'s "No, rather I abiure
+  ;; all roofes, and chuse to wage", which sat in the band while the normal space
+  ;; was a third of an em; on Moxon's quarter it simply fits, at 16,306 against a
+  ;; 16,800 measure, and the premise failed exactly as it should. The line now
+  ;; used is from `samples/hamlet.txt' -- copy in the repository, so the figures
+  ;; can be checked -- and it is 16,436 units at the finest space against 17,246
+  ;; at the normal, clearing the measure by 364 units below and missing it by 446
+  ;; above. Chosen for those margins: of the seven lines in that sample which lie
+  ;; in the band, this is the one furthest from either edge of it.
+  (let* ([line "Frankly judge, and gather by him, as he is behaved,"]
          [u (copy-unit 'verse line 0 #f)]
          [measure (* 20 UNITS-PER-EM)]
          [content (width-of-word (string-replace line " " ""))]

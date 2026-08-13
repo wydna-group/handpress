@@ -1126,16 +1126,37 @@
   ;; No line may overhang the measure. `make-line' enforces it, so a run that
   ;; produces one raises rather than printing something unlockable.
   (define c (fresh))
-  (define prose
-    (set-prose c (string-append
-                  "That if you be honest and fair, your honesty should admit "
-                  "no discourse to your beauty. Could beauty have better "
-                  "commerce than with honesty?")
-               spec 0.0))
+  (define copy-text
+    (string-append
+     "That if you be honest and fair, your honesty should admit "
+     "no discourse to your beauty. Could beauty have better "
+     "commerce than with honesty?"))
+  (define prose (set-prose c copy-text spec 0.0))
   (check-true (>= (length prose) 3) "prose breaks into several lines")
+
   ;; Nothing is lost between copy and stick.
-  (check-equal? (for/sum ([l (in-list prose)]) (length (set-line-words l)))
-                24 "every word of the copy is standing in type")
+  ;;
+  ;; Asserted as the copy coming back, not as a count of 24. A divided word is
+  ;; two pieces carrying one `word-copy' between them -- "ſho-" and "vld" are
+  ;; both `should' -- so a raw count of what stands in the stick reads 25 the
+  ;; moment the compositor divides anything, and reads it as a loss when it is
+  ;; the opposite. That count stood while the normal space was a third of an em
+  ;; and broke on Moxon's quarter, which divides oftener: the test was measuring
+  ;; the space-ladder and calling it the copy.
+  ;;
+  ;; Dropping the continuations and rejoining says what was meant, and says it
+  ;; in a form no ladder can move: the same words, in the same order, all of
+  ;; them. It is also strictly stronger -- a count of 24 would survive two words
+  ;; swapping places, and this does not.
+  (define (continuation? w)
+    (and (member "second half of a divided word" (word-causes w)) #t))
+  (define standing
+    (for*/list ([l (in-list prose)]
+                [w (in-list (set-line-words l))]
+                #:unless (continuation? w))
+      (word-copy w)))
+  (check-equal? (string-join standing " ") copy-text
+                "every word of the copy is standing in type, in order")
   (for ([l (in-list prose)])
     (check-true (<= (line-set-width l) (page-spec-measure spec))
                 (format "line overhangs: ~s" (line-text l))))

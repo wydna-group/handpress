@@ -24,7 +24,7 @@
 (require racket/math racket/list)
 
 (provide UNITS-PER-EM
-         EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR
+         EM-QUAD EN-QUAD THICK THIN
          SPACE-LADDER NORMAL-SPACE FINEST-SPACE
          width-of width-of-word ems describe-space space-bodies
          AVERAGE-LOWERCASE measure-in-characters)
@@ -36,14 +36,31 @@
 ;; Spaces and quads, as they lie in the lower case.
 (define EM-QUAD (u 1))
 (define EN-QUAD (u 1/2))
-(define THICK   (u 1/3))
-(define MIDDLE  (u 1/4))
-(define THIN    (u 1/5))
-(define HAIR    (u 1/8))
+;; Moxon's, not Jacobi's. "Besides Letters, there is to be Cast for a perfect
+;; Fount (properly a Fund) Spaces Thick and Thin, n Quadrats, m Quadrats and
+;; Quadrats" (p. 170) -- four bodies, where the six-rung ladder that stood here
+;; is Jacobi's of 1890 and was being used for 1600. Davis & Carter, annotating
+;; that passage: "Moxon knows of only two spaces: the thick and the thin ... The
+;; present convention for the thickness of spaces (thick, 3 to the em; mid, 4 to
+;; the em; thin, 5 to the em) is of uncertain age", Jacobi giving them their
+;; present value.
+;;
+;; The thin is "the seventh part of the Body; though Founders make them
+;; indifferently Thicker or Thinner" (Dictionary, p. 353). The thick is "one
+;; quarter so thick as the Body is high" (p. 103); Davis & Carter derive a sixth
+;; from his casting instructions, so Moxon supports 1/4 or 1/6, and the 1/3 that
+;; stood here is outside both.
+;;
+;; Blayney's ruler agrees with Moxon's prose. Ten 20-line samples off _Lear_ give
+;; about 9% internal space by area; this program gave 13.2% at a third of an em,
+;; and a quarter predicts 10.2%. Two sources, two methods, two centuries apart,
+;; against the constant that was here. Roadmap §4 and §4a.
+(define THICK (u 1/4))
+(define THIN  (u 1/7))
 
 ;; Coarsest to finest; the compositor works down this list when a line will
 ;; not justify.
-(define SPACE-LADDER (list EM-QUAD EN-QUAD THICK MIDDLE THIN HAIR))
+(define SPACE-LADDER (list EM-QUAD EN-QUAD THICK THIN))
 
 ;; The finest thing in the case, and a role rather than a body.
 ;;
@@ -53,17 +70,15 @@
 ;; `compositor.rkt' and two in `imposition.rkt' meant exactly that and said
 ;; HAIR, which is true only so long as the hair space is the last rung.
 ;;
-;; It is the last rung here, so this changes nothing today. It is named because
-;; Moxon's fount has no hair space at all -- four bodies, thick and thin and the
-;; two quadrats, his thin being "the seventh part of the Body" -- and under that
-;; ladder the floor is the thin at 1/7, near Jacobi's hair at 1/8 and not the
-;; same thing. Naming the role separately is what lets the ladder be changed
-;; without twelve call sites quietly coming to mean something else. Roadmap §4.
+;; Moxon's fount has no hair space at all, so the floor is now his thin at 1/7
+;; -- near Jacobi's hair at 1/8 and not the same thing. Naming the role
+;; separately is what let the ladder be changed above without twelve call sites
+;; quietly coming to mean something else. Roadmap §4.
 (define FINEST-SPACE (last SPACE-LADDER))
 
 ;; The pieces of metal that make up a gap of this width, largest first. There
-;; is no space narrower than a hair, so a width the ladder cannot reach leaves
-;; a remainder -- under a tenth of an em, taken up by the pressure of the
+;; is no space narrower than the thin, so a width the ladder cannot reach leaves
+;; a remainder -- under a seventh of an em, taken up by the pressure of the
 ;; lock-up as it was in the chase.
 (define (space-bodies units)
   (let loop ([left units] [bs SPACE-LADDER] [out '()])
@@ -76,9 +91,7 @@
   (hash EM-QUAD "em quad"
         EN-QUAD "en quad"
         THICK   "thick space"
-        MIDDLE  "middle space"
-        THIN    "thin space"
-        HAIR    "hair space"))
+        THIN    "thin space"))
 
 ;; The normal word space of the house. Wider and the line is loose; narrower
 ;; and it is squeezed.
@@ -182,18 +195,17 @@
 (module+ test
   (require rackunit)
   ;; The spaces must divide the em exactly; this is the whole reason for
-  ;; working in 1/120 em rather than in floating point.
+  ;; working in an integer unit rather than in floating point.
   ;;
-  ;; Asserted as the property, not as six literals. It was six literals, and
-  ;; they had to be rewritten to change the unit -- which turns a test of the
+  ;; Asserted as the property, not as literals. It was six literals, and they
+  ;; had to be rewritten to change the unit -- which turns a test of the
   ;; arithmetic into a test of one arbitrary denominator, and would have to be
   ;; rewritten again for the next one.
   (check-equal? EM-QUAD UNITS-PER-EM)
   (check-equal? (* 2 EN-QUAD) EM-QUAD)
-  (check-equal? (* 3 THICK) EM-QUAD)
-  (check-equal? (* 4 MIDDLE) EM-QUAD)
-  (check-equal? (* 5 THIN) EM-QUAD)
-  (check-equal? (* 8 HAIR) EM-QUAD)
+  (check-equal? (* 4 THICK) EM-QUAD "Moxon's thick is a quarter of the em")
+  (check-equal? (* 7 THIN) EM-QUAD "and his thin a seventh")
+  (check-equal? (length SPACE-LADDER) 4 "four bodies, as his fount has")
   ;; And the unit must carry a seventh, which 120 could not. Moxon's thin is
   ;; "the seventh part of the Body", so a unit unable to express one cannot
   ;; state his fount at all, let alone compare it with the one in use.
