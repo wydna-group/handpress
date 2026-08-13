@@ -1122,13 +1122,17 @@ word when nothing was dropped. A catchword can therefore only fail to answer
 where the next page dropped copy. The 515 and the 2,780 are the same regression
 seen twice.
 
-One cause, and it is not the ladder. `imposition.rkt` casts off by assuming
-`NORMAL-SPACE` at every gap, while justification actually averages well above it
-— 0.359 em against a nominal 0.333 under Jacobi, but 0.291 against 0.250 under
-Moxon. The under-count doubled, from 7.8% to 16.4%, so pages are over-allotted
-and the overflow is dropped. The casting-off estimate had been *calibrated to the
-old ladder*, which the comment above it says outright, having tuned the verse
-test "at a hair".
+A candidate cause, **not yet verified and currently failing its check**.
+`imposition.rkt` casts off by assuming `NORMAL-SPACE` at every gap, while
+justification actually averages well above it — 0.359 em against a nominal 0.333
+under Jacobi, but 0.291 against 0.250 under Moxon, an under-count rising from
+7.8% to 16.4%. That explains the direction and the timing, and it is traced
+through real code, which is why it was written up as the cause.
+
+Harvesting the per-page residual then failed to confirm it: the over-allotment
+runs at about half of all pages under *both* ladders, and the harvest disagrees
+with the report's own crowded-page count eightfold. See **[ROADMAP §5](ROADMAP.md)** —
+the reconciliation has to come before any work on casting off.
 
 So this is the coupling **[ROADMAP §5](ROADMAP.md)** now has to break, and it is
 the critical path. Nothing here has been tuned to hide it.

@@ -1415,7 +1415,7 @@ not exchangeable and their order is part of the result.
 
 ---
 
-## 5. Casting off is two regimes, not one dial — *the critical path; it drops 2,569 lines of copy* **[manuals]**
+## 5. Casting off is two regimes, not one dial — *the critical path; the diagnosis is unverified* **[manuals]**
 
 `--cast-off` is a single scalar accuracy. Both manuals describe something with
 structure, and Smith describes two regimes whose *errors behave differently*.
@@ -1524,8 +1524,9 @@ because the page they anticipate has lost its opening line. Some of the page
 improvement above is therefore not density but loss: 2,569 lines at 132 to the
 page is about 19 pages of the 66 that went.
 
-**The cause is one line, and it is not the ladder.** `imposition.rkt` casts off
-by assuming `NORMAL-SPACE` at every gap:
+**A candidate cause, and the attempt to verify it failed — read the entry below
+this one before using any of it.** `imposition.rkt` casts off by assuming
+`NORMAL-SPACE` at every gap:
 
 ```racket
 (define w (+ (width-of-word (string-replace text " " ""))
@@ -1534,8 +1535,9 @@ by assuming `NORMAL-SPACE` at every gap:
 
 Justification does not average `NORMAL-SPACE`. It averages 0.359 em against a
 nominal 0.333 under Jacobi — an under-count of 7.8% — and 0.291 against 0.250
-under Moxon, an under-count of **16.4%**. The estimate was always optimistic; the
-ladder doubled it, and over-allotted pages overflow.
+under Moxon, an under-count of **16.4%**. So the estimate is optimistic and got
+more so, which is why this looked like the answer. It has not been shown to be
+the answer, and the next entry says why.
 
 That the old figures looked better is not evidence the old ladder was right. The
 casting-off estimate had been *calibrated against it*: the comment directly above
@@ -1561,6 +1563,59 @@ jobs rather than one:
 
 The order matters. Building the devices first would let them soak up the
 over-allotment and read as a success.
+
+### The verification failed, and the diagnosis above is a hypothesis
+
+The claim above — that casting off over-allots because it assumes `NORMAL-SPACE`,
+and that the ladder doubled the error — was reasoned from the code and from two
+measured mean gaps. It was never tested. This is the test, and it did not confirm
+it.
+
+`set-page` computes `overflow` as (trial lines − capacity) and records it in
+`cast-off-note`; `pressure` is a function of that, and `deviation.rkt` counts a
+page **crowded** exactly when `pressure > 0`, which is `overflow > 2`. So the
+residual can be harvested per page straight off a finished book, and split by the
+kind of copy on the page. On the real Folio copy, at its own format:
+
+| | Jacobi | Moxon |
+|---|---|---|
+| verse pages | +2.69 mean, **52% crowded** | +3.21, 59% |
+| prose pages | +2.64 mean, **52% crowded** | +3.93, 66% |
+
+Two things follow, and the second is the important one.
+
+**The over-allotment is not new and the ladder did not double it.** It stands at
+about half of all pages under Jacobi and rises modestly under Moxon. Whatever
+drove the report's 60 crowded pages to 570, a 52→59 movement in the residual is
+not it. The "the ladder doubled it" sentence above is withdrawn.
+
+**And the harvest does not reconcile with the report at all.** By the definition
+above, 482 of 919 Jacobi pages are crowded. The Jacobi report says **60**. Those
+are supposed to be the same quantity computed the same way, and they differ
+eightfold. Checked and eliminated: `cast-off-accuracy` defaults to 0.93 in
+`make-house`, which is exactly what `main.rkt` passes, so it is not that. The
+remaining differences between the harness here and the real run are the seed, the
+conventions year, and whatever `main.rkt` does between `read-source` and
+`set-book` — a prepended contents table, the preliminary divisions the TEI
+declares.
+
+**So the instrument disagrees with the report, and until that is settled neither
+number means anything.** It is not evidence that the report is wrong; the far
+likelier reading is that a probe written in twenty minutes does not reproduce a
+run with a dozen switches on it. Recorded because the failure is the useful part:
+the §5 entry above was written with confidence off a mechanism traced through the
+source, it reads well, and one afternoon of measurement will not support it.
+
+**Next, and in this order.** Reconcile the harvest with the report on a single
+book — same seed, same year, through `main.rkt`'s own path — before touching
+casting off at all. A diagnosis that cannot reproduce the number it is diagnosing
+is not a diagnosis. Only then is the question above worth asking again.
+
+This is the lesson the file already carries, arriving for the third time in one
+session: **when a result matches the prediction, that is the moment to build the
+control.** The `NORMAL-SPACE` story explained the direction, the magnitude and
+the timing, and it explained them from a real line of code — which is exactly why
+it should have been checked before it was written down as the cause.
 
 ### The sources were mined for a yardstick, and they moved the diagnosis
 
