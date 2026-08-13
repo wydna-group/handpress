@@ -18,6 +18,19 @@ every figure from them arrived second-hand through Gaskell or Blayney. Reading
 them directly cost less than any of the work they invalidated. They are marked
 **[manuals]**.
 
+**The live item is [§12](#12-what-a-corrector-could-correct--simpson-read-at-last-and-the-error-rate-is-calibrated-on-the-wrong-population), which is last in the numbering and first in
+value** — the numbers are kept stable because the file cross-references itself.
+It came out of Simpson the same way the six above came out of the manuals. §5
+(casting off) is the other open one and its largest error is now found and fixed;
+what remains there is prose, not verse.
+
+**Every figure quoted against a source belongs in [CALIBRATION.md](CALIBRATION.md),
+with its seeds and the date it was regenerated.** That file exists because three
+separate "discrepancies" chased in one session all dissolved once the spread was
+measured, and because figures were being quoted here from single runs of a
+statistic whose run-to-run spread nobody had ever measured. **Do not quote a
+Folio number from one run.**
+
 ---
 
 ## 1. Forme order from type recurrence
@@ -578,6 +591,50 @@ Preliminaries cut from the white paper of the last sheet are bound first, so the
 raw page order of a quarto reads H, A, B … G — which produced a confident table
 for "H → A", the sheet printed last against the one printed first, and dropped
 the real G → H. `turner-table` now orders the sheets itself.
+
+### The same fault again at folio, and it read as the rule being always wrong
+
+Every Folio report on disk said this, and had for as long as the format has been
+run:
+
+> Where it appears it names the first-set forme rightly **0** of 37 times. The
+> truth for this book is the **#f** forme.
+
+Two compounding bugs, neither of which any test touched.
+
+- **The answer key had no answer.** `true-first-forme` ended
+  `(and (= 2 (length done)) …)` — it asks a *gathering* for its two formes, and
+  only a format whose gathering is one sheet has two. A folio in sixes has six,
+  so it returned `#f` at that format entirely, every comparison against it
+  failed, and the false itself was formatted into the report. The question is
+  about a **sheet**; it is now asked per sheet and answered where the sheets of a
+  gathering agree.
+- **The sheets were paired in bound order.** The remedy quoted just above orders
+  sheets by first appearance in `book-pages`, and **quiring is exactly what
+  defeats that remedy**: a folio in sixes is three sheets quired one within
+  another, printed 3, 2, 1 and bound 1, 2, 3. So the table read `A1 → A2` where
+  the succession is `A3 → A2`, and asked the rule about every pair backwards.
+  `page-views` now orders by `forme-order`, which is numbered in setting order
+  and answers the preliminaries case and the quiring case together.
+
+Corrected, at folio in sixes over six seeds: **12 sheet-pairs fire and the rule
+names the forme distributed first rightly 12 of 12** — the same 100% the quarto
+measurement gives, which is what a rule that "identifies the forme distributed
+first, whichever method was used" should do at any format.
+
+**Nothing about the published figures moves**, because every Turner number in
+this file was measured at quarto, where a gathering *is* one sheet and both bugs
+are invisible. What moves is the Folio report, which was printing a hard zero for
+a rule it had never once asked correctly.
+
+Three lessons, and the first is not yet in the list below. **A guard written for
+the shape of one format is a claim about every format**, and `(= 2 (length done))`
+was such a claim, made silently, by a piece of arithmetic that looks like a
+sanity check. The second is the file's own: a bare zero cannot tell *did not
+happen* from *could not be asked here*, and the report now says which. The third
+is that this is the second time the printed-versus-bound order has been got wrong
+in the same function — **a fix aimed at one cause of a class does not cover the
+class**, and the quiring case was sitting in the same module all along.
 
 Related and cheap once the inference exists: **pagination errors as evidence of
 order.** `pagination.rkt` already separates errors of omission from commission
@@ -1415,7 +1472,7 @@ not exchangeable and their order is part of the result.
 
 ---
 
-## 5. Casting off is two regimes, not one dial — *the critical path; the diagnosis is unverified* **[manuals]**
+## 5. Casting off is two regimes, not one dial — *the largest error is found and fixed; the two regimes are still unbuilt* **[manuals]**
 
 `--cast-off` is a single scalar accuracy. Both manuals describe something with
 structure, and Smith describes two regimes whose *errors behave differently*.
@@ -1616,6 +1673,283 @@ session: **when a result matches the prediction, that is the moment to build the
 control.** The `NORMAL-SPACE` story explained the direction, the magnitude and
 the timing, and it explained them from a real line of code — which is exactly why
 it should have been checked before it was written down as the cause.
+
+### Reconciled, off the record rather than by re-running — and the report was right
+
+The reconciliation asked for above did not need a run at all. **The TEI carries
+`hp:pressure` on every page**, which is the quantity `deviation.rkt` thresholds,
+so the report can be checked against the record it was written from:
+
+| | crowded | spun out | the report |
+|---|---|---|---|
+| Jacobi, `out-folio` | 60 | 646 | 60 / 646 |
+| Moxon, `out-folio-moxon` | 570 | 31 | 570 / 31 |
+
+**Exact, in both columns, on both runs.** The report and the record agree and the
+probe was wrong. Its code is not recoverable — it was never committed — which is
+the argument for `tools/measure-castoff.rkt` existing instead of another
+afternoon's script.
+
+**And a session was lost to the report naming two populations with one word.**
+`deviation.rkt` counts a page crowded at `pressure > 0`, which is an overflow of
+more than two lines; `analysis.rkt` lists pages at `|pressure| > 0.35`, a third of
+a page or worse. On the Folio those are **570 and 11**. Both were called
+"crowded", in the same report, with neither stating its threshold — so "the
+crowded figure" named two numbers fifty times apart and the disagreement could
+not be localised. The casting-off section now prints both counts and the test
+between them. **A number that shares its name with another number is not a
+number**, and this file has no lesson covering it.
+
+### The dial is not the cause: at perfect casting off the book is worse
+
+`--cast-off 1.0` kills both the slip draw and the misjudge branch, so whatever
+miscasting survives is the estimator's own. Measured on the real Folio copy at
+its own format, four seeds:
+
+| `--cast-off` | pages | crowded | spun out | mean overflow | lines dropped |
+|---|---|---|---|---|---|
+| **1.00 — no deliberate error at all** | 3,660 | **2,627 (71.8%)** | 51 (1.4%) | **+6.19** | **12,895** |
+| 0.93 — the default | 3,702 | 2,109 (57.0%) | 161 (4.3%) | +5.25 | 9,291 |
+
+**Perfect casting off is worse than imperfect casting off.** That kills the whole
+family of explanations resting on `--cast-off`, including the accuracy scalar
+this section was opened to replace: the dial is not merely the wrong shape, it is
+not where the error is. The deliberate error at 0.93 is partly *cancelling* a
+larger bias, which is the most misleading arrangement a parameter can be in — it
+made the defect look like the dial's business for as long as anyone only moved
+the dial.
+
+The bias is a shift of the whole distribution rather than a tail. Recovering
+overflow from the recorded pressures:
+
+| | mean overflow | median | miscast 2–20 lines | beyond 20 |
+|---|---|---|---|---|
+| Jacobi | −6.62 | −7.04 | 703 | 3 |
+| Moxon | +5.58 | +4.84 | 597 | 4 |
+
+**About twelve lines a page separate the two ladders, and nearly every page moves
+with them.** No page-boundary accident produces that; an estimator does.
+
+### And the estimator was not measuring the speech prefix at all
+
+`tools/measure-castoff.rkt` puts the estimator's prediction for one copy unit
+beside the lines the compositor actually sets from it, with no page boundary in
+the way. The prediction is got by calling the real `cast-off` on a single unit
+with a page too deep to close a segment early, so nothing is reimplemented and
+the instrument cannot drift from the code it measures.
+
+**And it produced two false findings before it produced a true one**, both the
+same mistake: it compared the estimate against the *setting routine* instead of
+against `compose`, which is what decides what a unit costs a page. It reported
+headings 100% over — `compose` puts a white line above and below one and the
+estimator's `(+ n 2)` was right all along — and then verse **+1.24%**, the wrong
+sign, because it dropped the speech prefix that `compose` hands on. Both are
+written into the tool beside the code that gets them right, because the second
+survived a full run of the instrument and went into a table before it was caught.
+**A probe that models one stage of a pipeline is a claim about the whole
+pipeline**, and this one had to be corrected twice before its answer held.
+
+Whole Folio, at its own format, **before** any change:
+
+| kind | units | est lines | set lines | bias / 100 lines |
+|---|---|---|---|---|
+| verse | 89,168 | 93,432 | 97,135 | **−3.81** |
+| prose | 3,975 | 18,755 | 19,708 | **−4.84** |
+| stage | 6,195 | 6,938 | 6,912 | +0.38 |
+| heading | 44 | 138 | 154 | −10.39 |
+
+**Both branches under-predict by about four per cent**, which on a 132-line page
+is five lines — against a measured mean overflow of 6.19. The arithmetic closes.
+
+And the largest single cause is one line of code. `compose` holds a `prefix` unit
+and hands it to the next verse or prose unit as `lead`, where it is set at the
+head of that unit's first line — so "Ham." is what pushes a line past the measure
+and turns it over. `estimate` scored a prefix at **nought** and measured the
+verse line's own text, so **every line the prefix turned over was invisible to
+the casting off**. Counted directly, the same copy set with the prefix and
+without: **1,110 speeches on a slice of the Folio, 156 lines, about five to a
+page.**
+
+Corrected — `cast-off` now carries the pending prefix exactly as `compose` does,
+and allows its width at the unpressed cut of four characters, a man casting off
+beforehand not being able to know the compositor will squeeze this one to two.
+The cut itself moved to `abbreviate-prefix` in `copytext.rkt`, because two stages
+needing the same answer must not each keep their own.
+
+Measured again on the whole Folio afterwards:
+
+| bias / 100 lines set | before | after |
+|---|---|---|
+| verse | −3.81 | **−0.56** |
+| prose | −4.84 | **−2.47** |
+| stage | +0.38 | +0.07 |
+
+**The prefix is worth 5,425 lines across 29,889 speeches** — 5.7 to a page against
+a measured mean overflow of 6.19. It was the whole of the verse error and about
+half the prose error, prose in a play carrying prefixes too.
+
+**This is not the `NORMAL-SPACE` fudge §5 forbids.** The estimator was omitting a
+thing that is set on the page; Moxon's own method counts every letter that will
+stand there, prefixes included. Nothing was fitted to a target, and prose is
+still −4.84 — the remaining error, and a different mechanism (`split-unit`
+measures a broken paragraph at `NORMAL-SPACE`, which is where the original
+hypothesis belongs and where it may yet be right).
+
+### The predicted casualty arrived on schedule
+
+Two checks in `book.rkt` broke the moment the change landed: *copy is dropped
+where the page will not hold it*, and *a catchword does not answer the page it
+faces*. **§5 said in writing that they would**, before any of this was built:
+
+> a mechanism that can only fire as a side-effect of a bug will read as healthy
+> while the bug lasts and vanish when it is fixed. Fix §5's casting off and this
+> count goes to nought — which will look like an improvement and will actually be
+> the loss of the one piece of evidence McKerrow says the phenomenon exists to
+> give.
+
+So the omission branch had been firing off a systematic four-per-cent
+over-allotment, not off the deliberate casting-off error the checks name. They
+were passing for the wrong reason and had been since they were written.
+
+**Not patched to agree.** Measured over 24 seeds after the change, seeds dropping
+copy: 3 at accuracy 0.45, 4 at 0.30, 3 at 0.20, 7 at 0.10, 5 at 0.00 — and the
+count of seeds with a failed catchword is *identical* at every one, which is the
+same single fact seen twice that this section already records. The checks now run
+at accuracy 0.0, the worst casting off there is, where seeds 0, 5 and 8 all fire:
+three independent hits in nine, a test of the program rather than of a seed. The
+mechanism is still reachable and is now as rare as McKerrow says it is.
+
+**What has not changed is that this program still cannot produce McKerrow's
+actual mechanism** — the compositor mis-resuming and losing a word or two. Its
+only route to a disagreeing catchword remains a page overflowing, so the count is
+still a symptom of a different defect, and the entry below stands.
+
+### The Folio, run against it — and two calibration rows got worse
+
+The standard hard case, same invocation, `out-folio-fixed`:
+
+| per 1000 pages | Jacobi | Moxon | **+ prefix** | the bound |
+|---|---|---|---|---|
+| pages spun out | 656 | 34 | **194** | — |
+| pages crowded | 61 | 617 | **141** | — |
+| *either* — miscast | 717 | 650 | **335** | "almost entirely consistent" |
+| lines of copy dropped | 144 | 2,780 | **274** | "as occasionally happens" |
+| catchwords not answering | 37 | 515 | **76** | "most … are right" |
+
+**Miscast pages halve, dropped copy falls tenfold, the catchwords sevenfold**, and
+for the first time the book is not two-thirds wrong in one direction or the other.
+It still fails Blayney's bound — a third of pages miscast is not "almost entirely
+consistent" — so §5 is not closed, but the failure is now the size a residual
+should be rather than the size of the book.
+
+And the honest half:
+
+| | Moxon | + prefix | recorded |
+|---|---|---|---|
+| pages | 924 | **948** | 908 |
+| press variants | 543 | **366** | "just over 500" |
+| formes corrected mid-run | 102 of 462 | **87 of 474** | ~100 of ~450 |
+| word divisions / 100 lines | 1.71 | **1.77** | 2.03 |
+
+**Three of those moved away from the record and one toward it** — and chasing the
+press-variant row turned out to be worth more than the casting off had been.
+
+### The press-variant count was a draw, and a runaway was dealing the cards
+
+The obvious reading of 543 → 366 was that crowding manufactures press variants, so
+the earlier agreement with Hinman was resting on the casting-off defect. That
+reading is *partly* right and it is not what the numbers say. **Both figures are
+single runs, and nobody had ever measured the spread.**
+
+Three seeds of the same book and the same code:
+
+| seed | corrected formes | press variants | literals | restored from copy |
+|---|---|---|---|---|
+| 1623 | 87 | **366** | 155 | 204 |
+| 11 | 100 | **851** | 178 | 663 |
+| 22 | 108 | **563** | 168 | 395 |
+
+**A 2.3-fold spread — larger than any difference this file has ever attributed to
+a change in the model.** Every calibration decision recorded in `press.rkt` —
+proof rate 0.6, then 0.28, then 0.224, each argued from a full Folio — compared
+single draws of this. And corrected formes average 98 against Hinman's hundred, so
+**that** constant was well set and the run reading 87 was a low draw, not the
+regression it was written up as two entries above.
+
+**The spread is all in one route.** Literals are steady at 155–178, because every
+proofed forme catches those. Readings restored from the copy run 204, 663, 395.
+
+And that route was running away. The module header states the source exactly —
+Hinman's reader, having found "a considerable omission", grew "somewhat more
+careful … at least for a time", so **a serious catch raises vigilance and the
+vigilance decays**. The code did neither: it re-armed on *any* misreading, once per
+caught word, at even odds. Six or so chances on a forme puts the continuation
+probability near 0.98, so the mean run was tens of formes and one consultation
+swallowed most of the book.
+
+It also stood the book against its own source. Hinman's variants are "mostly
+obvious blunders" and the copy "seldom if ever used"; **copy restoration was the
+majority of ours at 57%, and 79% on seed 11.**
+
+Raised once per forme now, and only where consulting the copy turned something up
+— a geometric decay with a mean of two formes, which is "for a time":
+
+| seeds 1623 / 11 / 22, measured both ways | pre | post |
+|---|---|---|
+| press variants | 366 / 851 / 563 | **280 / 291 / 330** |
+| spread, widest over narrowest | **2.32×** | **1.18×** |
+| corrected formes | 87 / 100 / 108 | **96 / 98 / 100** |
+| literals | 155 / 178 / 168 | **187 / 187 / 192** |
+| restored from copy | 204 / 663 / 395 | **86 / 99 / 129** |
+
+**And a fourth seed was then run, and it is the honest qualification to all of the
+above.** Seed 44 gives 432 variants, 121 corrected formes, 219 literals and 204
+from the copy. Over the four post-fix seeds the variants are **280, 291, 330,
+432** — a spread of **1.54×**, not the 1.18× the first three showed, and the
+literal share falls from 67% to 51% across them.
+
+So the fair statement is the paired one: on the three seeds measured both ways the
+spread falls from 2.32× to 1.18×. **Four seeds is still four seeds**, and this
+section's own lesson applies to this section — a spread quoted from three draws is
+the same error as a rate quoted from one, committed while writing up the error.
+The improvement is real and the variance is reduced, not abolished; a good part of
+what is left tracks the proofed count, which runs 119 to 135 across the four.
+
+Corrected formes over the four are 96, 98, 100, 121 — mean 104 against Hinman's
+hundred, still the best-behaved of these quantities. The severity he names is
+*not* modelled and
+the comment says so: every misreading here is a single word, so there is no
+considerable omission to distinguish, and "serious" is approximated by "found
+anything at all".
+
+### And the remaining shortfall is structural, not a constant to turn
+
+280 against "just over 500" is now the honest figure, and it cannot be closed by
+tuning, because the arithmetic forbids it. The whole book holds **813 accident
+events and 1,538 misreadings**. Only about a fifth of formes are ever proofed and
+corrected, so a corrector sees some 172 accidents and catches three-quarters of
+them — about 130 literals, which is what comes out. To reach 500 variants
+*mostly* from literals, as Hinman describes them, the book would need roughly
+**2,500 accidents: three times the measured foul-case rate** of 0.87 per 1,000
+words, which is one of the best-anchored numbers in the program.
+
+**So two anchored facts are in tension and the model cannot hold both**: the
+measured rate of foul case and turned letters, and Hinman's count of press
+variants arising mostly from obvious blunders. The resolution is not a constant.
+It is that **this program's vocabulary of correctable error is narrower than the
+real one** — a compositor's page offers a corrector wrong founts, spacing,
+punctuation, dropped and doubled letters, transposed words and failures of sense,
+where the model offers foul case, turned letters, wrong fount and misreadings.
+
+Until it is done, 280 is the right number to print and the gap is the finding.
+**What must not happen is the gap being closed by raising `consults-copy`**, which
+would restore the old total by the exact mechanism Hinman denies.
+
+**And the source settles it, more sharply than the arithmetic did — [§12](#12-what-a-corrector-could-correct--simpson-read-at-last-and-the-error-rate-is-calibrated-on-the-wrong-population).**
+Simpson gives twenty corrections on one surviving proof page of the Folio against
+this program's 2.5 to a page, and the reason is not a rate set too low: the error
+rates here are measured on *printed books*, which are post-correction, and the
+corrector's input is the pre-correction population. One number is doing two jobs.
 
 ### The sources were mined for a yardstick, and they moved the diagnosis
 
@@ -2400,6 +2734,601 @@ tables the reports print.
 
 ---
 
+## 12. What a corrector could correct — *Simpson read at last, and the error rate is calibrated on the wrong population*
+
+§10's press-variant work ended by saying the shortfall against Hinman was
+structural: the program's vocabulary of correctable error is narrower than a real
+page offers, and the total cannot be reached without three times the measured
+foul-case rate. That was reasoned from the model's own arithmetic. The source
+settles it, and says something sharper.
+
+**`sources/simpson.pdf` has been on disk since the third day of this project and
+the only thing ever quoted from it is a sentence of Carter's foreword.** The
+README even says where the corrections to Simpson are — meaning the foreword was
+read and the book was not. Its subject is proof-correction. *A source you have
+cited is not a source you have read*, for the second time in this file, and this
+one had the answer to the question §10 closed on.
+
+### The number: twenty corrections on one page of the First Folio
+
+> "A solitary page, proof-corrected, of the First Folio of Shakespeare survives.
+> It is page 352, containing a portion of the text of *Antony and Cleopatra* from
+> scene i, line 27, to scene iii, line 23, of the third act. … **There are twenty
+> corrections, mostly of pure compositor's blunders**" (Simpson, p. 82)
+
+The Folger leaf, found by Halliwell-Phillipps in a parcel of Folio fragments.
+Against it, this program's whole Folio holds **813 accident events and 1,538
+misreadings over 948 pages — 2.5 correctable errors to a page.** Simpson's one
+page carries twenty.
+
+**An eightfold shortfall, and it is not a rate that was set too low. It is the
+wrong population.** The foul-case rate here is 0.87 per 1,000 words, measured by
+diffing the *Much Ado* quarto against the Folio set from it — that is, measured on
+**errors that survived into print**. The corrector's input is errors *before* he
+corrected them, and the difference between the two is exactly what he caught. The
+program generates errors at the surviving rate and then corrects a share of them,
+so it necessarily ends with fewer survivors than were measured *and* far fewer
+corrections than Hinman and Simpson observed. One number is being asked to do two
+jobs.
+
+That is the finding, and it is worth more than the press-variant total it was
+chased for. **Every error rate in the calibration table taken from a printed book
+is a post-correction rate**, and any mechanism whose consumer is the corrector
+needs the pre-correction one.
+
+Caveats, kept because one page is one page: this leaf was proofed, and proofing
+was not spread evenly — Hinman found it "in considerable measure confined to some
+six or eight plays", so a proofed page may be a selected-bad page. Twenty is one
+observation with no variance behind it, which is the error this file has just
+finished committing twice. It bounds the direction, not the value.
+
+### The vocabulary: Hornschuch's marks, 1608
+
+Simpson reports Hieronymus Hornschuch's *Orthotypographia* (1608) at length
+(pp. 130–2) — a proof-corrector's manual from inside the modelled period, with
+the full list of correction marks. It is a taxonomy of correctable error, and
+most of it is missing here:
+
+| Hornschuch's mark | in the program |
+|---|---|
+| a letter, a word, or a stop **left out** | no — the next one to build |
+| anything **redundant**, struck through | no |
+| a **turned** letter or stop | yes |
+| words **run together**, the spacing left out | no |
+| a **lead showing** between words (his same mark) | **built** — see below |
+| a **gap closed up** in a word split in two | no |
+| type **awry, aslant, or standing above the line** so the nearest letters print fainter | **built** — see below |
+| **transposition** of words | no |
+| spacing to be **marked off** | no |
+| the **full stop** | **built** — see below |
+
+And his account of the corrector's watch-list gives two rules rather than rates,
+which is what this project prefers:
+
+- **Foul case has two causes, and the program models one.** Letters "slip over
+  from adjoining boxes" — which is `ADJACENT`, built from the case lay — *and*
+  "letters similar in form elude the printer", for which he names **r/t, n/u, e/c,
+  a/v, e/o, c/t** and the ſt/fi/fl ligatures. A shape-confusion set is a different
+  mechanism from box adjacency and needs no rate of its own.
+- **Wrong fount is not uniform.** It is "mostly caused by having to vary the type,
+  for example by inserting italics and capitals in a body of lower case". So it
+  concentrates where italic and roman meet, which the program can place by rule.
+
+He also names turned **s** and **o** and the numeral **0**, where `TURNED-PAIRS`
+has n/u, b/q, d/p and 6/9 — and the program already knows the harder half of that
+point, that a turned `o` is invisible to a reader.
+
+### The distribution: what the Folio's corrector actually did
+
+Simpson itemises the Folger page (p. 83), which gives a shape to aim at rather
+than a rate to fit:
+
+- **misspellings** — `hould`/`Should`, `their`/`there`, `plaes'd`/`pleas'd`,
+  `voic'c`/`voic'd`
+- **punctuation** — a comma deleted, a comma inserted
+- **a turned letter**, marked
+- **omitted spacing** — `onboth parts`, `farethee well`
+- **a space wrongly inside a word** — `tro bled`, closed up
+- **a crowded line mended at proof**: finding the line too full after altering
+  `rume` to `rheume`, the corrector deleted the final `e` of `yeare`. That is a
+  crowding device applied by the *corrector*, which §5 does not have and which
+  belongs with its work
+- **a miscorrection** — the final `d` struck out of `builded` in error. The
+  program has this as `sophisticates`, and here is a real instance
+
+And what he missed, which is as useful:
+
+- a **speech prefix wrong** — `Ant.` for `Agri.`, "the compositor's eye running on
+  to the mention of his name in the line". The program has no such mechanism, and
+  it sits exactly beside the speech-prefix work §5 has just done
+- a plural not corrected; a **turned `n`** in `tougue`; and the faulty verse-lining
+  throughout
+
+### A second itemised census, and it is the richest there is
+
+Simpson describes Treveris's corrected proof of `The Grete Herball` (1526),
+recovered from a binding at Queen's College, in enough detail to count
+(pp. 63–4). It is worth more than the Folio leaf because he lists the
+corrections rather than totalling them, and the kinds are the point:
+
+- **literals** — `watrr`/`water`, `greueth`/`groweth`, and the two the corrector
+  MISSED, `monnteth` and `gote` for `hote`
+- **letters alike on the page** — `femeth`/`semeth`, `anayled`/`auayled`,
+  `laudaue`/`laudane`, and `monnteth` again. Three n/u and one long-s/f, from
+  six identifiable literals
+- **a sort standing too high** — "the adjustment of the letter `n` of `soden`,
+  printed too high"
+- **a lead showing between words**, marked with a cross, twice — a space risen
+  far enough to take ink. The program has this only as skeleton damage, never as
+  a fault on the page
+- **a broken letter**, marked
+- **a word substituted** — `the` corrected to `of`
+- **a miscorrection by the corrector himself** — he wrote `et` in the margin for
+  `pacyon` where he should have written `nt`
+
+And one that bears on a calibration already settled: **the compositor's
+contractions were corrected out**. The proof reads `nothyn / ge` and `y` with a
+superior letter, got by contracting to make the line justify; the published text
+expands them. That is the mechanism behind the near-zero rate of tildes and
+superior letters in printed books which §10's calibration table records as
+measured — the marks were set and then removed, so counting printed books
+measures the corrector as much as the compositor. **The same stage error as the
+foul-case row, in a row nobody had suspected.**
+
+Simpson's marking convention is worth having too: an irregularity of *printing*
+rather than of letter — a sort above the line, a broken face — is marked with "a
+curled stroke like an elongated six", distinct from the marks for a wrong letter.
+The corrector's own vocabulary separates the two, and so should any model of him.
+
+### The errata lists, and why they are a floor and not a census
+
+Errata are the other surviving record of what a corrector missed, and Simpson
+gives many. Two are enumerated:
+
+- **Gascoigne, *The Droome of Doomes day* (1576)** — "Fifty-one corrections
+  follow. **They fall into two sets: they are either dropped words or
+  misprints**." A dropped word is Hornschuch's first mark and the program has no
+  such mechanism at all.
+- **Nine errata** in another, and **six misprints** in Drayton's *Muses Elizium*,
+  where the printer blames "partly the raggednesse of the written Copy, and
+  partly our ouersight" — copy quality and compositor named as the two causes,
+  which is the split `--no-copy-preparation` models.
+
+**But an errata list is selected for severity and cannot be read as a rate.** Two
+printers say so outright. Lambard's *Perambulation of Kent* (1576) grades the
+faults — some "blemish only the beautie of our owne workmanship", others "offend
+against the lawes of Orthographie", others "shrewdly peruert the sense", others
+"vtterly euert his meaning" — and then prints only "**Suche therefore as be most
+daungerous**". Bartholomew Young's *Diana* (1598) is blunter: "the greatest faults
+are at the ende of the Booke set downe, **the lesse being of no moment purposely
+omitted**".
+
+So the printed errata give a **lower bound on surviving errors and a taxonomy of
+severity**, and they are evidence against any attempt to read a rate off them.
+The taxonomy is usable as it stands: a model that graded its own errors the way
+Lambard grades his — cosmetic, orthographic, sense-perverting, meaning-destroying
+— could say which of them a corrector working by sense would catch, which is
+exactly the distinction `catches-accident` and `catches-misreading` are groping
+at with two numbers and no principle.
+
+Lambard also gives an edition size in passing: **six hundred copies**, and twenty
+years to sell them.
+
+### Two independent confirmations of things already built
+
+Worth recording because they cost nothing and both were open questions.
+
+**The corrector worked at sight.** "The corrections which are made indicate the
+normal standard of a professional corrector; **he probably made them at sight,
+without reference to the copy**" (p. 83), with Willoughby's verdict on him,
+"moderately careful, but not meticulous". That is Hinman's finding from a second
+scholar on a different page, and it is the premise `consults-copy` encodes — now
+supported rather than merely asserted, immediately after the vigilance runaway
+above was found to be violating it.
+
+**Sober and well lit.** Hornschuch's corrector must "have a quick eye for minute
+detail" and must keep sober; the room in his plates is well windowed. Nothing to
+model, but it is the answer to any suggestion that the discrimination ceiling
+should be lowered for working conditions.
+
+### Step one is built, and it turned up a worse problem than it was made for
+
+Two things had to be fixed before either rate could be measured, and the first
+was not on the list.
+
+**The accident row was nine parts something else.** `deviation-counts` computed
+accidents as *every* word whose printed form differs from its composed form, which
+rings three mechanisms as one: foul case, a sort laid **face down for want of
+metal**, and a **substitution** like VV for W. Measured on *Areopagitica*, 317
+words differ and **nine** are accidents; on the Folio the row read **2,313 against
+813 accident events logged in the same run**. `word-deviation`, twelve lines
+away in the same module, has told the three apart for a long time — the comment
+beside it records the note that forced it, `foul case: "officers" set for
+"officers"` — and the count did not. One property, two decision points, and the
+**third time in this program a stage comparison has rung something else as foul
+case**. Now split into three rows, and the accident row reads **792 against 813
+logged**: 97% agreement where it had been 285%.
+
+**Then the split itself.** A caught error does not leave the edition — the forme
+was mended mid-run, so the sheets already worked off keep it. What a
+bibliographer diffing one copy would find is the number made, less those mended
+weighted by the share of the run that got the correction, less any mended before
+the press began at all. The report now prints all three:
+
+| Folio, seed 1623 | | per 1,000 words |
+|---|---|---|
+| accident of the case | 792 | **0.92** |
+| of those, mended at proof | 169 | 0.20 |
+| **left standing in one copy** | **623** | **0.72** |
+| observed, *Much Ado* Q1600 → F1623 | 3 events in 11,990 words | **0.25** |
+
+**And the stage is the whole difference between agreeing with that figure and
+not.** The observed rate is three accidents — two `Leonato`/`Leonata` and one
+`tongues`/`tongnes` — so it carries a Poisson 95% interval of **0.05 to 0.73 per
+1,000 words**. Against that:
+
+- the rate the model **makes**, 0.92, is **outside** the interval;
+- the rate that **survives**, 0.72, is **inside** it, just under the bound.
+
+**So no constant should move.** The foul-case rate is consistent with the evidence
+once it is compared at the stage the evidence was measured at, and inconsistent
+when compared at the other. What was wrong was the comparison, not the number —
+which is the opposite of what this section said when first written, and the
+correction is recorded rather than quietly applied.
+
+Two things follow that are worth more than the constant.
+
+**The calibration table compares across stages and does not say so.** Its columns
+are *in the real books* and *now*; the first is a surviving rate and the second
+the rate the program makes. For this row those differ by the corrector, and the
+apparent 3.5-fold discrepancy between 0.25 and 0.87 is mostly that plus a
+three-event sample. **Every row of that table needs its stage named.**
+
+**And `typecase.rkt` had already reasoned it out in prose.** The comment at the
+foulness constant says the rate is set above the observed figure because the diff
+"can only see errors that changed a word into a different string, **that escaped
+the corrector**, and that stand in the one copy transcribed". The argument was
+right and was never quantified; the report now quantifies the middle term of it —
+the model's own made-to-surviving ratio is 1.27 — and leaves the other two open.
+**A judgement recorded in a comment is not a measurement, and it took four years
+to check one that was correct.**
+
+### The anchor cannot be the whole target, and that is the sharper finding
+
+Nothing about the constant closes the distance to Simpson's twenty. A Folio page
+is about 900 words, so twenty corrections is **22 per 1,000** — an order of
+magnitude beyond anything this row can reach at any stage. One page selected for
+proofing will not explain that.
+
+The explanation is in what each measurement can see. **The 0.87 was diffed
+word-against-word**, so it counts differences in the form of words and nothing
+else. Simpson's twenty are itemised above and include **punctuation, omitted
+spacing, a space intruded into a word, and faulty verse-lining** — none of which
+a word-level diff can register at all.
+
+So the two are not in conflict; they are counting different things, and the
+program has been calibrated against the narrower one while being asked to produce
+the wider one. **Widening the vocabulary is not merely how the count is raised —
+it is the only way the program can be measured against Simpson at all**, because
+the anchor it currently has is blind to most of Hornschuch's categories. And it
+follows that a new category cannot be validated against the *Much Ado* diff
+either: **punctuation and spacing errors need their own measurement, from a
+collation that records them.**
+
+### Where §12 stands
+
+Built, in the order they were done, with what each was worth:
+
+| | closes the variant gap? | measured |
+|---|---|---|
+| foul case, Hornschuch's second cause (shape confusion) | **no — cannot, by construction** | rate unchanged; share of foul case ~1/7 |
+| faults of impression (a lead showing, a sort proud) | **no — deliberately not variants** | 507 on the Folio, 105 mended |
+| mis-resumption (a word dropped or doubled) | **can, but far too rare** | 18 on the Folio, **1** reached the variant list |
+| **mis-pointing** | **yes — this is the one** | ~45 variants a run, ~10% of the total |
+
+**Two of the four could never have closed it and I built them first.** Shape
+confusion changes *which* wrong sort is picked and not how many; impression
+faults are excluded from variants on purpose, because mending one alters no
+reading and no collation can find it. Only a fault that changes a reading can
+become a press variant, and that was knowable before any of them was written.
+
+Still unbuilt from Hornschuch's marks: **omitted and intruded spacing** (his
+fourth and fifth, and three of them on the one Folio proof page), **transposition
+of words**, the redundant *letter* as against the redundant word, and a stop
+**turned**. Spacing is the next one worth doing: it changes a reading, so it
+reaches the variant count, and the proof page shows it oftener than punctuation.
+
+### What to build, and what must not be invented
+
+The order matters, and the first item is not a mechanism.
+
+1. ~~**Separate the two error rates.**~~ **Done** — see above. The surviving rate
+   is now an output the report prints beside the made rate, so raising the
+   compositor's rate can be checked rather than argued.
+2. ~~**Raise the compositor's accident rate.**~~ **Withdrawn, and it was written
+   here backwards.** The foul-case rate needs no change: measured at the stage the
+   evidence was taken at, the surviving 0.72 sits inside the observed figure's
+   95% interval. What the row needs is its *stage* named in the calibration
+   table, which is a documentation fix, and the same check run on every other row
+   there — several of which are also diffed rates being compared against
+   generated ones.
+3. **Then the vocabulary**, and prefer Hornschuch's rules to new rates: the
+   shape-confusion set (r/t, n/u, e/c, e/o, c/t, ſ/f), wrong fount at the
+   italic/roman join, omitted and intruded spacing, transposition, punctuation.
+   Each is a *kind* he names, not a frequency he gives. **The first of them is
+   built — see below.**
+4. **Decide what counts each one in the report before writing it.** Four
+   mechanisms in this program have been silently dead; the deviation table and
+   `tools/audit-mechanisms.py` are where a new kind has to appear, and a kind that
+   cannot fire on a given book must say so rather than print a bare nought.
+5. **Find an anchor that can see the new kinds.** The *Much Ado* diff cannot, and
+   §11's widening of the calibration base is now a dependency rather than a
+   parallel item: Furness's Variorum collates punctuation, and a collation that
+   records accidentals is what a spacing or pointing rate would have to be
+   measured against.
+6. **Do not fit any of it to the twenty.** One page, selected for proofing, with
+   no variance behind it. It says the density is short and it does not say what
+   the density is.
+
+### Built: foul case has two causes, and the second one cost no rate
+
+Hornschuch's sentence is the whole of it: foul case "arises from two causes:
+letters slip over from **adjoining boxes**, or **letters similar in form elude
+the printer**". The program had the first and not the second, so it could only
+ever confuse letters that happened to be neighbours in the lay.
+
+`SHAPE-CONFUSIONS` is now the second — r/t, n/u, e/c, e/o, c/t and long-s/f. His
+`a v` is left out, because Simpson's own footnote to that item says "Hornschuch
+is thinking of German gothic" and this fount is not.
+
+**It adds no rate.** The shape-alike sorts join the adjoining ones as candidates
+for the draw the foul-case rate already makes, so the number of accidents is
+untouched and only the choice of wrong sort widens — which is Hornschuch's own
+shape, one fault with two causes. That matters because the rate is anchored and
+sits at the edge of the observed interval; a second mechanism *added* to it would
+have pushed it out.
+
+Measured on the Folio, before and after:
+
+| | before | after |
+|---|---|---|
+| accident events | 813 | **818** |
+| accidents made, per 1,000 words | 0.92 | **0.93** |
+| left standing in one copy | 0.72 | **0.75** |
+
+Unchanged within a seed, which is the result the design predicted and the reason
+it was built this way. **Read the 0.75 with care**: the observed interval's upper
+bound is 0.731, so it now sits a hair outside where it had sat a hair inside, and
+one seed cannot tell those apart. It is not evidence of anything either way.
+
+Of the foul-case corrections listed on corrected formes, **137 are the adjoining
+box, 21 are letters alike on the page, and 7 are both** — the overlap being n and
+u, which are neighbours in the lay *and* twins on the page, so that pair is in the
+pool twice and is confused oftener without being weighted in by hand.
+
+**The share is lower than the one itemised census suggests**, and that is left
+alone. Treveris's 1526 proof shows n/u three times and long-s/f once among a
+handful of literals, where this puts shape confusion at about a seventh of foul
+case. Hornschuch gives two causes and no proportion, one proof sheet is one proof
+sheet, and there is nothing here to fit to. Recorded as a known disagreement
+rather than closed by a weight.
+
+### The stage audit, run over every error row — and only one was what it looked like
+
+§12 found the foul-case row comparing a rate the program *makes* against a
+measurement of what *survived*. The obvious next move was to check the other
+rows, since only the **error** rows can be affected: a word division or an
+ampersand is a deliberate act and no corrector removes it, but an error passes
+through him and the printed book records only what he missed.
+
+Three rows were at risk. The audit found one real fault, one clean row, and one
+lesson that applies to the whole table.
+
+**Wrong-fount sorts — a real stage error, and unfixed.** Hornschuch names it
+outright as something the corrector cleared: "Wrong fount (*literæ heterogeneæ*)
+is another source of trouble", caused "mostly by having to vary the type, for
+example by inserting italics and capitals in a body of lower case". In this
+program it is classified as a **`'shift`** — a shop expedient alongside robbing a
+sort and setting one face down — so `press.rkt` never offers it to the corrector
+and every one of them prints in every copy. The table then compares that
+uncorrected count against "a handful a book", which is what survived a corrector
+who was clearing them.
+
+And the count is not small: **1,996 wrong-fount sorts in the Folio, 2.31 per
+1,000 words.** The classification is defensible on its own terms — the draw
+returns the right character, so "the reading is right and the letter wrong" — but
+that is exactly the class the faults of impression above occupy: visible on the
+page, no reading changed, and therefore mendable at proof but invisible to any
+collation. **It belongs with them and is not yet moved there.**
+
+**Tilde and superscript rows — no stage error, and a presentation fault that runs
+through the whole table.** These are calibrated the other way round: `SCRIBAL-RATES`
+holds rates measured off printed EEBO-TCP books and `tilde-chance` is fitted
+backwards so the program's *printed* output matches them. Both sides are printed
+rates, so the comparison is sound.
+
+What is not sound is that both sides are printed as points. The corpus figure is a
+**median across documents**; the program's is **one run of one text**. Recounted
+from the 5,287 texts on disk, English, 2,000 words or more:
+
+| | books | with none | median | p75 | p90 | p95 | model, 4 seeds |
+|---|---|---|---|---|---|---|---|
+| 1580s | 51 | 0% | 2.99 | 5.85 | 9.65 | 11.19 | **5.01–7.13** |
+| 1600s | 78 | 6% | 1.11 | 2.51 | 5.04 | 10.19 | **1.71–2.40** |
+| 1620s | 83 | 14% | 0.25 | 0.83 | 2.25 | 4.78 | **0.16–0.87** |
+
+**The program sits between the median and the third quartile at every date** — a
+book that uses the device rather more than the typical book, and nowhere near
+outside the range. Whether it ought to sit on the median is a judgement nobody has
+made; what the table shows instead is "1.01" against "1.66", two points, with the
+spread and the skew invisible. A sixth of books in the 1620s have no tilde at all.
+
+### The rule the audit actually produced
+
+Three discrepancies were chased this session and **all three dissolved once the
+spread was measured**:
+
+- press variants, 366 against 543 — both draws from a 2.3-fold spread;
+- foul case, 0.72 against 0.25 — inside the Poisson interval of a three-event
+  observation;
+- tildes, 2.19 against 1.11 — between the median and p75 of real books.
+
+Not one was a miscalibration. In each case a point was being compared against a
+point when neither side was a point, and in two of the three a confident
+diagnosis had already been written down before the arithmetic was done.
+
+**So the calibration table's real fault is not any of its numbers. It is its
+shape.** Each row should carry the stage its figures were measured at and the
+spread on both sides, and until it does it will keep manufacturing discrepancies
+that are not there. That is a bigger and duller job than fixing a constant, and it
+is the one the evidence points at.
+
+### Built: pointing — and the rate was derived twice, wrongly the first time
+
+The category the arithmetic pointed at, and the first one that moves the variant
+count where it was supposed to.
+
+**The sources.** Simpson's Folio leaf has the corrector "delet[ing] the comma
+after `that` and insert[ing] one after `Horse`" in a single line — both directions
+of the same fault on one page. Cartwright's *Royal Slave* proof carries "three
+corrections of the punctuation", one a comma altered to a semicolon. Hornschuch
+puts a stop in his first mark ("a letter, a word, or a stop" left out) and gives
+the full stop a mark of its own, and complains that "most poets leave out the
+stops altogether" — so the pointing is the compositor's to supply and his to get
+wrong. Three faults follow: **a stop dropped, the wrong stop set, and a stop where
+the copy has none.**
+
+It is a fault of *reading* — the copy keeps its stop and `read` carries what he
+set — so the corrector's existing scan finds it. **And it is caught by sense, not
+by the copy**, which Simpson settles outright: of that same Folio page, whose
+twenty corrections include the two of punctuation, he says the corrector "probably
+made them **at sight, without reference to the copy**."
+
+### The rate, got wrong from a page this file had already warned about
+
+Set first from the leaf's **density**: two corrections in some 900 words, caught at
+the rate a literal is caught by, giving about three per thousand made. On the
+Folio that produced **412 pointing variants in a total of 934** — against Hinman's
+"just over 500" for the whole book, every kind included. Nearly double, from one
+category.
+
+The fault is the page, not the arithmetic. **That leaf carries twenty corrections
+where Hinman's figure implies two and a half to a page**, so it runs eight times
+the book's average — and §12 says exactly that, four paragraphs above where the
+density was taken off it. *Recorded because knowing the caveat and writing it down
+did not stop it being ignored by the person who wrote it, two hours later.*
+
+What survives one bad page is the **share**, not the density: punctuation is two of
+its twenty corrections, about a tenth of what the corrector caught. A proportion
+does not care that the page was a bad one. Re-derived on that basis the rate is
+**0.0003**, and pointing comes out at 45 of 478 variants — 9.4%, which is the share
+it was set from and therefore no evidence of anything. The *total* is what gets
+read afterwards.
+
+### And a double count, found by the number being too large twice over
+
+A mis-pointed word satisfies both the new scan and the old one — its copy differs
+from its read, and its print differs from its copy — so it was caught twice and
+counted twice. That, not the rate alone, is what put the Folio at 815 variants
+where the same run gives about 480. **One fault, one place that catches it**, and
+the pointing case is now excluded from the copy scan.
+
+### Built: the compositor loses his place — and it does not close the gap
+
+The first of these mechanisms that *can* move the variant count, and the
+measurement says it does not.
+
+McKerrow's mechanism, which §5 has wanted since it was written: "the compositor
+having **mistaken the point at which he left off and consequently omitted or
+repeated a word or two**". His proof (1) is the repetition case, "the last line or
+the last few words of one page being repeated at the beginning of the next", and
+he names five books. Gascoigne's 51 errata are "either dropped words or
+misprints"; Hornschuch's first two marks are omission and redundancy. Three
+sources, one slip, two directions — and §5 required both halves together.
+
+**The place is McKerrow's and only the rate is invented.** It happens where the
+compositor returns to the copy, which is the head of a page — not spread through
+the text, which is what a bare rate per word would have given. That is also why
+he can prove catchwords come from the manuscript: the catchword is right and the
+page it faces is wrong.
+
+The evidence is carried on the word standing at the join. A dropped word leaves
+that word's copy reading longer than its print, a doubled one leaves it empty, and
+the corrector's existing scan finds both — so no new machinery at press.
+
+**And the corrector's two methods part company here, which is the interesting
+half.** A doubled word he can see and strike without the copy: it is exactly the
+"obvious blunder" Hinman says the Folio corrector caught by sense. A dropped word
+he cannot supply without the copy — he can see the sense break, which is
+McKerrow's whole point, but not what is missing. So repetition is caught at the
+literal rate and omission only where the copy is at his elbow. That asymmetry is
+the mechanism rather than a convenience.
+
+Measured on the Folio at the default rate:
+
+| | |
+|---|---|
+| pages | 948 |
+| the compositor lost his place | **18** (19 per 1,000 pages) |
+| of those, reaching the variant list | **1** |
+| press variants | 349 |
+| formes corrected mid-run | **100 of 474** (Hinman: ~100 of ~450) |
+
+**One variant. It cannot close the gap and nothing should be done to make it.**
+McKerrow's "comparative frequency" is not a number; to add the ~150 variants that
+would reach Hinman's "just over 500" this rate would have to rise some
+hundredfold, and the sources will not carry it.
+
+**What the arithmetic says instead.** ~150 more variants needs about 200 more
+catchable errors on proofed formes, and only about a fifth of formes are proofed —
+so roughly **950 more errors in the book, about 1.1 per 1,000 words**. That is
+precisely the density of the categories still unbuilt: the one proof-corrected
+Folio page carries **two punctuation corrections and three of spacing in about 900
+words**, which is 2.2 and 3.3 per 1,000. **Punctuation alone would close it.**
+
+So the order was wrong and the measurement says so plainly: shape confusion and
+faults of impression could not move the count by construction, mis-resumption can
+but is far too rare, and **the volume is in punctuation and spacing** — the two
+kinds a word-level diff cannot see, which is why no calibration here has ever
+counted them. §11's widening of the calibration base is the dependency.
+
+### Built: faults of impression, and the class a collation cannot see
+
+Hornschuch's sixth mark covers "anything printed awry or aslant, or anything
+standing out above the line, so that the nearest letters have a fainter
+impression", and Simpson notes that the corrector marked such things with a sign
+of their own — "a curled stroke like an elongated six" — distinct from his marks
+for a wrong letter. **The corrector's own vocabulary separates a fault of
+impression from a fault of reading**, and this program had only the second.
+
+Treveris's proof carries three of them on one sheet: a lead showing between
+`Gyue it`, another marked with a slanting line, a letter "printed too high", and
+a broken face.
+
+Built at the forme, where the lock-up decides it. **The chances are a rule and
+only the rate is a knob**: one draw per line of type, so a forme carrying more
+matter has more places for a space to ride up, and the count follows the format
+and the copy. `--impression-faults` carries the usual disclaimer — no source gives
+a rate — and the report prints it beside every count.
+
+On the Folio: **507 faults, 105 mended at proof, 402 printing to the end of the
+run** — about one to a forme, which is the order Treveris's sheet shows.
+
+**And the point of it is what it is not.** These are kept in their own fields and
+out of `variants` deliberately, because mending one changes no reading:
+
+- a collation of every copy in existence will not turn one up;
+- so they must not enter the corrected-forme count, which is compared against
+  Hinman's — and his was got by collating.
+
+That is a real bibliographical asymmetry and one this program is well placed to
+state: **the proof-corrector caught a class of fault that the whole apparatus of
+press-variant collation is structurally blind to.** A test pins it, the audit
+tool counts it, and the report says in the same breath what the number is and
+that no source stands behind it.
+
+---
+
 ## Built
 
 Kept short on purpose. Each was argued out at length when it was done; what is
@@ -2551,6 +3480,18 @@ roadmap items, one confirmation that a table called invented is accurate to 0.5%
 and one live anachronism in the most foundational module in the program. **A source
 you have cited is not a source you have read.**
 
+*And it happened again, in the worst possible way.* Simpson was cited for a year
+on the strength of a sentence from **Carter's foreword** — the README said so
+outright, which should have been the tell — while the book itself held the only
+surviving proof-corrected page of the First Folio, itemised, and a 1608
+proof-corrector's manual listing the marks. §10 spent a session reasoning its way
+to "the vocabulary of correctable error is too narrow" from the model's own
+arithmetic; §12 got there from the source in twenty minutes, with a number
+attached and a sharper cause underneath it. **The second instance of a rule is
+worth more than the first: knowing the rule plainly does not make anyone open the
+book.** Check what has actually been quoted from each source in `sources/`, and
+treat a citation that only ever reaches an editor's apparatus as unread.
+
 **A convention with no date on it is dated by whoever wrote it down last.** The
 ranging figures were caught because someone asked when tabular figures began. The
 space bodies twenty lines below them were not, and they are Jacobi 1890. When a
@@ -2575,7 +3516,80 @@ contradict each other, and the contradiction hides until something forces them
 apart. The deviation vocabulary lived in five places and had already drifted. The
 leaf's size was decided by the stylesheet while the format was decided by the
 model. The casting off allowed a line for a blank the compositor no longer set.
-Three times, one shape.
+The compositor knew how a speech prefix is abbreviated and the casting off did
+not, so it measured a verse line without the prefix that would be set in front of
+it — the largest single error in the casting off, and worth about five lines a
+page on the Folio. Four times, one shape.
+
+**A number that shares its name with another number is not a number.** The report
+called a page "crowded" at two thresholds — miscast by more than two lines in the
+summary table, a third of a page or worse in the narrative list — which on the
+Folio is 570 against 11. Neither stated its test, so "the crowded figure" named
+two quantities fifty times apart, and a session went into trying to reconcile a
+probe against a number that was two numbers. Both counts and the test between them
+are now printed together.
+
+**Where fixing a real bug makes a calibration row worse, that row was not
+measuring what its label said.** Correcting the casting off took press variants
+from 543 to 366 against Hinman's "just over 500". The corollary is the
+uncomfortable one: **a row moving toward the record is no evidence until you know
+which mechanism moved it.** Two mechanisms in one session were found reading
+healthy off the same defect, and one of them had been written up here as a
+success.
+
+**A rate measured on a printed book is a rate of what SURVIVED, and comparing it
+against a rate the program MAKES is comparing two different quantities.** The
+foul-case row is the demonstration and it cuts both ways: the model makes 0.92 per
+1,000 words and 0.72 survives, against three accidents observed in 11,990 words of
+*Much Ado*. Compared at the wrong stage the model looks 3.5 times too rich;
+compared at the right one it sits inside the observed figure's confidence
+interval. **The constant was never wrong — the comparison was**, and this file
+said the opposite in confident detail before the arithmetic was done. Ask of every
+measured rate: *measured at which stage?* The calibration table names the books
+and not the stage.
+
+**A point compared against a point, when neither side is a point, manufactures
+discrepancies that are not there.** Three were chased in one session and all three
+dissolved on measuring the spread: press variants 366 against 543 (a 2.3-fold
+run-to-run spread), foul case 0.72 against 0.25 (inside a three-event Poisson
+interval), tildes 2.19 against 1.11 (between the median and p75 of real books,
+which run 0 to 19.6). **Two of the three had a confident diagnosis written down
+before the arithmetic was done.** Measure both spreads before believing any gap.
+
+**Three events is not a rate, and a table that prints it to two decimals says
+otherwise.** The 0.25 above is two `Leonato`/`Leonata` and one
+`tongues`/`tongnes`. Its exact Poisson 95% interval runs from 0.05 to 0.73 — a
+factor of fourteen — and a good deal of a session was spent reasoning about a
+discrepancy that sits inside it. **Put an interval on any anchor counted in single
+figures before concluding the program disagrees with it.** This is the same
+lesson as the press-variant spread, arriving from the other end: there it was the
+model's output that was a draw, here it is the measurement.
+
+**A figure quoted from one run of the standard hard case is a draw, and the
+spread must be measured before the figure is believed.** This file spent three
+calibration decisions on the press-variant count — proof rate 0.6, 0.28, 0.224,
+each argued from a full Folio — and when the spread was finally measured it was
+**366, 851 and 563 over three seeds**: 2.3-fold, larger than any difference ever
+attributed here to a change in the model. The rule about rare events on one seed
+was already in this file and was applied to tests only; a calibration is the same
+thing with more at stake. **Say how many runs are behind every number printed.**
+
+**A carry-over that re-arms on every event does not decay, it runs away.** The
+reader's vigilance was meant to be Hinman's — a serious catch, then more care "at
+least for a time". Re-armed once per caught word at even odds it continued with
+probability 0.98, so one consultation spread across most of the book, and it was
+that, not any modelled behaviour, which supplied the run-to-run spread above. The
+tell was available without reading the code: the mechanism's own output was the
+majority of press variants where the source says the copy was "seldom if ever
+used". **Check a mechanism's share against what the source says its share should
+be, not only its total.**
+
+**A guard written for the shape of one format is a claim about every format.**
+`true-first-forme` ended `(and (= 2 (length done)) …)`, which is true of a quarto
+gathering and of nothing else, so at folio in sixes it returned the false itself —
+and the report scored Turner's rule against it, printed `0 of 37 times`, and set
+the word `#f` on the page. It looks like a sanity check and it is a silent
+assumption about format.
 
 **A parameter no test exercises and no report counts will be dead without anyone
 noticing.** Four so far — `catches-misreading`, the catchword bracketing, the
