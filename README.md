@@ -25,7 +25,7 @@ racket main.rkt --format folio6 --compositors A,B --html -o out samples/hamlet.t
 - [Reading the copy](#reading-the-copy) · [The preliminaries](#the-preliminaries) · [The last sheet](#the-last-sheet) · [Cancels](#cancels)
 - [The heaps](#the-heaps-and-the-copies-gathered-from-them) · [Forme order](#the-order-of-formes-from-the-types) · [The perfecting order](#the-perfecting-order-inferred) · [Binding](#gathering-folding-and-binding) · [The lexicon](#the-lexicon)
 - [Calibration](#calibration) · [The First Folio](#the-first-folio) · [Running it backwards](#running-it-backwards)
-- [What it does not do](#what-it-does-not-do) · [Sources](#sources) · [Calibration](CALIBRATION.md) · [Roadmap](ROADMAP.md)
+- [What it does not do](#what-it-does-not-do) · [Sources](#sources) · [Calibration](CALIBRATION.md) · [Roadmap](ROADMAP.md) · [Findings](FINDINGS.md)
 
 **[CALIBRATION.md](CALIBRATION.md) holds every figure this program is judged by**,
 with its seeds, the spread on both sides, the stage each was measured at and the
@@ -33,9 +33,12 @@ date it was last regenerated. Any number quoted here is quoted from there.
 
 **[ROADMAP.md](ROADMAP.md) is the other half of this document.** This file says
 what the program does and where it currently stands; the roadmap says what is
-wrong with it, what is unbuilt, and what each correction cost to find. Where a
-section here ends with a pointer into the roadmap, that is a live uncertainty and
-not a footnote.
+wrong with it and what is unbuilt. Where a section here ends with a pointer into
+the roadmap, that is a live uncertainty and not a footnote.
+
+**[FINDINGS.md](FINDINGS.md)** holds what each correction cost to find — the wrong
+turns, the withdrawn diagnoses and the eliminations, kept because the value of
+this project has been almost entirely in its corrections.
 
 ## What it produces
 

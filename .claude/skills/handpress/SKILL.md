@@ -196,6 +196,72 @@ by construction, and that was knowable before either was written.
   leaves — not by a probability. A rate there would have been invented; the
   rule is McKerrow's own account of what East did.
 
+## How the numbers go wrong
+
+The traps above are about mechanisms. These are about the figures, and they have
+cost more time than the mechanisms have.
+
+- **Two errors cancelling is this project's characteristic failure.** A
+  calibration that agrees with a source can be two mistakes meeting in the
+  middle: press variants matched Hinman while the copy-restoration that supplied
+  them was the mechanism he says was "seldom if ever used". **Check a
+  mechanism's *share* against what the source says its share should be, not only
+  its total** — and when fixing a real bug makes a calibration row worse, that
+  row was not measuring what its label said.
+- **A figure from one run of the standard hard case is a draw.** Press variants
+  run 368 to 624 over four seeds of the same book and code; three successive
+  proof-rate calibrations were each argued from a single Folio before anyone
+  measured that. Every figure belongs in `CALIBRATION.md` with its seeds, its
+  spread and the date it was regenerated.
+- **Measure the spread on *both* sides before believing a gap.** Three
+  discrepancies chased in one session all dissolved: one was a single draw, one
+  was a median compared against a single book, one was three events printed to
+  two decimals. **Three events is not a rate** — put an interval on any anchor
+  counted in single figures.
+- **Ask of every measured rate: measured at which stage?** A rate diffed out of
+  a printed book counts what *survived* the corrector; the rate a program is set
+  to is what the compositor *makes*. Comparing them is comparing two quantities.
+- **A single unrepresentative page gives a proportion, never a density.** The one
+  proof-corrected Folio leaf carries eight times the book's average corrections;
+  a rate taken off its density overshot eightfold, where its *share* by category
+  held.
+- **A number that shares its name with another number is not a number.** "Crowded"
+  meant 570 in one table and 11 in another, in the same report, with neither
+  stating its threshold.
+- **A convention with no date on it is dated by whoever wrote it down last.** The
+  space bodies were Jacobi 1890 in a 1600 fount. When a value arrives as "the
+  standard widths", ask *standard when*.
+- **One property, one decision point.** Two stages settling the same thing will
+  contradict each other and hide it. Five instances so far, most recently the
+  counting and the naming of the same fault thirty lines apart in one module.
+
+## How the work goes wrong
+
+- **Read the source before building on a summary of it.** Moxon and Smith sat
+  cited-but-unread for a year and one afternoon with them produced six roadmap
+  items. Simpson went the same way and held the only proof-corrected page of the
+  First Folio. **A source you have cited is not a source you have read** — check
+  what has actually been quoted from it before treating it as read.
+- **Having the finding is not the same as using it.** The measurement that
+  solved forme-order had been committed to the roadmap two entries above the
+  three attempts that ignored it. Knowing a rule plainly does not prevent
+  breaking it: most of these have been broken by someone who had just written
+  them down.
+- **A stale compile manufactures failures that read like findings.** A changed
+  signature leaves dependents compiled against the old one and their tests are
+  *silently skipped* — 164 of them once, with the suite reporting a clean pass.
+  Watch the absolute count. Rebuild clean before judging any failure.
+- **A test deliberately blind to one thing is blind to a bug in that thing.**
+  Hinman's criterion is scored up to reversal, so it could not see that the
+  forme order underneath it was inside out.
+- **A guard written for the shape of one format is a claim about every format.**
+  `(= 2 (length done))` is true of a quarto gathering and of nothing else; it
+  looked like a sanity check and silently returned a false at folio.
+- **Measure a disagreement's consequence before encoding it.** Blayney and
+  Hinman differ on how thin a pair of cases may be worked, and the whole range
+  they disagree about produces byte-identical output. Encoding it would have
+  made two named shops that behave alike.
+
 ## The lexicon
 
 Spelling devices **select, they do not invent**. `lexicon.rkt` says which forms
