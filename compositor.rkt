@@ -45,6 +45,9 @@
          "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt" "rng.rkt")
 
 (provide WORD-STAGES at-stage current-mis-point MIS-POINT-RATE STOPS
+         current-mis-space MIS-SPACE-RATE mis-space
+         current-mis-transpose MIS-TRANSPOSE-RATE mis-transpose
+         current-mis-drop MIS-DROP-RATE mis-drop
          (struct-out word) (struct-out set-line) (struct-out event)
          (struct-out profile) (struct-out page-spec)
          PROFILES make-comp comp? comp-profile comp-events comp-rng comp-case
@@ -337,6 +340,158 @@
        [(char-alphabetic? last-ch)
         (string-append w (string (rnd-choice g '(#\, #\.))))]
        [else w])]))
+
+;; ---------------------------------------------------------------------------
+;; Spacing left out, and spacing intruded
+;; ---------------------------------------------------------------------------
+;; Hornschuch's fourth and sixth marks: "words run together, the spacing left
+;; out", and "a gap closed up in a word split in two". Simpson's Folio proof
+;; carries three of them -- `onboth parts' and `farethee well' run together, and
+;; `tro bled' opened -- against two punctuation corrections on the same leaf. It
+;; is the commonest thing that leaf shows.
+;;
+;; It changes a reading, so unlike foul case and the faults of impression it can
+;; reach the variant count. That question is asked of every kind before it is
+;; built, and this is the first of Hornschuch's remaining marks to answer yes.
+;;
+;; THE RATE IS A SHARE, NOT A DENSITY. The same leaf that set the pointing rate
+;; sets this one, by the same method and for the same reason: it carries twenty
+;; corrections where Hinman's figure implies two and a half to a page, so its
+;; density is eight times the book's and worthless, while its proportions are
+;; not. Spacing is three of those twenty against pointing's two, so the rate is
+;; the pointing rate in that ratio -- 0.0003 * 3/2. It is NOT set to bring the
+;; variant total to Hinman's figure; the total is an outcome, read afterwards.
+;;
+;; The split between the two kinds, two run together against one opened, rests
+;; on three instances and is the weakest thing here. It is a share of a share.
+;; Anything drawn from the ratio of omitted to intruded should say so.
+(define MIS-SPACE-RATE 0.00045)
+(define current-mis-space (make-parameter MIS-SPACE-RATE))
+
+;; Walked in order rather than mapped, because running two words together
+;; consumes the next one and the word after it must not be offered twice.
+(define (mis-space pairs g)
+  (let loop ([ps pairs] [out '()])
+    (cond
+      [(null? ps) (reverse out)]
+      [(>= (rnd g) (current-mis-space)) (loop (cdr ps) (cons (car ps) out))]
+      [else
+       (define p (car ps))
+       (define copy (car p))
+       (define rd (cdr p))
+       (cond
+         ;; The space was left out and the next word came up against this one.
+         ;; The copy keeps both words, because the copy did have both.
+         [(and (pair? (cdr ps)) (< (rnd g) 2/3))
+          (define q (cadr ps))
+          (loop (cddr ps)
+                (cons (cons (string-append copy " " (car q))
+                            (string-append rd (cdr q)))
+                      out))]
+         ;; Or a space stands inside a word. Never against either end, where it
+         ;; would only look like the word beside it having lost one.
+         [(> (string-length rd) 3)
+          (define at (+ 2 (rnd-int g (- (string-length rd) 3))))
+          (loop (cdr ps)
+                (cons (cons copy (string-append (substring rd 0 at) " "
+                                                (substring rd at)))
+                      out))]
+         [else (loop (cdr ps) (cons p out))])])))
+
+;; ---------------------------------------------------------------------------
+;; A word passed over
+;; ---------------------------------------------------------------------------
+;; Hornschuch's FIRST mark: a letter, a word, or a stop left out. The stop has
+;; been here since `mis-point', and the word has not been -- except where two
+;; like words stand near each other, which is `misread's eyeskip, a different
+;; fault with a different cause.
+;;
+;; THE EVIDENCE IS THE ERRATA, AND THE ERRATA ARE THE ONE SOURCE THAT CANNOT
+;; GIVE A RATE. Gascoigne's *Droome of Doomes day* (1576) prints fifty-one
+;; corrections and Simpson says they "fall into two sets: they are **either
+;; dropped words or misprints**" -- so among what survived into print, a dropped
+;; word is about half of everything worth listing. That is the strongest
+;; frequency statement anywhere in §12.
+;;
+;; But an errata list is selected for severity, and two printers say so in as
+;; many words. Lambard grades his faults and prints only "Suche therefore as be
+;; most daungerous"; Young says "the lesse being of no moment purposely
+;; omitted". A dropped word perverts the sense and a misprint often does not, so
+;; a dropped word is **over-represented** among errata relative to its true
+;; share. Half is therefore a ceiling and not a value.
+;;
+;; So the rate is set to put dropped words BELOW surviving misreadings, not
+;; level with them, and the check is that inequality. Note what the two censuses
+;; of proof-sheets say, which is nothing: neither the Folio leaf nor the Grete
+;; Herball shows a dropped word among the corrections. That is not evidence of
+;; absence but its opposite, and the program already knows why -- `press.rkt`
+;; has it in writing: the corrector "can see the sense break ... but he cannot
+;; supply the word without the copy". A fault that is hard to mend at proof is
+;; rare in a census of proof corrections and common in a list of what got out.
+;; The two bodies of evidence disagree because they are taken at different
+;; stages, which is the oldest lesson in this file.
+(define MIS-DROP-RATE 0.0004)
+(define current-mis-drop (make-parameter MIS-DROP-RATE))
+
+;; Held as one pair, like the rest of this family: the copy keeps both words and
+;; the reading has only the one he set. `dropped?' knows the kind by that shape
+;; -- the reading standing at the end of what the copy had.
+(define (mis-drop pairs g)
+  (let loop ([ps pairs] [out '()])
+    (cond
+      [(null? ps) (reverse out)]
+      [(or (null? (cdr ps)) (>= (rnd g) (current-mis-drop)))
+       (loop (cdr ps) (cons (car ps) out))]
+      [else
+       (define passed-over (car ps))
+       (define set-word (cadr ps))
+       (loop (cddr ps)
+             (cons (cons (string-append (car passed-over) " " (car set-word))
+                         (cdr set-word))
+                   out))])))
+
+;; ---------------------------------------------------------------------------
+;; Two words set the wrong way round
+;; ---------------------------------------------------------------------------
+;; Hornschuch's mark for transposition. The program has had the fault at LETTER
+;; scale since the beginning -- `transpose' in copytext.rkt, "letters transposed
+;; in the stick", 15% of the misreading slips -- and not at word scale, which is
+;; the one he draws a mark for.
+;;
+;; It changes a reading, so it can reach the variant count. That is asked first
+;; of every kind, and it is why this one is worth building where foul case by
+;; shape was not.
+;;
+;; THE RATE IS AN ORDERING AND NOT A VALUE, because there is no share to take.
+;; Pointing and spacing were set from their shares of the twenty corrections on
+;; the Folio proof page -- two and three of them. Transposition of words is
+;; **none** of those twenty, and none of the dozen Simpson itemises from the
+;; Grete Herball proof either. Zero in about thirty-two itemised corrections
+;; does not give a rate; what it gives is a bound, and the bound is that this is
+;; rarer than pointing. So it is set below the pointing rate and the check that
+;; matters is the ORDER of the two counts in the report, never this number.
+;;
+;; Set to a third of pointing. The third is arbitrary and the inequality is not.
+(define MIS-TRANSPOSE-RATE 0.0001)
+(define current-mis-transpose (make-parameter MIS-TRANSPOSE-RATE))
+
+;; Held as one pair, the way a word run together with its neighbour is: the copy
+;; keeps the true order and the reading has them the wrong way round, so the
+;; corrector has something to compare and `transposed?' can tell the kind apart
+;; from an eye-slip by the shape of the difference alone.
+(define (mis-transpose pairs g)
+  (let loop ([ps pairs] [out '()])
+    (cond
+      [(null? ps) (reverse out)]
+      [(or (null? (cdr ps)) (>= (rnd g) (current-mis-transpose)))
+       (loop (cdr ps) (cons (car ps) out))]
+      [else
+       (define p (car ps))
+       (define q (cadr ps))
+       (loop (cddr ps)
+             (cons (cons (string-append (car p) " " (car q))
+                         (string-append (cdr q) " " (cdr p)))
+                   out))])))
 
 (define (make-word c wd #:italic? [italic? #f])
   (define-values (copy-word read-word0)
@@ -707,7 +862,11 @@
                               #:compositor (profile-name prof)
                               #:before (misreading-original e)
                               #:after (misreading-reading e))))
-  pairs)
+  ;; After misreading, because the two are independent: his eye slips on the
+  ;; word, his hand leaves the space out, and either can happen to the same one.
+  ;; Transposition last, so that a pair already run together is one word by the
+  ;; time it is offered and cannot be turned round with its neighbour.
+  (mis-drop (mis-transpose (mis-space pairs (comp-rng c)) (comp-rng c)) (comp-rng c)))
 
 ;; ---------------------------------------------------------------------------
 ;; Prose
@@ -1199,6 +1358,103 @@
                     (word-read (make-word c "peace,")))
                   "peace,"
                   "at nought he points as the copy does"))
+
+  ;; Hornschuch's fourth and sixth marks. Asserted as orderings and shapes, not
+  ;; as counts: at 1.0 every word is touched, so both kinds must appear and the
+  ;; copy must survive whole on the other side of the difference.
+  (let ()
+    (define c (make-comp (hash-ref PROFILES "A")
+                         (make-type-case #:rng (make-rng 2))
+                         (conventions #t #t #t #t #t 1600)
+                         (make-rng 4)))
+    (define pairs (for/list ([i (in-range 60)]) (cons "troubled" "troubled")))
+    (define out (parameterize ([current-mis-space 1.0]) (mis-space pairs (comp-rng c))))
+    ;; Every word is touched, so the list can only shorten -- and it must, or
+    ;; nothing ran together.
+    (check-true (< (length out) (length pairs)) "words are run together")
+    (check-not-false
+     (for/or ([p (in-list out)])
+       (and (regexp-match? #px"^troubled troubled$" (car p))
+            (string=? (cdr p) "troubledtroubled")))
+     "two words set as one, the copy keeping both")
+    (check-not-false
+     (for/or ([p (in-list out)])
+       (and (string=? (car p) "troubled")
+            (regexp-match? #px"^trou?b?l?e?d? trou?b?l?e?d?$|^tr.+ .+d$" (cdr p))))
+     "or a space standing inside one word")
+    ;; The white is the whole of the difference, either way. This is the
+    ;; property `spacing-only?' in deviation.rkt tells the kind apart by, and if
+    ;; it ever fails the fault would be reported as the compositor's eye.
+    (check-true
+     (for/and ([p (in-list out)])
+       (string=? (string-replace (car p) " " "") (string-replace (cdr p) " " "")))
+     "nothing but the white is altered")
+    ;; And nothing at all when the knob is shut.
+    (check-equal? (parameterize ([current-mis-space 0.0]) (mis-space pairs (comp-rng c)))
+                  pairs
+                  "at nought he spaces as the copy does"))
+
+  ;; A word passed over. Hornschuch's first mark, and the one the errata say
+  ;; most about and the proof censuses say nothing about.
+  (let ()
+    (define c (make-comp (hash-ref PROFILES "A")
+                         (make-type-case #:rng (make-rng 2))
+                         (conventions #t #t #t #t #t 1600)
+                         (make-rng 6)))
+    (define pairs (list (cons "my" "my") (cons "brother" "brother")
+                        (cons "of" "of") (cons "the" "the")))
+    (define out (parameterize ([current-mis-drop 1.0]) (mis-drop pairs (comp-rng c))))
+    (check-equal? (length out) 2 "two words go in, one word comes out")
+    (check-equal? (car (first out)) "my brother" "the copy keeps the word he never set")
+    (check-equal? (cdr (first out)) "brother" "and the reading has only what he set")
+    ;; The reading must stand at the END of what the copy had. `dropped?' in
+    ;; deviation.rkt knows the kind by exactly that, and an off-by-one here
+    ;; would keep the wrong one of the two and report a misreading instead.
+    (check-true
+     (for/and ([p (in-list out)])
+       (let ([wa (string-split (car p))] [wb (string-split (cdr p))])
+         (equal? wb (list (last wa)))))
+     "what he set is the last of what the copy had")
+    (check-equal? (parameterize ([current-mis-drop 0.0]) (mis-drop pairs (comp-rng c)))
+                  pairs
+                  "at nought he sets every word the copy has")
+    (check-equal? (parameterize ([current-mis-drop 1.0])
+                    (mis-drop (list (cons "alone" "alone")) (comp-rng c)))
+                  (list (cons "alone" "alone"))
+                  "a last word with nothing after it is still set"))
+
+  ;; Two words the wrong way round. Hornschuch's transposition mark, at word
+  ;; scale -- the letter-scale fault has been in `misread' from the beginning.
+  (let ()
+    (define c (make-comp (hash-ref PROFILES "A")
+                         (make-type-case #:rng (make-rng 2))
+                         (conventions #t #t #t #t #t 1600)
+                         (make-rng 5)))
+    (define pairs (list (cons "of" "of") (cons "the" "the")
+                        (cons "to" "to") (cons "be" "be")))
+    (define out (parameterize ([current-mis-transpose 1.0])
+                  (mis-transpose pairs (comp-rng c))))
+    (check-equal? (length out) 2 "each pair becomes one, turned round")
+    (check-equal? (car (first out)) "of the" "the copy keeps the true order")
+    (check-equal? (cdr (first out)) "the of" "and the reading has them reversed")
+    ;; The words themselves are untouched -- this is the fault of a hand that
+    ;; put the right types in the wrong order, not of an eye that misread them.
+    ;; It is the property `transposed?' tells the kind apart by.
+    (check-true
+     (for/and ([p (in-list out)])
+       (equal? (sort (string-split (car p)) string<?)
+               (sort (string-split (cdr p)) string<?)))
+     "the same words stand, in the other order")
+    (check-equal? (parameterize ([current-mis-transpose 0.0])
+                    (mis-transpose pairs (comp-rng c)))
+                  pairs
+                  "at nought he sets them as the copy has them")
+    ;; A last word has no neighbour to change places with, and must be left be
+    ;; rather than dropped -- which is what an off-by-one here would do.
+    (check-equal? (parameterize ([current-mis-transpose 1.0])
+                    (mis-transpose (list (cons "alone" "alone")) (comp-rng c)))
+                  (list (cons "alone" "alone"))
+                  "the last word stands, having nothing to change places with"))
 
   ;; One property, one writer. The stages of a word are a chronology and no
   ;; stage may write a field a later one owns -- which is checked rather than

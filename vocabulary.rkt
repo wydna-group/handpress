@@ -71,6 +71,36 @@
                    "of the twenty corrections on the one proof-corrected page "
                    "of the First Folio that survives."))
    (deviation-kind
+    "omission" "dev-omitted" "60,80,140" ".32" "0.10"
+    (string-append "A word in the copy that he never set. Hornschuch's first "
+                   "mark. Neither surviving proof census shows one, because a "
+                   "corrector can see the sense break but cannot supply the "
+                   "word without the copy at his elbow — while Gascoigne's "
+                   "fifty-one errata are half dropped words, being what got "
+                   "out. The two bodies of evidence are taken at different "
+                   "stages and disagree for that reason."))
+   (deviation-kind
+    "dittography" "dev-doubled" "95,45,105" ".32" "0.10"
+    (string-append "A word or two set a second time: the eye left the copy and "
+                   "came back to the first of two like words instead of the "
+                   "second. Hornschuch's mark for anything redundant, to be "
+                   "struck through — and the exact mirror of the eyeskip that "
+                   "loses the passage instead, from which it takes its rate."))
+   (deviation-kind
+    "transposition" "dev-transposed" "150,70,40" ".30" "0.10"
+    (string-append "Two words set the wrong way round. Hornschuch draws a mark "
+                   "for it, and the program has had the fault at letter scale "
+                   "from the beginning and not at word scale. Neither itemised "
+                   "proof census shows one, so the rate is an ordering and not "
+                   "a share: rarer than pointing, which both censuses do show."))
+   (deviation-kind
+    "spacing" "dev-spaced" "40,110,120" ".30" "0.10"
+    (string-append "Two words run together where the space was left out, or a "
+                   "space standing inside one word. Hornschuch's fourth and "
+                   "sixth marks, and the commonest fault on that same proof "
+                   "page: three of its twenty corrections, against pointing's "
+                   "two — “onboth parts”, “farethee well”, “tro bled”."))
+   (deviation-kind
     "resumption" "dev-resumed" "40,90,120" ".30" "0.11"
     (string-append "A word or two dropped or set twice where the compositor "
                    "took up his copy again after setting a page. McKerrow's "

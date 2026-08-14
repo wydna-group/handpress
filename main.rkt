@@ -101,6 +101,9 @@
                        #:impression-faults [impression-faults #f]
                        #:mis-resume [mis-resume #f]
                        #:mis-point [mis-point #f]
+                       #:mis-space [mis-space #f]
+                       #:mis-transpose [mis-transpose #f]
+                       #:mis-drop [mis-drop #f]
                        #:cast-off-method [cast-off-method 'pages]
                        #:cancel-rate [cancel-rate 0.0]
                        #:cancels [cancels 0]
@@ -211,7 +214,10 @@
                         #:prelim-style prelim-style))
   ;; The pointing rate is read inside `make-word', so it is bound here rather
   ;; than threaded through the house.
-  (define b (parameterize ([current-mis-point (or mis-point MIS-POINT-RATE)])
+  (define b (parameterize ([current-mis-point (or mis-point MIS-POINT-RATE)]
+                           [current-mis-space (or mis-space MIS-SPACE-RATE)]
+                           [current-mis-transpose (or mis-transpose MIS-TRANSPOSE-RATE)]
+                           [current-mis-drop (or mis-drop MIS-DROP-RATE)])
               (set-book h copy kind)))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
                        #:proof-rate proof-rate
@@ -377,6 +383,9 @@
   (define impression-faults #f)
   (define mis-resume #f)
   (define mis-point #f)
+  (define mis-space #f)
+  (define mis-transpose #f)
+  (define mis-drop #f)
   (define cast-off-method 'pages)
   (define cancel-rate 0.0)
   (define cancels 0)
@@ -456,6 +465,12 @@
       (set! mis-resume (string->number x))]
      [("--mis-point") x "chance per word that a stop is dropped, changed, or set where the copy has none (no source gives a rate)"
       (set! mis-point (string->number x))]
+     [("--mis-space") x "chance per word that two words are run together or a space set inside one (no source gives a rate)"
+      (set! mis-space (string->number x))]
+     [("--mis-transpose") x "chance per word that it is set the wrong way round with the next (no source gives a rate; the censuses give only an ordering)"
+      (set! mis-transpose (string->number x))]
+     [("--mis-drop") x "chance per word that he passes it over and never sets it (the errata give a ceiling, not a rate)"
+      (set! mis-drop (string->number x))]
      [("--cast-off-method") x "pages (Smith: error bounded at one page) or breaks (Moxon: settled only at a break, and no crowding devices)"
       (set! cast-off-method (string->symbol x))]
      [("--cancels") n "leaves cancelled for reasons outside the simulation"
@@ -518,6 +533,9 @@
                        #:binding-error binding-error
                        #:impression-faults impression-faults
                        #:mis-resume mis-resume #:mis-point mis-point
+                       #:mis-space mis-space
+                       #:mis-transpose mis-transpose
+                       #:mis-drop mis-drop
                        #:cast-off-method cast-off-method
                        #:jaggard? jaggard?
                        #:prelim-style prelim-style

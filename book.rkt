@@ -1531,6 +1531,7 @@
   (require rackunit racket/file racket/runtime-path)
 
   (define-runtime-path ado-sample "samples/ado/_all-q1600.txt")
+  (define-runtime-path areo-sample "samples/areopagitica.txt")
 
   ;; The chain from a mis-cast page to a catchword that does not answer.
   ;;
@@ -1646,18 +1647,31 @@
     ;; Measured over 24 seeds after the change, seeds dropping copy: 3 at 0.45,
     ;; 4 at 0.30, 3 at 0.20, 7 at 0.10, 5 at 0.00 -- and the count of seeds with
     ;; a failed catchword is identical at every one of those, which is the same
-    ;; single fact seen twice that §5 already records. At accuracy 0.0, the
-    ;; worst casting off there is, seeds 0, 5 and 8 all fire: three independent
-    ;; hits in nine, which is a test of the program rather than of a seed.
+    ;; single fact seen twice that §5 already records.
     ;;
     ;; The rate is now McKerrow's "as occasionally happens" rather than the two
     ;; thirds of a book it was, and the mechanism is still reachable -- which is
     ;; what these checks exist to guarantee.
+    ;;
+    ;; THIS ASKED NINE SEEDS OF *Much Ado* AND THAT WAS A COIN. It recorded that
+    ;; seeds 0, 5 and 8 fired and called three hits in nine a test of the program
+    ;; -- but three in twenty-four is the rate, so nine seeds finds one about
+    ;; three times in five, and which nine they are is a property of the stream
+    ;; and not of the program. Adding `mis-space' moved the stream, the three
+    ;; hits went to 1, 14 and 19, and this failed with nothing wrong. Measured
+    ;; across mis-space rates 0, 0.00045, 0.002 and 0.01 the count of firing
+    ;; seeds runs 3, 1, 4, 2 -- no dose, no effect, only the seeds moving.
+    ;;
+    ;; So it asks a book the mechanism is not rare in. On *Areopagitica* at the
+    ;; worst casting off, copy is dropped on **24 seeds of 24**, with mis-space
+    ;; on or off. One seed then settles it, and settles it every time.
+    ;; Reachability is the claim; a text where the thing happens is the way to
+    ;; make the claim, and hunting seeds in a text where it seldom happens was
+    ;; always the wrong instrument.
     (check-true
-     (for/or ([seed (in-range 9)])
-       (define bb (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
-                                        #:seed seed #:cast-off-accuracy 0.0)
-                            txt 'prose))
+     (let ([bb (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
+                                     #:seed 0 #:cast-off-accuracy 0.0)
+                         (file->string areo-sample) 'prose)])
        (for/or ([p (in-list (book-pages bb))]) (pair? (page-omitted p))))
      "copy is dropped where the page will not hold it")
     (check-true

@@ -412,32 +412,77 @@
                (cons wd new)]
               [else (cons wd cur)])])])))
 
+  ;; Two like words near by, and the position of each. The eye can go wrong at
+  ;; such a pair in either direction, so both slips below want the same search.
+  (define (like-pair ps)
+    (define v (list->vector ps))
+    (define seen (make-hash))
+    (let loop ([i 0])
+      (cond
+        [(>= i (vector-length v)) #f]
+        [else
+         (define cur (string-downcase (cdr (vector-ref v i))))
+         (define j (hash-ref seen cur #f))
+         (cond
+           [(and j (> (- i j) 1) (<= (- i j) 4) (> (string-length cur) 2))
+            (list v j i)]
+           [else (hash-set! seen cur i) (loop (add1 i))])])))
+
   ;; eyeskip: the eye returns to the second of two like words near by, and
   ;; everything between them is lost without trace
-  (define final
+  (define after-skip
     (cond
       [(and (> (length pairs) 6) (< (rnd g) (* rate 0.6)))
-       (define v (list->vector pairs))
-       (define seen (make-hash))
-       (let loop ([i 0])
-         (cond
-           [(>= i (vector-length v)) pairs]
-           [else
-            (define cur (string-downcase (cdr (vector-ref v i))))
-            (define j (hash-ref seen cur #f))
-            (cond
-              [(and j (> (- i j) 1) (<= (- i j) 4) (> (string-length cur) 2))
-               (define dropped
-                 (string-join (for/list ([k (in-range (add1 j) (add1 i))])
-                                (car (vector-ref v k))) " "))
-               (note! (misreading dropped "" 'eyeskip
-                                  (format "eye returned to the second ~s"
-                                          (cdr (vector-ref v i)))))
-               (append (for/list ([k (in-range 0 (add1 j))]) (vector-ref v k))
-                       (for/list ([k (in-range (add1 i) (vector-length v))])
-                         (vector-ref v k)))]
-              [else (hash-set! seen cur i) (loop (add1 i))])]))]
+       (define hit (like-pair pairs))
+       (cond
+         [(not hit) pairs]
+         [else
+          (define v (first hit)) (define j (second hit)) (define i (third hit))
+          (define dropped
+            (string-join (for/list ([k (in-range (add1 j) (add1 i))])
+                           (car (vector-ref v k))) " "))
+          (note! (misreading dropped "" 'eyeskip
+                             (format "eye returned to the second ~s"
+                                     (cdr (vector-ref v i)))))
+          (append (for/list ([k (in-range 0 (add1 j))]) (vector-ref v k))
+                  (for/list ([k (in-range (add1 i) (vector-length v))])
+                    (vector-ref v k)))])]
       [else pairs]))
+
+  ;; DITTOGRAPHY: THE SAME SLIP, THE OTHER WAY. The eye leaves the copy and
+  ;; comes back to the FIRST of the two like words instead of the second, and
+  ;; the passage between them is set a second time. Hornschuch's mark for
+  ;; anything redundant, to be struck through.
+  ;;
+  ;; It takes the rate of the mechanism it mirrors rather than one of its own.
+  ;; Textual criticism has always treated the pair together -- haplography and
+  ;; dittography -- and there is no reason an eye returning to the wrong one of
+  ;; two like words should favour the earlier or the later. Asserting them equal
+  ;; is a weaker claim than any number invented for the second would be.
+  ;;
+  ;; The repeated words are given an EMPTY copy, because nothing in the copy
+  ;; answers them. That is not a convenience: `press.rkt' already strikes out
+  ;; any word whose copy is empty -- it is how a word doubled at a page join is
+  ;; mended -- so writing them this way makes them correctable at press without
+  ;; the corrector needing to learn a new kind of fault.
+  (define final
+    (cond
+      [(and (> (length after-skip) 6) (< (rnd g) (* rate 0.6)))
+       (define hit (like-pair after-skip))
+       (cond
+         [(not hit) after-skip]
+         [else
+          (define v (first hit)) (define j (second hit)) (define i (third hit))
+          (define again (for/list ([k (in-range (add1 j) (add1 i))])
+                          (vector-ref v k)))
+          (note! (misreading "" (string-join (map cdr again) " ") 'dittography
+                             (format "eye returned to the first ~s"
+                                     (cdr (vector-ref v i)))))
+          (append (for/list ([k (in-range 0 (add1 i))]) (vector-ref v k))
+                  (for/list ([q (in-list again)]) (cons "" (cdr q)))
+                  (for/list ([k (in-range (add1 i) (vector-length v))])
+                    (vector-ref v k)))])]
+      [else after-skip]))
 
   (values final (reverse errors)))
 

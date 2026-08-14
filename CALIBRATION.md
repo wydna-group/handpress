@@ -227,9 +227,45 @@ racket main.rkt --format folio6 --kind prose --seed 5 --html -o out samples/areo
 - **Watermarks and chain-lines** — not modelled at all; the largest single gap.
 - **Concurrent production** — McKenzie's central finding, and this models one
   book at a time.
-- Four knobs with **no source behind them at all**: `--binding-error`,
-  `--heap-disorder`, `--impression-faults`, `--mis-resume`, `--mis-point`. Each
-  prints its disclaimer beside its count. They are parameters, not findings.
+- Eight knobs with **no source behind them at all**: `--binding-error`,
+  `--heap-disorder`, `--impression-faults`, `--mis-resume`, `--mis-point`,
+  `--mis-space`, `--mis-transpose`, `--mis-drop`. Each prints its disclaimer
+  beside its count. They are parameters, not findings.
+
+  Two of them are at least *proportioned* to something. `--mis-point` (0.0003)
+  and `--mis-space` (0.00045) are set from the shares of the one proof-corrected
+  Folio page — punctuation two of its twenty corrections, spacing three — and
+  never from its density, which is eight times the book's average and worthless.
+  A share survives a bad page; a density does not. Neither is set to bring the
+  variant total to Hinman's figure, and the total is left where it falls.
+  Anything drawn from the **ratio within** spacing, two words run together
+  against one opened, is resting on three instances and should say so.
+
+  `--mis-drop` (0.0004) is bounded from the other side, and by evidence that
+  contradicts itself usefully. **Neither proof census shows a dropped word**;
+  **half of Gascoigne's fifty-one errata are dropped words**. Both hold, because
+  a corrector can see a sense break but cannot supply the missing word without
+  the copy — so the fault is rare among proof corrections and common among what
+  reached the reader. Errata are besides selected for severity (Lambard prints
+  only the "most daungerous"), which inflates a sense-perverting fault further.
+  Half is therefore a **ceiling**, and the rate is set well under it: 6 against
+  36 misreadings on one book. Quote the inequality, not the six.
+
+  **Dittography has no knob and is the model for the rest.** It is the eyeskip
+  slip run backwards, so it takes the eyeskip rate rather than one of its own —
+  the claim being only that an eye returning to the wrong one of two like words
+  does not favour the earlier over the later. A mechanism that borrows the rate
+  of the one it mirrors adds no parameter to this list, and that is worth more
+  than a well-argued number.
+
+  `--mis-transpose` (0.0001) has not even a share behind it, and is the one
+  place in this file where a number stands for an **inequality**. A word
+  transposition appears in neither itemised census — none of the Folio page's
+  twenty corrections, none of the dozen from the Grete Herball — while pointing
+  appears in both. Zero in about thirty-two gives a bound and not a rate, so it
+  is set below the pointing rate and **what may be quoted from it is the
+  ordering**: transposed under pointed under spaced, which one book gives as 2,
+  5 and 6. The third-of-pointing is arbitrary; the inequality is not.
 - The Folio's four *derived* rows — verse share, impressions before correction,
   identifiable types per page, characters to a line — are measured outside the
   report and have **not** been regenerated since the space ladder changed on

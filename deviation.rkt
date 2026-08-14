@@ -142,6 +142,38 @@
      #rx"stands where the copy has nothing"
      (note "" "the" "the"
            '("resumption: a word or two repeated where he took up again")))
+    ;; his hand on the spacing, Hornschuch's fourth and sixth marks
+    (check-regexp-match #rx"^spacing:" (note "wisdom and" "wisdomand" "wisdomand"))
+    ;; Simpson prints this one as `tro bled', which drops the u as well as
+    ;; opening the word; the mechanism here only ever puts white in, so the
+    ;; faithful form of his example is the word entire with a space in it.
+    (check-regexp-match #rx"^spacing:" (note "troubled" "trou bled" "trou bled"))
+    (check-false (regexp-match? #rx"misreading" (note "wisdom and" "wisdomand" "wisdomand"))
+                 "a space left out is not a misreading")
+    ;; a word he never set at all, Hornschuch's first mark. The page-join slip
+    ;; writes the SAME shape -- copy longer than reading -- and is claimed above
+    ;; by its cause, so these two must not take each other's words.
+    (check-regexp-match #rx"^omission:" (note "my brother" "brother" "brother"))
+    (check-false (regexp-match? #rx"misreading" (note "my brother" "brother" "brother"))
+                 "a word passed over is not a misreading")
+    (check-false (regexp-match? #rx"^omission:"
+                                (note "my brother" "brother" "brother"
+                                      '("resumption: a word or two dropped where he took up again")))
+                 "and the page-join slip keeps its own name")
+    ;; the eye doubling back, which is the eyeskip above run the other way.
+    ;; An empty copy WITH a resumption cause is the page-join slip and is
+    ;; claimed above; an empty copy without one is this.
+    (check-regexp-match #rx"^dittography:" (note "" "againe" "againe"))
+    (check-false (regexp-match? #rx"misreading" (note "" "againe" "againe"))
+                 "a word set twice is not a misreading")
+    (check-regexp-match #rx"took up again"
+                        (note "" "the" "the"
+                              '("resumption: a word or two repeated where he took up again"))
+                        "and the page-join slip is still its own kind")
+    ;; and two words turned round, which is his hand and not his eye either
+    (check-regexp-match #rx"^transposition:" (note "of the" "the of" "the of"))
+    (check-false (regexp-match? #rx"misreading" (note "of the" "the of" "the of"))
+                 "a transposition is not a misreading")
     ;; and a real misreading is still one
     (check-regexp-match #rx"^misreading:" (note "tongues" "tongnes" "tongnes"))
     ;; A cause named by a branch must not be printed twice by the loop that
@@ -234,6 +266,28 @@
                             (format "~a: “~a” stands where the copy has nothing"
                                     what (word-read w))
                             (format "~a: the copy read “~a”" what (word-copy w)))))]
+            ;; Nothing in the copy answers it. The resumption branch above has
+            ;; already claimed the page-join slip by its cause, so an empty copy
+            ;; reaching here is the eye doubling back within the passage.
+            [(equal? (word-copy w) "")
+             (cons "dittography"
+                   (format "dittography: “~a” is set a second time; the copy has nothing answering it"
+                           (word-read w)))]
+            [(dropped? (word-copy w) (word-read w))
+             (cons "omission"
+                   (format "omission: the copy read “~a” and he set only “~a”"
+                           (word-copy w) (word-read w)))]
+            [(transposed? (word-copy w) (word-read w))
+             (cons "transposition"
+                   (format "transposition: the copy read “~a” and he set it “~a”"
+                           (word-copy w) (word-read w)))]
+            [(spacing-only? (word-copy w) (word-read w))
+             (cons "spacing"
+                   (if (regexp-match? #px"\\s" (or (word-copy w) ""))
+                       (format "spacing: the copy had “~a” and he ran it together as “~a”"
+                               (word-copy w) (word-read w))
+                       (format "spacing: a space set inside “~a”, printed “~a”"
+                               (word-copy w) (word-read w))))]
             [(pointing-only? (word-copy w) (word-read w))
              (cons "pointing"
                    (format "pointing: the copy had “~a” and he set “~a”"
@@ -400,6 +454,18 @@
     ;; where it cannot.
     [(for/or ([c (in-list (word-causes w))]) (string-prefix? c "resumption: "))
      "resumption"]
+    [(and (equal? (word-copy w) "") (word-read w)
+          (not (string=? (word-read w) "")))
+     "dittography"]
+    [(and (differ? (word-copy w) (word-read w))
+          (dropped? (word-copy w) (word-read w)))
+     "omission"]
+    [(and (differ? (word-copy w) (word-read w))
+          (transposed? (word-copy w) (word-read w)))
+     "transposition"]
+    [(and (differ? (word-copy w) (word-read w))
+          (spacing-only? (word-copy w) (word-read w)))
+     "spacing"]
     [(and (differ? (word-copy w) (word-read w))
           (pointing-only? (word-copy w) (word-read w)))
      "pointing"]
@@ -434,6 +500,53 @@
 (define (pointing-only? a b)
   (and a b (string=? (strip-stops (string-downcase a))
                      (strip-stops (string-downcase b)))))
+
+;; Told apart the same way pointing is: take the white out of both sides, and
+;; if nothing is left of the difference then the difference was the white.
+;;
+;; `on both' against `onboth' and `troubled' against `tro bled' both answer
+;; here, which is right -- they are one fault, the space in the wrong state, and
+;; the corrector marks them with one pair of marks. It has to be asked BEFORE
+;; misreading, because a word run together with its neighbour differs from the
+;; copy and would otherwise be read as the compositor's eye slipping.
+;;
+;; A copy word never contains a space -- the copy is tokenised on white -- so a
+;; space on the copy side is always this mechanism and never the text's own.
+(define (spacing-only? a b)
+  (and a b
+       (not (string=? a b))
+       (string=? (string-replace a " " "") (string-replace b " " ""))))
+
+;; The same words, in the other order. Asked before misreading for the same
+;; reason spacing is: two words turned round differ from the copy and would
+;; otherwise be read as his eye slipping on both of them at once.
+;;
+;; Sorted rather than compared pairwise, so that it still answers if a longer
+;; passage is ever turned round. It cannot collide with `spacing-only?' -- take
+;; the white out of "of the" and "the of" and they still differ -- so the order
+;; of the two questions is a matter of reading and not of correctness.
+;; What he set stands at the end of what the copy had, and the copy had more.
+;; A word passed over, held as one pair: copy "my brother", read "brother".
+;;
+;; Asked after the resumption branch, which writes the same shape for the word
+;; lost where he took his place up again and claims it by its cause. Asked
+;; before misreading, because a word short of the copy is not his eye going
+;; wrong on the words that are there.
+(define (dropped? a b)
+  (and a b
+       (not (string=? a b))
+       (let ([wa (string-split a)] [wb (string-split b)])
+         (and (pair? wb)
+              (> (length wa) (length wb))
+              (equal? wb (take-right wa (length wb)))))))
+
+(define (transposed? a b)
+  (and a b
+       (not (string=? a b))
+       (let ([wa (string-split a)] [wb (string-split b)])
+         (and (> (length wa) 1)
+              (= (length wa) (length wb))
+              (equal? (sort wa string<?) (sort wb string<?))))))
 
 (define (deviation-counts b [r #f])
   (define words
@@ -484,13 +597,38 @@
    'misreading (for/sum ([w (in-list words)])
                  (if (and (not (divided? w))
                           (differs? (word-copy w) (word-read w))
-                          (not (pointing-only? (word-copy w) (word-read w))))
+                          (not (pointing-only? (word-copy w) (word-read w)))
+                          (not (spacing-only? (word-copy w) (word-read w)))
+                          (not (transposed? (word-copy w) (word-read w)))
+                          (not (dropped? (word-copy w) (word-read w)))
+                          (not (equal? (word-copy w) "")))
                      1 0))
    'mis-pointed (for/sum ([w (in-list words)])
                   (if (and (not (divided? w))
                            (differs? (word-copy w) (word-read w))
                            (pointing-only? (word-copy w) (word-read w)))
                       1 0))
+   'mis-spaced (for/sum ([w (in-list words)])
+                 (if (and (not (divided? w))
+                          (differs? (word-copy w) (word-read w))
+                          (spacing-only? (word-copy w) (word-read w)))
+                     1 0))
+   'doubled (for/sum ([w (in-list words)])
+              (if (and (not (divided? w))
+                       (equal? (word-copy w) "")
+                       (word-read w)
+                       (not (string=? (word-read w) "")))
+                  1 0))
+   'omitted-word (for/sum ([w (in-list words)])
+                   (if (and (not (divided? w))
+                            (differs? (word-copy w) (word-read w))
+                            (dropped? (word-copy w) (word-read w)))
+                       1 0))
+   'transposed (for/sum ([w (in-list words)])
+                 (if (and (not (divided? w))
+                          (differs? (word-copy w) (word-read w))
+                          (transposed? (word-copy w) (word-read w)))
+                     1 0))
    'habit      (count-stage word-read word-habit)
    'fitting    (count-stage word-habit word-final)
    ;; THREE THINGS MAKE THE PRINTED WORD DIFFER FROM THE COMPOSED ONE, and only
@@ -668,6 +806,14 @@
           "his eye, not his judgement")
      (row "pointed otherwise than the copy" (g 'mis-pointed) n
           "a stop dropped, changed, or set where none stood; no source gives a rate")
+     (row "spaced otherwise than the copy" (g 'mis-spaced) n
+          "two words run together, or a space inside one; no source gives a rate")
+     (row "a word passed over" (g 'omitted-word) n
+          "Hornschuch's first mark; the errata give a ceiling and not a rate")
+     (row "set a second time" (g 'doubled) n
+          "the eye back to the first of two like words; the mirror of eyeskip, and its rate")
+     (row "two words set the wrong way round" (g 'transposed) n
+          "no source gives a rate; the censuses give an ordering — rarer than pointing")
      (row "respelt by habit" (g 'habit) n
           "what he sets left to himself")
      (row "habit given up for the measure" (g 'habit-suspended) n

@@ -830,6 +830,10 @@ Hornschuch's marks are a taxonomy of correctable error. Four were added:
 | faults of impression (a lead showing, a sort proud) | **no — deliberately not variants** |
 | mis-resumption (a word dropped or doubled at a page join) | can, but 18 a book and 1 reached the list |
 | **mis-pointing** | **yes — ~10% of variants** |
+| **omitted and intruded spacing** | **yes — built 2026-08-14** |
+| **transposition of words** | **yes — built 2026-08-14** |
+| **the redundant word (dittography)** | **yes — built 2026-08-14** |
+| **a word passed over** | **yes — built 2026-08-14** |
 
 **Two of the four could never have closed it and were built first.** Only a fault
 that *changes a reading* can become a press variant, and that was knowable before
@@ -837,16 +841,82 @@ any of them was written. Ask it of every new kind.
 
 ### Open
 
-- **Omitted and intruded spacing** — Hornschuch's fourth and fifth marks, and
-  three of them on the one Folio proof page. It changes a reading, so it reaches
-  the variant count, and the proof shows it oftener than punctuation. **Next.**
-- **Transposition of words**, and the redundant *letter* as against the redundant
-  word.
+- ~~**Omitted and intruded spacing**~~ — **built 2026-08-14.** `mis-space` in
+  `compositor.rkt`, applied in `read-copy` because running two words together
+  consumes the next one. Rate 0.00045, a share and not a density: spacing is
+  three of the proof page's twenty corrections against pointing's two, so it is
+  the pointing rate in that ratio. It reaches the variant count as predicted —
+  `butwhen ] but when`, `ari ſe ] arise`, corrected at press in Simpson's own
+  forms. The 2:1 split of run-together to opened rests on three instances and is
+  the weakest thing in it.
+- ~~**Transposition of words**~~ — **built 2026-08-14.** `mis-transpose` in
+  `compositor.rkt`, held as one pair the way a run-together word is, so the copy
+  keeps the true order and `transposed?` tells the kind from an eye-slip by the
+  shape of the difference. It reaches the variant count: `him from ] from him`,
+  `be to ] to be`, corrected at press. The letter-scale fault was already there
+  in `misread` and had been since the beginning; this is the word-scale one
+  Hornschuch draws a mark for.
+
+  **Its rate is an ordering, not a share.** Pointing and spacing were set from
+  their shares of the Folio proof page — two and three of its twenty. A word
+  transposition is *none* of those twenty, and none of the dozen Simpson
+  itemises from the Grete Herball either. Zero in about thirty-two itemised
+  corrections gives no rate, only a bound: rarer than pointing. Set to a third
+  of the pointing rate, and **the check is the order of the two counts in the
+  report, never the number** — measured on one book, transposed 2 against
+  pointed 5 and spaced 6.
+- ~~**The redundant word**~~ — **built 2026-08-14** as dittography, in
+  `copytext.rkt` beside the eyeskip it mirrors. The eye returns to the *first*
+  of two like words instead of the second, and the passage between is set twice.
+
+  **It invents no rate at all**, which is the thing worth keeping about it. It
+  takes the rate of the mechanism it is the mirror of: haplography and
+  dittography have always been treated as a pair, and there is no reason an eye
+  returning to the wrong one of two like words should favour the earlier or the
+  later. Asserting them equal is a weaker claim than any number invented for the
+  second. It is the only kind in §12 with no knob.
+
+  The repeated words carry an **empty copy**, and that is what makes them
+  correctable without touching `press.rkt`: the corrector already strikes out
+  any word whose copy is empty, which is how a word doubled at a page join is
+  mended. Verified — `compoſe ] `, `eﬀectiue ] `, `and ] `, a whole doubled
+  passage struck out on one line.
+- **The redundant *letter*** — the other half of Hornschuch's second mark, and
+  still open. It is a different thing from the redundant word and probably a
+  smaller one: a letter set twice inside a word sits very close to the literals
+  the foul-case mechanism already makes, and the first question to ask of it is
+  whether it is distinguishable from them on the page at all. If it is not, it
+  should not be built.
+- ~~**A dropped word**~~ — **built 2026-08-14** as `mis-drop`, held as one pair
+  like the rest of that family: the copy keeps both words and the reading has
+  only the one he set. It is restored at press by the copy-comparison scan —
+  `our ] of our`, `ſcandalous ] and scandalous`.
+
+  **The two bodies of evidence disagree, and the disagreement is the finding.**
+  Neither proof census shows a dropped word: not one of the Folio leaf's twenty
+  corrections, not one of the Grete Herball's dozen. Gascoigne's fifty-one
+  errata are *half* dropped words. Both are true, and the program already knew
+  why before this was built — `press.rkt` says the corrector "can see the sense
+  break ... but he cannot supply the word without the copy". A fault that is
+  hard to mend at proof is **rare in a census of proof corrections and common in
+  a list of what got out**. Two stages, two answers.
+
+  So the errata give a **ceiling and not a rate**, and a low ceiling at that:
+  they are selected for severity, Lambard printing only "Suche therefore as be
+  most daungerous" and Young omitting "the lesse being of no moment", and a
+  dropped word perverts the sense where a misprint often does not. It is set to
+  come out well below misreadings — one book gives 6 against 36 — and that
+  inequality is the whole of the claim.
 - **Wrong fount is a stage error and is unfixed.** Hornschuch names it among the
   things a corrector cleared; this program classes it a *shift* — a shop
-  expedient — so no corrector is ever offered it and all 1,996 on the Folio print
-  in every copy. It belongs with the faults of impression, being visible on the
-  page and changing no reading.
+  expedient — so the corrector's own path never offers him one. It belongs with
+  the faults of impression, being visible on the page and changing no reading.
+  Two corrections to what this said, both 2026-08-14: the count is **1,947**, not
+  1,996, and it is now printed by the report (`analysis.rkt` tells the five
+  causes of a shift apart, where the only figure before was 375,852 for the whole
+  kind, 98% of it space-metal). And **ten of them are corrected** — not none —
+  because the copy-comparison scan catches anything printing otherwise than the
+  copy, and a borrowed sort that prints `V` for `U` does.
 - **An anchor that can see the new kinds.** The *Much Ado* diff is word-against-word
   and cannot register punctuation, spacing or lineation, which is why nothing here
   has ever counted them. §11 is now a dependency rather than a parallel item.
