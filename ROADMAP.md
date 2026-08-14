@@ -786,6 +786,38 @@ in the README**; what follows is the history, which is where the value is.
 
 ## 11. Widen the calibration base
 
+**The corpus sweep is built** — `tools/corpus-sweep.py`, 2026-08-14. Eleven
+properties of the printed page, the model's distribution against the corpus's,
+with the copy-text in a third column. Six properties had been checked by hand
+over the life of this project and every one found a defect; this checks them
+together so that which ones get looked at stops being a matter of who wondered.
+
+Its first run is the argument for how it is built. It produced **two flags and
+both were the instrument's fault**:
+
+- **hyphen, 10.3x high.** 45% of the model's hyphens end a line — word division,
+  which the corpus cannot show because its text is reflowed — and others were em
+  rules written `--`. The property is now the hyphen *inside a word*, which is
+  the same question on both sides, and reads 1.72 against 1.46.
+- **the full stop, half the corpus rate.** The copy was already at 19.55 and the
+  model at 19.33: Milton's sentences, not the program. There is a copy column
+  now, and a flag that matches the copy says so on its own line.
+
+So the two rules in its docstring are load-bearing: **distributions and never
+points** — a pooled corpus rate reads 8.46 ampersands per 1,000 where the
+per-document median is 2.19 — and **one vetted extractor a side**, because every
+`&` in the corpus is `&amp;` and a tilde is a combining mark. It also prints what
+it *cannot* compare, which is the half a sweep usually omits.
+
+One row it raises without settling: **the apostrophe.** The model reads 8.84 per
+1,000 against a corpus median of 0.17 — but the corpus *pooled* rate is 10.22,
+so the distribution is severely skewed and the model sits in its upper tail.
+CALIBRATION's own figure of 9.58 for medial apostrophes and the corpus median of
+0.17 are both true of different populations. Worth knowing before either is
+quoted.
+
+
+
 Nearly every rate rests on **one pairing**: about 12,000 words of the *Much Ado*
 quarto against the Folio set from it. That is a narrow base for the confident
 tables the reports print.

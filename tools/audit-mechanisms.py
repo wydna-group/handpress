@@ -43,6 +43,27 @@ COUNTS = [
      r"altered to fit the measure\s+(\d+)", "justification binding somewhere"),
     ("accident of the case",
      r"accident of the case\s+(\d+)", "foulness above 0"),
+    # Hornschuch's marks. All four change a reading and so can become press
+    # variants, unlike foul case by shape and the faults of impression.
+    ("pointed otherwise than the copy",
+     r"pointed otherwise than the copy\s+(\d+)", "--mis-point above 0"),
+    ("spaced otherwise than the copy",
+     r"spaced otherwise than the copy\s+(\d+)", "--mis-space above 0"),
+    ("a word passed over",
+     r"a word passed over\s+(\d+)", "--mis-drop above 0"),
+    ("a word set a second time",
+     r"set a second time\s+(\d+)",
+     "two like words within four of each other, and the eye going back to the first"),
+    ("two words the wrong way round",
+     r"two words set the wrong way round\s+(\d+)", "--mis-transpose above 0"),
+    # His judgement, not his error. These two answer to --year and to the copy
+    # having heavy stops and lower-case nouns to work on at all.
+    ("the heavy stop as the period sets it",
+     r"the heavy stop set as the period sets it\s+(\d+)",
+     "a copy with colons or semicolons in it"),
+    ("a capital he was not given",
+     r"given a capital he was not given\s+(\d+)",
+     "words the period capitalised, standing lower case in the copy"),
     ("corrected at press",
      r"corrected at press\s+(\d+)", "a proof pulled mid-run"),
     ("house conventions (long s, u/v, i/j)",

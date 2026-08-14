@@ -55,6 +55,32 @@ ROWS = [
     ("accidents surviving",  r"left standing in one copy\s+(\d+)\s"),
     ("pointed otherwise",    r"^    pointed otherwise than the copy\s+(\d+)\s"),
     ("catchwords not answering", r"Not answering:\s+(\d+) of"),
+
+    # Hornschuch's marks, built 2026-08-14. Each changes a reading and so can
+    # reach the variant count, which is the question asked before building any
+    # of them.
+    ("spaced otherwise",     r"^    spaced otherwise than the copy\s+(\d+)\s"),
+    ("a word passed over",   r"^    a word passed over\s+(\d+)\s"),
+    ("set a second time",    r"^    set a second time\s+(\d+)\s"),
+    ("transposed",           r"^    two words set the wrong way round\s+(\d+)\s"),
+
+    # His judgement rather than his error, built the same day. These are the
+    # rows that should move with `--year' and with nothing else.
+    ("heavy stop repointed", r"^    the heavy stop set as the period sets it\s+(\d+)\s"),
+    ("capitals given",       r"^    given a capital he was not given\s+(\d+)\s"),
+
+    # Wrong fount is the one known fault in the calibration table, and until
+    # 2026-08-14 no report line yielded it: the only figure printed was the
+    # whole `shift' kind, 98% of it space-metal.
+    ("wrong-fount sorts",    r"^      wrong-fount\s+(\d+)"),
+    ("cannibalized",         r"^      cannibalized\s+(\d+)"),
+
+    # Lambard's four grades over the same words. They must sum to the marked
+    # words and not to more, a word costing the reader by its worst fault.
+    ("grade cosmetic",       r"^    blemish only the workmanship\s+(\d+)\s"),
+    ("grade orthographic",   r"^    offend against orthographie\s+(\d+)\s"),
+    ("grade sense",          r"^    shrewdly peruert the sense\s+(\d+)\s"),
+    ("grade meaning",        r"^    vtterly euert his meaning\s+(\d+)\s"),
 ]
 
 # Figures that are only meaningful per thousand of something else, so that the

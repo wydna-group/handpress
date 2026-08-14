@@ -26,8 +26,10 @@ So every row carries, where it can:
 
 ## The First Folio — the standard hard case
 
-*Regenerated 2026-08-14. Four seeds (1623, 11, 22, 44), `--edition 1200`,
-`--copies 4`, five compositors, folio in sixes on crown paper.*
+*Regenerated 2026-08-14, **eight seeds** (1623, 11, 22, 44, 7, 99, 202, 555),
+`--edition 1200`, `--copies 4`, five compositors, folio in sixes on crown paper.
+Eight rather than four because four could not detect a shift of a fifth, which
+is what the previous entry had to admit about its own comparison.*
 
 > **Do not read a seed's column against the same seed's column in an older
 > version of this file.** A seed names a run of the random stream, not a book,
@@ -51,24 +53,28 @@ not, and seed 44 gives 954 and 480.
 
 ### Against the record
 
-| | 1623 | 11 | 22 | 44 | mean | recorded | source |
-|---|---|---|---|---|---|---|---|
-| pages | 948 | 948 | 948 | 954 | **950** | 908 | the book |
-| press variants | 346 | 531 | 321 | 428 | **407** | "just over 500" | Hinman, Norton, p. xx |
-| formes corrected mid-run | 105 | 100 | 111 | 117 | **108** of 474–480 | ~100 of ~450 | ibid. |
-| formes proofed | 121 | 110 | 130 | 134 | **124** of 474–480 | — | — |
-| word divisions / 100 lines | 1.78 | 1.80 | 1.72 | 1.70 | **1.75** | 2.03 | measured, 790 plates |
+| | range over 8 seeds | mean | recorded | source |
+|---|---|---|---|---|
+| pages | 948–954 | **949** | 908 | the book |
+| **press variants** | **423–614** | **524** | **"just over 500"** | Hinman, Norton, p. xx |
+| formes corrected mid-run | 104–118 | **111** of 474–480 | ~100 of ~450 | ibid. |
+| formes proofed | 120–134 | **128** | — | — |
+| word divisions / 100 lines | 1.69–1.78 | **1.73** | 2.03 | measured, 790 plates |
 
-**The variant count runs 321 to 531 — a 1.65-fold spread — and its mean now sits
-about a fifth below Hinman's figure**, where the previous four seeds gave 368 to
-624 and a mean of 484 that straddled it. The two sets of four overlap heavily and
-the difference of means is not significant (unpaired *t* ≈ 1.1 on 6 df), but four
-seeds cannot detect a shift of that size either, so this is *no evidence of a
-change* rather than evidence of none. It was run down commit by commit and no
-mechanism was found: `press.rkt` is untouched between the two, misreadings still
-survive to print at 100%, and the whole of the movement is re-randomisation and a
-changed pagination. Formes corrected, the steadier row and the one `--proof-rate`
-is set against, barely moved: 112 to 108.
+**The press-variant count now straddles Hinman's figure, and nothing was tuned
+to make it.** The previous entry recorded 321–531 with a mean of 407, about a
+fifth below him, and said no mechanism had been found for the shortfall. The
+shortfall was that **the program's vocabulary of correctable error was narrower
+than the real one** — which FINDINGS had said in as many words, and which §12
+then closed: spacing, a word passed over, a word set twice and two words turned
+round all change a reading, so all four reach the variant count. Their rates
+came from four independent kinds of evidence, none of them this total, and the
+total is read afterwards. That is the only way this row is worth anything.
+
+**The variant count runs 423 to 614 over eight seeds — a 1.45-fold spread.**
+Read the row as a range: every calibration decision in `press.rkt` (proof rate
+0.6, then 0.28, then 0.224) was argued from a *single* full Folio before any
+spread was known.
 
 Every calibration decision recorded in `press.rkt` (proof rate 0.6, then 0.28,
 then 0.224) was argued from a *single* full Folio before that spread was known.
@@ -98,6 +104,42 @@ lost his place over is *supposed* to fail. At 96 of about 943 set, some 90% stil
 answer, which is the side of "most" the source asks for. The spread also
 tightened, 63–91 to 90–99, which is what a real mechanism replacing a lucky
 accident looks like.
+
+### The marks a corrector could have caught
+
+*Eight seeds, the same run. Every one of these reaches the variant count, which
+is the question §12 puts to a kind before it is built.*
+
+| per book | range | mean | where the rate comes from |
+|---|---|---|---|
+| spaced otherwise than the copy | 280–352 | **313** | a **share** — 3 of the proof page's 20 corrections |
+| a word passed over | 296–326 | **309** | a **ceiling** — half of Gascoigne's errata, discounted for severity |
+| pointed otherwise than the copy | 222–269 | **246** | a **share** — 2 of that page's 20 |
+| two words the wrong way round | 67–86 | **76** | an **ordering** — 0 in ~32 itemised corrections, so under pointing |
+| a word set a second time | 25–66 | **46** | a **mirror** — eyeskip's own rate, run backwards. No knob |
+
+The ordering the transposition rate was set to assert holds on every seed:
+**transposed under pointed**, 76 against 246. And spacing above pointing, 313
+against 246, which is the 3:2 the proof page gives.
+
+### What he decided rather than got wrong
+
+| per book | range | mean | note |
+|---|---|---|---|
+| heavy stop set as the period sets it | 6,365–6,571 | **6,478** | answers to `--year`; 1623 is a 43% colon share |
+| a capital he was not given | 7,900–8,195 | **8,001** | selects from 3,761 word-types the corpus measured |
+
+**These are choices and not faults**, and are counted apart for that reason: a
+compositor's own pointing offends against nothing, and Lambard grades errors.
+
+### Lambard's four grades
+
+| per book | range | mean |
+|---|---|---|
+| blemish only the workmanship | 5,652–5,915 | **5,800** |
+| offend against orthographie | 1,093–1,269 | **1,193** |
+| shrewdly peruert the sense | 1,781–2,077 | **1,928** |
+| vtterly euert his meaning | 326–362 | **349** |
 
 ### The compositor's faults
 
