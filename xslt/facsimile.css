@@ -112,7 +112,22 @@ body {
                    "Nimbus Roman", ui-serif, Georgia, serif);
   color: var(--ink);
 }
-.wrap { max-width: 62rem; margin: 0 auto; }
+/* 62rem is a measure for reading, and the leaves are not read at it -- a folio
+   opening is two 225mm leaves and wants the window. So the cap moves off the
+   wrapper and onto the three views that hold prose; the book view, which holds
+   the drawn leaves, takes what there is.
+
+   It has to move rather than simply widen. An opening wider than its container
+   is over-constrained, `margin: auto' resolves to zero, and the opening
+   left-aligns instead of centring -- which is how a third of the sheet came to
+   stand outside the window. Giving it room to be narrower than its container is
+   what lets auto margins do their work, and they then centre the lone first
+   recto and a two-leaf opening alike. (Nudging it back with `position:
+   relative; left: 50%' does not: relative offsets are measured from the STATIC
+   position, and that position is already centred for the narrow one and
+   flush-left for the wide one, so the lone recto gets centred twice.) */
+.wrap { margin: 0 auto; }
+.view:not([data-view="book"]) { max-width: 62rem; margin-inline: auto; }
 h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
      text-transform: uppercase; margin: 0 0 .35rem; }
 .lede { font-size: .95rem; opacity: .78; margin: 0 0 2.5rem; max-width: 44rem;
@@ -168,6 +183,43 @@ h1 { font-size: 1.3rem; font-weight: 600; letter-spacing: .09em;
    to be re-derived whenever that changes. --lead does not move, because it is
    the model's and not the font's: the description says set solid. */
 :root { --grid: 16px; --mm: calc(var(--grid) / 4.2175); --fit: 1.00; --lead: 1.00; }
+
+/* A folio opening does not fit a screen, and 16px is a folio's undoing.
+   An opening is two leaves side by side; at 225mm to the leaf and 16px to the
+   em that is 1,723px, against the 1,280px a normal window gives -- so a third
+   of the sheet stood outside the window, the openings being centred, and the
+   masthead is `position: sticky', which sticks vertically and scrolls sideways
+   like everything else. The page went off to the right and the header went with
+   it.
+
+   --grid is the one place to fix it. Every position the compositor computed is
+   a multiple of it, and --mm is derived from it, so the type, the leaf and the
+   margins all move together and the drawing stays the compositor's arithmetic:
+   the same page, drawn smaller. Anything else -- scaling the leaf, zooming the
+   plate -- would part the type from the measure it was set to.
+
+   It is declared here rather than on :root because it needs --leaf-w, which the
+   renderer writes onto .wrap from the book's own <msDesc>. So each book fits
+   itself: a quarto at 160mm never reaches the limit on a normal window and
+   stays at 16px, and a folio comes down only as far as it must.
+
+   min() so it never scales *up* past the calibrated 16px -- --fit is measured
+   against that body, and a bigger grid would part the glyphs from the widths in
+   metrics.rkt. max() at 7px because below that nothing is legible and a
+   scrollbar is the better failure.
+
+   --mm has to be redeclared with it, and this is the trap. A custom property
+   has its var() references substituted where it is DECLARED, not where it is
+   used: --mm on :root computes to `calc(16px / 4.2175)' with :root's --grid
+   already baked in, and inherits that way. Overriding --grid alone moved the
+   type -- .plate went to 11.62px -- and left the leaf at its full 854px, so the
+   page was the same size with smaller type in it. */
+.wrap {
+  --grid: max(7px,
+              min(16px,
+                  calc((100vw - 3.5rem) * 4.2175 / (2 * var(--leaf-w, 160)))));
+  --mm: calc(var(--grid) / 4.2175);
+}
 .plate { font-size: var(--grid); }
 
 /* Every leaf is the same size, because every leaf of a book is -- and that
