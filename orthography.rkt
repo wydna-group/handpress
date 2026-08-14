@@ -121,6 +121,26 @@
        [(attested? m-base) (warranted? (unmark produced #\m) m-base)]
        ;; neither reading is a word the corpus knows, so it has nothing to say
        [else #t])]
+    ;; A COMPOUND IS NOT A SIGN, and this clause was letting it pass as one.
+    ;;
+    ;; `spelling?' is `^[A-Za-zſ']+$', so a hyphen fails it and `well-instituted'
+    ;; fell through the exemption below meant for `&' and `yᵉ' -- the lexicon was
+    ;; never asked, and the terminal -e device made `well-institutede',
+    ;; `long-abusede', `printing:--thate'. The gate was not too weak here; it was
+    ;; not consulted.
+    ;;
+    ;; A device appends to the END of the token, so the element it touched is the
+    ;; last one. Judge that, and the compound is judged where it was altered:
+    ;; `well-doinge' passes on `doinge', which the corpus has; `well-institutede'
+    ;; fails on `institutede', which nobody wrote.
+    [(and (not (spelling? produced)) (regexp-match? #px"[-—]" produced))
+     (define parts (regexp-split #px"[-—]+" produced))
+     (define last-part (if (null? parts) "" (last parts)))
+     (define base-parts (regexp-split #px"[-—]+" base))
+     (define base-last (if (null? base-parts) "" (last base-parts)))
+     (cond
+       [(or (string=? last-part "") (not (spelling? last-part))) #t]
+       [else (warranted? last-part base-last)])]
     ;; signs are not the lexicon's business
     [(not (spelling? produced)) #t]
     ;; Where the corpus knows this word's spellings, the produced form must be
@@ -139,10 +159,23 @@
     ;; result happens to be some other English word -- that is exactly how
     ;; `not' came to be set as `note'.
     [(attested? base) #f]
-    ;; Otherwise the corpus has nothing to say, so the weaker test applies and
-    ;; the rules keep their old freedom. With a lexicon of a few thousand
-    ;; forms that is most words; with a corpus behind it, few.
-    [else (or (sanctioned? produced) (not (sanctioned? base)))]))
+    ;; Otherwise the corpus has nothing to say about the BASE -- and this used
+    ;; to conclude that it therefore had nothing to say about the PRODUCED form
+    ;; either: `(or (sanctioned? produced) (not (sanctioned? base)))'. The second
+    ;; clause let a rule do anything it liked to a word the corpus did not know,
+    ;; and modern copy is full of such words, so it fired constantly. It made
+    ;; `lifebloode', `acquittale', `loyaleste' -- forms no one has ever written.
+    ;;
+    ;; `lexicon.rkt' states the rule the other way round and states it flatly:
+    ;; a form is in Mulcaster's table (the standard, and what normalising aims
+    ;; at), or in the corpus only (a real variant, free for fitting a line), or
+    ;; **in neither -- not English, never to be produced**. Whether the base is
+    ;; known has no bearing on that. Ignorance of the base is not a licence.
+    ;;
+    ;; So the produced form must have some warrant, always: the trade used it,
+    ;; or the period approved it. `sanctioned?' is exactly that question and it
+    ;; was reachable from here alone.
+    [else (sanctioned? produced)]))
 
 (provide (struct-out variant) (struct-out conventions)
          SPELLING-TESTS SPELLING-PATTERNS
@@ -343,7 +376,47 @@
           (define want (hash-ref forms style #f))
           (cond
             [(and m want (not (string-ci=? (caddr m) want)))
-             (values (string-append (cadr m) want tail) name)]
+             ;; THE LEXICON GATES THE CLASS HABIT TOO, and for a long time it
+             ;; did not.
+             ;;
+             ;; `warranted?' was reachable only from the justification devices,
+             ;; so a pattern could turn `school' into `schooll' and nothing
+             ;; asked whether anybody had ever written it. The corpus knows
+             ;; `school' well and knows six spellings of it -- schoole 8312,
+             ;; schol 555, schole 536, school 531, scholl 10, scholle 9 -- and
+             ;; `schooll' is not among them. Measured on one Areopagitica before
+             ;; this: 37 forms nobody ever set, among them `dictatorie',
+             ;; `officiouslie', `antichristiane', `unwilingest'.
+             ;;
+             ;; That is precisely the failure the lexicon was introduced to end.
+             ;; The README states the principle without qualification -- "the
+             ;; lexicon says which spellings exist; the rules only choose among
+             ;; them" -- and the class habit was outside it. **A device that can
+             ;; select but not invent cannot fabricate a spelling, however
+             ;; strong the habit.**
+             ;;
+             ;; Gated on `plausible?' and NOT on the full `warranted?', which
+             ;; was the first attempt and was too strict for the wrong reason.
+             ;; `warranted?' requires the produced form to be in the base word's
+             ;; variant group, and the grouping does not always join them: it
+             ;; puts `beautie' outside the group of `beauty' -- Blayney's own
+             ;; example of the -ie habit, and a form the corpus attests plainly.
+             ;; The README records the same limitation for `runne' and `run',
+             ;; and says not to fix it by rule.
+             ;;
+             ;; What a class habit needs is the weaker and exactly right
+             ;; question: **did anybody ever write this form?** A pattern moves
+             ;; an ending within its class -- -y to -ie, -ll to -l -- so it
+             ;; cannot turn one word into another, which is the risk the group
+             ;; test exists to guard against for the justification devices.
+             ;;
+             ;;   schooll      attested #f      rejected
+             ;;   dictatorie   attested #f      rejected
+             ;;   beautie      plausible #t     allowed
+             (define produced (string-append (cadr m) want))
+             (if (plausible? produced)
+                 (values (string-append produced tail) name)
+                 (values #f #f))]
             [m (values #f #f)]
             [else (loop (cdr ps))])]))]))
 
