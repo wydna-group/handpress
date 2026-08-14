@@ -91,7 +91,7 @@
                    cast-off-accuracy n-skeletons formes-standing
                    prepare-copy? title profiles condition stint-sheets
                    paging-error find-prelims? titlepage? book-title author
-                   printer publisher sig-alphabet prelim-style mis-resume)
+                   printer publisher sig-alphabet prelim-style mis-resume cast-off-method)
   #:transparent)
 
 ;; The leaf this house's paper and format make, and where the type page sits on
@@ -201,7 +201,11 @@
                     ;; left off, between one page and the next. McKerrow gives
                     ;; the mechanism and calls it a "comparative frequency",
                     ;; which is not a number -- **no source gives a rate**.
-                    #:mis-resume [mis-resume MIS-RESUME-RATE])
+                    #:mis-resume [mis-resume MIS-RESUME-RATE]
+                    ;; `pages' is Smith's, the safest way, error bounded at one
+                    ;; page. `breaks' is Moxon's, settled only at a break, and
+                    ;; Smith's crowding devices do not fire under it at all.
+                    #:cast-off-method [cast-off-method 'pages])
   (house fmt paper names seed by-formes? cv case-scale acc nsk
          (max 1 standing) prep? title profiles condition
          (cond
@@ -210,7 +214,7 @@
            [(<= (length names) 5) 2]
            [else 1])                     ; takes, shared about
          paging-error find-prelims? titlepage? book-title author
-         printer publisher alphabet prelim-style mis-resume))
+         printer publisher alphabet prelim-style mis-resume cast-off-method))
 
 ;; How often the compositor mistakes the point at which he left off, per page.
 ;; **No source gives a rate.** McKerrow says "comparative frequency" and names
@@ -777,6 +781,7 @@
   ;; leaves it wants, and whether any of it goes to the back instead.
   (define measure (page-spec-measure spec))
   (define acc (house-cast-off-accuracy h))
+  (define meth (house-cast-off-method h))
   (define pages-per (book-format-pages fmt))
   (define half-leaves (max 1 (quotient (book-format-leaves fmt) 2)))
 
@@ -799,7 +804,7 @@
     (partition (lambda (b) (memq (prelim-block-kind b) MIGRATORY-KINDS))
                (division-prelims div)))
 
-  (define body-segs0 (cast-off (division-body div) measure capacity g acc))
+  (define body-segs0 (cast-off (division-body div) measure capacity g acc #:method meth))
   (define n-body (length body-segs0))
   (define body-gatherings
     (max 1 (quotient (+ n-body (sub1 pages-per)) pages-per)))
@@ -807,12 +812,12 @@
 
   (define moving-copy (append* (map prelim-block-units movable)))
   (define moving-segs
-    (if (null? moving-copy) '() (cast-off moving-copy measure capacity g acc)))
+    (if (null? moving-copy) '() (cast-off moving-copy measure capacity g acc #:method meth)))
 
   (define (front-with blocks)
     (define copy (append (if tp (titlepage-units tp) '())
                          (append* (map prelim-block-units blocks))))
-    (if (null? copy) '() (cast-off copy measure capacity g acc)))
+    (if (null? copy) '() (cast-off copy measure capacity g acc #:method meth)))
 
   ;; Whether the Table goes to the back is decided by two questions, in this
   ;; order, and neither of them is a coin.
@@ -1142,7 +1147,7 @@
       (hash-ref pages (cons place p))))
   (define ordered (append* (map pages-of plans)))
 
-  (define with-catchwords (add-catchwords ordered))
+  (define with-catchwords (add-catchwords ordered (house-conventions h)))
   (define with-titles
     (add-running-titles with-catchwords all-formes fmt g (house-formes-standing h)))
 
@@ -1277,7 +1282,21 @@
   (define overflow (- (length trial) capacity))
   (define pressure0
     (if (zero? capacity) 0.0 (max -1.0 (min 1.5 (* 3.0 (/ overflow (exact->inexact capacity)))))))
+  ;; HOW BADLY THE PAGE WAS CAST OFF is one thing; WHETHER HE CROWDED IT is
+  ;; another, and they must not be the same number. `pressure' is the record --
+  ;; the report counts a page crowded or spun out by it, and a regime that
+  ;; forced it to nought would report a book cast off perfectly when it had
+  ;; merely been set at ease.
   (define pressure (if (or (<= (abs overflow) 2) (not has-copy?)) 0.0 pressure0))
+
+  ;; SMITH'S CONDITION, and the sharpest difference between the regimes: the
+  ;; crowding devices are used "when Copy is cast off close, and the Pages
+  ;; marked off ... but THIS PRECAUTION NEED NOT BE TAKEN where Copy is cast off
+  ;; the other way." So under `breaks' he neither drives out nor gets in: the
+  ;; page is composed at ease and the misjudgement shows as white at the foot or
+  ;; as copy lost, never as crowding.
+  (define worked-at
+    (if (eq? (house-cast-off-method h) 'breaks) 0.0 pressure))
 
   (define note
     (cond
@@ -1288,7 +1307,7 @@
                (- overflow))]
       [else ""]))
 
-  (define lines0 (compose man units spec pressure))
+  (define lines0 (compose man units spec worked-at))
   (unless (zero? pressure)
     (add-event! man (make-ev 'justification
                              (format "~a (pressure ~a)"
@@ -1362,24 +1381,56 @@
 ;; they always agree -- so the simulation could never produce the disagreement,
 ;; and the description's rule about bracketing a catchword that does not answer
 ;; was unreachable code.
-(define (add-catchwords pages)
+;; THE CATCHWORD COMES FROM THE COPY, WHICH IS THE WHOLE OF McKERROW'S POINT.
+;;
+;; He uses it to prove the catchword was set from the manuscript rather than
+;; from the standing type of the next page: "the comparative frequency with
+;; which we find a correct catchword in cases where the opening words of the
+;; next page are wrong, owing to the compositor having mistaken the point at
+;; which he left off and consequently omitted or repeated a word or two". The
+;; catchword is RIGHT and the page it faces is WRONG.
+;;
+;; This had a fallback to `from-page' -- the next page's actual first printed
+;; word -- for every page that dropped no copy, which is to say nearly all of
+;; them. So the catchword was copied from the page it faces and could not
+;; disagree with it, and the only route to a disagreement was a page overflowing
+;; its cast-off allocation. §5 of the roadmap named that as a defect; building
+;; the mis-resumption mechanism did not fix it, because the slip moved the page's
+;; opening and the catchword together.
+;;
+;; Three sources for it now, in the order the compositor would have them:
+;;
+;;   from-copy   the next page dropped whole lines, so the copy's next word is
+;;               the first of what was dropped
+;;   from-slip   he mis-resumed and dropped a word or two. The word standing at
+;;               the join carries what the copy read there, so the catchword is
+;;               the first of THOSE -- set in type, since a catchword is type
+;;               and the comparison downstream is against a printed form
+;;   from-page   nothing went wrong, and the two agree by construction
+(define (add-catchwords pages cv)
   (for/list ([p (in-list pages)] [i (in-naturals)])
     (cond
       [(>= (add1 i) (length pages)) p]
       [else
        (define nxt (list-ref pages (add1 i)))
-       ;; what the copy showed as coming next. Where the next page dropped
-       ;; copy, that is the first word of what was dropped: the compositor
-       ;; caught it from the manuscript, then resumed past it.
        (define from-copy
          (for/or ([t (in-list (page-omitted nxt))])
            (define ws (string-split t))
            (and (pair? ws) (car ws))))
-       (define from-page
+       (define first-word
          (for/or ([l (in-list (page-all-lines nxt))])
-           (and (pair? (set-line-words l))
-                (word-printed (car (set-line-words l))))))
-       (struct-copy page p [catchword (or from-copy from-page "")])])))
+           (and (pair? (set-line-words l)) (car (set-line-words l)))))
+       (define from-slip
+         (and first-word
+              (ormap (lambda (c)
+                       (string-prefix? c "resumption: a word or two dropped"))
+                     (word-causes first-word))
+              (word-copy first-word)
+              (let ([ws (string-split (word-copy first-word))])
+                (and (pair? ws) (apply-conventions cv (car ws))))))
+       (define from-page (and first-word (word-printed first-word)))
+       (struct-copy page p
+                    [catchword (or from-copy from-slip from-page "")])])))
 
 ;; Making ready: the running titles, the box rules and the centre rule are all
 ;; put to the composed type here, because none of them is the compositor's
@@ -1534,6 +1585,47 @@
                                       txt 'prose)))])
        (if (eq? (event-kind e) 'resumption) 1 0))
      0 "at nought he never loses his place")
+
+    ;; McKERROW'S DIAGNOSTIC, which is the point of building the slip at all:
+    ;; a CORRECT catchword facing a page whose opening words are wrong. It is
+    ;; his proof that the catchword was set from the manuscript.
+    ;;
+    ;; `add-catchwords' used to fall back to the next page's actual first
+    ;; printed word whenever no copy had been dropped, so the catchword was
+    ;; copied from the page it faces and could not disagree with it. The only
+    ;; route to a disagreement was a page overflowing its cast-off allocation --
+    ;; a symptom of a different defect, as §5 says. Asserted with the casting
+    ;; off PERFECT, so nothing but the slip can produce it.
+    (let* ([bb (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
+                                     #:seed 3 #:cast-off-accuracy 1.0
+                                     #:mis-resume 0.9)
+                         txt 'prose)]
+           [ps (book-pages bb)]
+           [bad (for/sum ([p (in-list ps)] [n (in-list (cdr ps))])
+                  (define opens
+                    (for/or ([l (in-list (page-all-lines n))])
+                      (and (pair? (set-line-words l))
+                           (word-printed (car (set-line-words l))))))
+                  (if (and opens (not (string=? (page-catchword p) ""))
+                           (not (string=? (page-catchword p) opens)))
+                      1 0))])
+      (check-true (> bad 0)
+                  "a right catchword faces a wrong page, with the casting off perfect"))
+    ;; And with no slip and perfect casting off, every catchword answers.
+    (let* ([bb (set-book (make-house #:fmt QUARTO #:compositors '("A" "B")
+                                     #:seed 3 #:cast-off-accuracy 1.0
+                                     #:mis-resume 0.0)
+                         txt 'prose)]
+           [ps (book-pages bb)]
+           [bad (for/sum ([p (in-list ps)] [n (in-list (cdr ps))])
+                  (define opens
+                    (for/or ([l (in-list (page-all-lines n))])
+                      (and (pair? (set-line-words l))
+                           (word-printed (car (set-line-words l))))))
+                  (if (and opens (not (string=? (page-catchword p) ""))
+                           (not (string=? (page-catchword p) opens)))
+                      1 0))])
+      (check-equal? bad 0 "and nothing goes wrong when nothing went wrong"))
 
     (check-true (for/or ([p (in-list ps)]) (> (page-pressure p) 0))
                 "some page is crowded")

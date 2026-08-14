@@ -268,7 +268,25 @@ compositor drives out or gets in "where he conveniently can … but this precaut
 need not be taken where Copy is cast off the other way."
 
 So: error bounded per page with active correction, or error accumulating with
-none. Two settings, not one dial — and neither is built.
+none. **Both are now built** — `--cast-off-method pages|breaks` — with the three
+differences the sources give:
+
+| | `pages` (Smith) | `breaks` (Moxon) |
+|---|---|---|
+| where the error is settled | at every page, "we may recover ourselves in the next" | only at a break, his "Regulators" |
+| the error carried forward | none | the drift since the last break |
+| the crowding devices | used | **not used** — "this precaution need not be taken" |
+
+**The third is measurable and the second is not, yet.** Smith's condition shows
+plainly: under `breaks` the compositor reaches for an expedient 267 times against
+311, and alters 310 words to fit the measure against 382, while quadding out is
+unchanged — quadding is not a crowding device. But the *drift* produces almost no
+difference in miscast pages (30 against 27 over four seeds, and 53 against 51 on
+close matter), and the reason is a granularity problem rather than a source
+problem: **the slip is drawn per copy unit, and a prose unit is a whole
+paragraph**, so there are too few draws for a drift to accumulate between
+regulators. Until the slip has a finer grain than the paragraph, Smith's "next to
+lumping the Copy" cannot show itself. That is the next thing to fix here.
 
 **What was wrong, and is now fixed.** The dial was never the cause. At
 `--cast-off 1.0`, with the deliberate error off entirely, the Folio came out
@@ -286,7 +304,8 @@ on the Folio, about 5.7 a page, against a measured mean overflow of 6.19.
 
 **Still open.**
 
-- **The two regimes**, which is what this section is named for.
+- **The drift, at a finer grain than the paragraph** — see above. The regimes are
+  built and only one of their three differences can be measured.
 - **The prose residual.** `tools/measure-castoff.rkt` reads verse at −0.56 lines
   per 100 set and prose at **−2.47**. `split-unit` measures a broken paragraph at
   `NORMAL-SPACE`, which is where the original — and prematurely withdrawn —

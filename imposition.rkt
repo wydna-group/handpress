@@ -365,7 +365,45 @@
 ;;
 ;; So verse is measured almost exactly and prose is not, and the strain in a
 ;; miscast-off gathering falls where the prose is.
-(define (cast-off units measure lines-per-page g [accuracy 0.93])
+;; THE TWO REGIMES. Both manuals describe casting off, and Smith describes two
+;; methods whose errors behave differently -- which is what `--cast-off', a
+;; single accuracy scalar, could not express.
+;;
+;; MOXON, by breaks (pp. 239-43). The error is not global. It is carried break to
+;; break and settled at each, with the running line-count written in the margin:
+;;
+;;   "a strict regard must be had to the Breaks ... long Breaks in the Copy are
+;;    generally likely to be Got-in, and consequently a Line is Got-in: But short
+;;    Breaks often Drive-out a Line. Therefore ... he more particularly considers
+;;    his Breaks; and indeed THEY SERVE AS SO MANY REGULATORS TO HIM, to keep him
+;;    within the bounds of his Counted off Copy: For every Break he examines by
+;;    the number of Lines from the last Break ... and accordingly marks it."
+;;
+;; SMITH, by pages (pp. 155-9), knows that method and thinks little of it. He
+;; marks off every page -- "which tho' it is very tedious, is nevertheless THE
+;; SAFEST WAY; because if we fall into a mistake in one page, WE MAY RECOVER
+;; OURSELVES IN THE NEXT" -- and of the other: "they are as often deceived by it,
+;; especially in a long run of close Matter ... Such casting-off therefore is
+;; NEXT TO LUMPING THE COPY."
+;;
+;; So the difference is where the error is allowed to accumulate. By pages it is
+;; bounded at one page and cannot compound; by breaks it compounds through a run
+;; of matter and is zeroed only when a break comes -- which in close matter may
+;; be a long way, and is exactly why Smith calls it lumping.
+;;
+;; A third difference, and the one that bears hardest, is Smith on the crowding
+;; devices -- they are CONDITIONAL on the regime:
+;;
+;;   "when Copy is cast off close, and the Pages marked off, the Compositor takes
+;;    notice how his Matter runs; and if he finds that it keeps not even with the
+;;    Copy, HE DRIVES EITHER OUT, OR GETS IN, where he conveniently can ... but
+;;    THIS PRECAUTION NEED NOT BE TAKEN where Copy is cast off the other way."
+;;
+;; So under `breaks' the compositor does not drive out or get in at all: the
+;; page is set at ease and the misjudgement shows as white or as lost copy
+;; rather than as crowding. That is `page-pressure' held at nought, in book.rkt.
+(define (cast-off units measure lines-per-page g [accuracy 0.93]
+                  #:method [method 'pages])
   ;; How reliably each kind of copy can be measured out beforehand.
   (define slip (hash 'verse 0.06 'heading 0.30 'stage 0.45 'prose 1.0))
 
@@ -469,12 +507,28 @@
   ;; `pending' is the speech prefix waiting for a line to stand in front of, and
   ;; is carried exactly as `compose' carries it: set by a prefix unit, spent by
   ;; the next verse or prose unit, passed over anything else.
-  (let loop ([us units] [current '()] [used 0] [segments '()] [pending #f])
+  ;; What counts as a break, and so as one of Moxon's regulators: a heading, a
+  ;; stage direction, or the white line the copy asks for between paragraphs and
+  ;; speeches. At each of these he checks his running count against the copy and
+  ;; starts again from nought.
+  (define (break? u) (memq (copy-unit-kind u) '(heading stage blank)))
+
+  ;; `drift' is the error carried forward, and it is the whole of the difference
+  ;; between the two regimes. Under `pages' it is zeroed at every page -- Smith's
+  ;; "we may recover ourselves in the next" -- so a misjudgement cannot compound.
+  ;; Under `breaks' it survives the page boundary and is zeroed only at a break,
+  ;; so a long run of close matter carries its error the whole way.
+  (let loop ([us units] [current '()] [used 0] [segments '()] [pending #f]
+             [drift 0])
     (define (next-pending u)
       (case (copy-unit-kind u)
         [(prefix) (copy-unit-text u)]
         [(verse prose) #f]
         [else pending]))
+    (define (carried u)
+      (cond [(eq? method 'pages) 0]
+            [(break? u) 0]
+            [else drift]))
     (cond
       [(null? us)
        (reverse (if (null? current)
@@ -504,7 +558,10 @@
        ;; when the surplus looks small he commits it -- and is sometimes wrong.
        ;; He is wrong oftener with prose than with verse, which is Gaskell's
        ;; point and the reason `slip' exists.
-       (define over (- (+ used est) lines-per-page))
+       ;; The drift carried from before the last break rides on the page's
+       ;; reckoning, so under `breaks' a run of close matter drifts further and
+       ;; further from the copy until a break settles it.
+       (define over (- (+ used est (carried u)) lines-per-page))
        ;; The bigger the surplus the likelier he is to see it, so the chance of
        ;; committing it falls away as it grows. A one-line overrun is easily
        ;; missed and gets absorbed by taking out a white line; the rare
@@ -542,7 +599,7 @@
                                            (reverse (cons head current))
                                            lines-per-page "")
                          segments)
-                   #f)]
+                   #f (carried u))]
             ;; The page closes and `u' is not consumed, so the prefix waiting
             ;; for it is still waiting on the next page.
             [(pair? current)
@@ -550,14 +607,16 @@
                    (cons (cast-off-segment (length segments) (reverse current)
                                            used "")
                          segments)
-                   pending)]
+                   pending (carried u))]
             ;; Nothing on the page and nothing to be done: a single unit that
             ;; will not divide takes its own page and overruns it. That is what
             ;; a heading or a verse line too long for the measure really does.
+            ;; The slip he made on this unit is what carries forward; under
+            ;; `pages' `carried' discards it at the next page regardless.
             [else (loop (cdr us) (cons u current) (+ used est) segments
-                        (next-pending u))])]
+                        (next-pending u) (+ (carried u) (- est est0)))])]
          [else (loop (cdr us) (cons u current) (+ used est) segments
-                     (next-pending u))])])))
+                     (next-pending u) (+ (carried u) (- est est0)))])])))
 
 ;; ---------------------------------------------------------------------------
 ;; The skeleton

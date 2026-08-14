@@ -213,7 +213,8 @@ Flags come **before** the input file, as Racket's `command-line` requires.
 |---|---|
 | `--compositors` | which men are at the frames, e.g. `A,B` or `OkesB,OkesC` |
 | `--order` | `formes` or `seriatim` |
-| `--cast-off` | accuracy of the casting off, 0–1 — **the manuals describe two regimes, not one dial: [ROADMAP §5](ROADMAP.md)** |
+| `--cast-off` | accuracy of the casting off, 0–1 |
+| `--cast-off-method` | `pages` (Smith: the error is settled at every page) or `breaks` (Moxon: settled only at a break, and the crowding devices are not used) |
 | `--no-copy-preparation` | the corrector does not mark up the copy first |
 | `--stint-sheets` | sheets a man sets before the frame changes hands (default: by shop size) |
 
@@ -416,9 +417,15 @@ page = 123 pages = 15 sheets and 3 pages (pp. 241–2). Both manuals also expand
 copy's abbreviations and count them at length, which is why a compositor
 introducing tildes is the wrong picture.
 
-**The program uses one accuracy scalar where the manuals describe two regimes**
-with different error behaviour, and Smith ties the crowding devices to which
-regime was used. [ROADMAP §5](ROADMAP.md).
+**The manuals describe two regimes and both are modelled.** Moxon casts off by
+breaks and settles the count at each — "they serve as so many Regulators to him"
+— while Smith marks off every page, "the safest way; because if we fall into a
+mistake in one page, we may recover ourselves in the next", and calls the other
+"next to lumping the Copy". And Smith ties the crowding devices to the regime:
+the compositor drives out or gets in "when Copy is cast off close ... but this
+precaution need not be taken where Copy is cast off the other way." Under
+`--cast-off-method breaks` he does neither, and the misjudgement shows as white
+at the foot or as copy lost rather than as crowding. [ROADMAP §5](ROADMAP.md).
 
 **And the scalar was never the thing that was wrong.** At `--cast-off 1.0`, with
 the deliberate error switched off entirely, the Folio came out *more* miscast than

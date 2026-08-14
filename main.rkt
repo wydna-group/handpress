@@ -101,6 +101,7 @@
                        #:impression-faults [impression-faults #f]
                        #:mis-resume [mis-resume #f]
                        #:mis-point [mis-point #f]
+                       #:cast-off-method [cast-off-method 'pages]
                        #:cancel-rate [cancel-rate 0.0]
                        #:cancels [cancels 0]
                        #:imprint-change? [imprint-change? #f]
@@ -192,6 +193,7 @@
                         #:case-scale case-scale
                         #:cast-off-accuracy cast-off
                         #:mis-resume (or mis-resume MIS-RESUME-RATE)
+                        #:cast-off-method cast-off-method
                         #:skeletons skeletons
                         #:formes-standing standing
                         #:stint-sheets stint
@@ -375,6 +377,7 @@
   (define impression-faults #f)
   (define mis-resume #f)
   (define mis-point #f)
+  (define cast-off-method 'pages)
   (define cancel-rate 0.0)
   (define cancels 0)
   (define imprint-change? #f)
@@ -453,6 +456,8 @@
       (set! mis-resume (string->number x))]
      [("--mis-point") x "chance per word that a stop is dropped, changed, or set where the copy has none (no source gives a rate)"
       (set! mis-point (string->number x))]
+     [("--cast-off-method") x "pages (Smith: error bounded at one page) or breaks (Moxon: settled only at a break, and no crowding devices)"
+      (set! cast-off-method (string->symbol x))]
      [("--cancels") n "leaves cancelled for reasons outside the simulation"
       (set! cancels (string->number n))]
      [("--cancel-rate") x "chance that an error surviving the proof is thought worth cutting a leaf out for"
@@ -513,6 +518,7 @@
                        #:binding-error binding-error
                        #:impression-faults impression-faults
                        #:mis-resume mis-resume #:mis-point mis-point
+                       #:cast-off-method cast-off-method
                        #:jaggard? jaggard?
                        #:prelim-style prelim-style
                        #:cancel-rate cancel-rate #:cancels cancels
