@@ -424,6 +424,51 @@
   (define (prefix-width name)
     (+ (width-of-word (abbreviate-prefix name)) NORMAL-SPACE))
 
+  ;; HOW MANY LINES A RUN OF WORDS FILLS, and it is not the total width divided
+  ;; by the measure.
+  ;;
+  ;; That division assumes perfect packing: that every line is filled to the last
+  ;; unit and the next word begins exactly where the measure ends. A compositor
+  ;; fills a stick word by word, and when the next word will not go the rest of
+  ;; the line is lost — so a real page holds fewer lines' worth of words than the
+  ;; arithmetic says, and the estimate ran short by that waste on every prose
+  ;; paragraph in the book. Measured at −2.47 lines per 100 set, the whole of the
+  ;; prose bias §5 had left standing.
+  ;;
+  ;; `split-unit' below has always packed greedily, because it has to know WHERE
+  ;; to break a paragraph and division cannot tell it. So the two measurements of
+  ;; the same quantity disagreed, and the less accurate one decided the page.
+  ;; **One property, one decision point** — and this is not a fudge factor: it
+  ;; replaces an approximation with the rule the compositor works by.
+  ;; Judged at the FINEST space, for the reason the verse branch below already
+  ;; gives: whether one more word goes has to be settled at the spacing the
+  ;; compositor will actually reach for, and that is the finest thing in the
+  ;; case rather than the ordinary one. `justify' works down the ladder and
+  ;; squeezes before it gives up, so a stick packed at the normal space starts a
+  ;; new line where the man would have got the word in.
+  ;;
+  ;; All three readings were measured rather than argued. Against the frame, per
+  ;; 100 prose lines set:
+  ;;
+  ;;   division by the measure      -2.11   too optimistic: no waste at a line end
+  ;;   greedy at the normal space   +3.23   too pessimistic: he never squeezes
+  ;;   greedy at the finest space   -1.12   this
+  ;;
+  ;; So it is halved and not closed. The remaining tenth of a line in ten is the
+  ;; justification regime rather than the packing: `justify' stretches a short
+  ;; line above the finest space, so a page holds a little less than a stick
+  ;; packed to the squeeze. That is the last of §5's residual and it is small.
+  (define (lines-filled ws [lead 0])
+    (let loop ([ws ws] [line lead] [n 1])
+      (cond
+        [(null? ws) n]
+        [else
+         (define wd (width-of-word (car ws)))
+         (define line* (if (zero? line) wd (+ line FINEST-SPACE wd)))
+         (if (> line* measure)
+             (loop (cdr ws) wd (add1 n))
+             (loop (cdr ws) line* n))])))
+
   (define (estimate u [pending #f])
     (define kind (copy-unit-kind u))
     (define lead (if pending (prefix-width pending) 0))
@@ -467,7 +512,8 @@
                            (* FINEST-SPACE (length (regexp-match* #px" " text)))))
           (if (<= tight measure) 1 2)]
          [else
-          (define n (max 1 (exact-ceiling (/ w measure))))
+          ;; Filled the way a compositor fills a stick, not by division.
+          (define n (max 1 (lines-filled (string-split text) lead)))
           (if (eq? kind 'heading) (+ n 2) n)])]))
 
   ;; A paragraph may be broken at the foot of a page, and must be, or every
@@ -1007,6 +1053,38 @@
       (check-true (>= (cast-off-segment-estimated-lines (car led))
                       (cast-off-segment-estimated-lines (car bare)))
                   "a prefix can only ever cost room, never save it")))
+
+  ;; THE TWO REGIMES, and the condition under which they differ.
+  ;;
+  ;; Smith's objection to casting off by breaks is scoped: "they are as often
+  ;; deceived by it, ESPECIALLY IN A LONG RUN OF CLOSE MATTER". Moxon's breaks
+  ;; "serve as so many Regulators to him", so where breaks are frequent the two
+  ;; methods must agree, and where they are far apart the break method must
+  ;; wander. Both halves are asserted, because a mechanism that differed
+  ;; everywhere would be as wrong as one that differed nowhere.
+  (let ()
+    (define para
+      (string-join (for/list ([i (in-range 90)]) "the compositor counts his lines") " "))
+    (define (units n breaks?)
+      (append*
+       (for/list ([i (in-range n)])
+         (if breaks?
+             (list (copy-unit 'prose para i #f) (copy-unit 'blank "" i #f))
+             (list (copy-unit 'prose para i #f))))))
+    (define m (* 20 UNITS-PER-EM))
+    (define (wander meth breaks?)
+      (define ds
+        (for/list ([seed (in-list '(1 2 3 4 5))])
+          (define segs (cast-off (units 40 breaks?) m 132 (make-rng seed) 0.7
+                                 #:method meth))
+          (define ls (map cast-off-segment-estimated-lines segs))
+          (define devs (map (lambda (l) (abs (- l 132))) (drop-right ls 1)))
+          (if (null? devs) 0.0 (/ (apply + devs) (exact->inexact (length devs))))))
+      (/ (apply + ds) (length ds)))
+    (check-true (> (wander 'breaks #f) (* 1.4 (wander 'pages #f)))
+                "in close matter the break method wanders further from the page")
+    (check-= (wander 'breaks #t) (wander 'pages #t) 0.001
+             "and with a regulator at every paragraph the two are the same method"))
 
   ;; ---- Rules ----------------------------------------------------------
   ;; "Five box rules appear, since one is used below as well as one above the

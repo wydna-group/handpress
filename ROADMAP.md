@@ -277,16 +277,32 @@ differences the sources give:
 | the error carried forward | none | the drift since the last break |
 | the crowding devices | used | **not used** — "this precaution need not be taken" |
 
-**The third is measurable and the second is not, yet.** Smith's condition shows
-plainly: under `breaks` the compositor reaches for an expedient 267 times against
-311, and alters 310 words to fit the measure against 382, while quadding out is
-unchanged — quadding is not a crowding device. But the *drift* produces almost no
-difference in miscast pages (30 against 27 over four seeds, and 53 against 51 on
-close matter), and the reason is a granularity problem rather than a source
-problem: **the slip is drawn per copy unit, and a prose unit is a whole
-paragraph**, so there are too few draws for a drift to accumulate between
-regulators. Until the slip has a finer grain than the paragraph, Smith's "next to
-lumping the Copy" cannot show itself. That is the next thing to fix here.
+**Both differences measure, and the second only where Smith says it should.**
+
+Smith's condition shows plainly on any copy: under `breaks` the compositor
+reaches for an expedient 267 times against 311, and alters 310 words to fit the
+measure against 382, while quadding out is unchanged — quadding is not a crowding
+device.
+
+The drift shows nothing on ordinary copy and a great deal on close matter, which
+is the whole of Smith's complaint. Isolated at the cast-off, mean distance of a
+page's allotment from a full page:
+
+| | close matter, no breaks | a break each paragraph |
+|---|---|---|
+| `pages` | 0.78 | 0.07 |
+| `breaks` | **1.38** | 0.07 |
+
+**The two regimes coincide exactly when breaks are frequent and part when they
+are not** — Moxon's "Regulators" doing their work, and Smith's "as often deceived
+by it, **especially in a long run of close Matter**". On a real book the
+paragraphs fall about once a page, so the methods agree; the model reproduces the
+scope of the objection rather than differing everywhere.
+
+*This entry first recorded the drift as unmeasurable and blamed the slip
+granularity. That was a probe fault: the close-matter test joined paragraphs and
+so cut the prose units from 105 to 9, removing the slip draws it meant to
+concentrate. **The third probe in one session to measure the wrong thing.***
 
 **What was wrong, and is now fixed.** The dial was never the cause. At
 `--cast-off 1.0`, with the deliberate error off entirely, the Folio came out
@@ -304,12 +320,14 @@ on the Folio, about 5.7 a page, against a measured mean overflow of 6.19.
 
 **Still open.**
 
-- **The drift, at a finer grain than the paragraph** — see above. The regimes are
-  built and only one of their three differences can be measured.
-- **The prose residual.** `tools/measure-castoff.rkt` reads verse at −0.56 lines
-  per 100 set and prose at **−2.47**. `split-unit` measures a broken paragraph at
-  `NORMAL-SPACE`, which is where the original — and prematurely withdrawn —
-  hypothesis may still be right.
+- **Nothing, on the regimes.** Both are built and both differences measure.
+- **The last of the prose residual, and it is small.** The estimator divided
+  total width by the measure, which assumes perfect packing and no waste at any
+  line end. It now fills a stick the way a compositor does — word by word, judged
+  at the finest space, since `justify` squeezes before it gives up. Measured per
+  100 prose lines set: **−2.11 by division, +3.23 packed at the normal space,
+  −1.12 packed at the finest**. Halved, not closed; what is left is the
+  justification regime rather than the packing.
 - **A third of pages miscast still fails Blayney's bound**, "the page-depth is
   almost entirely consistent", said of a book he is at pains to call badly
   printed. Neither he nor McKerrow gives a rate; both give a bound, and the
