@@ -906,26 +906,69 @@
     [(and (string=? src "") (string=? decls "")) ""]
     [else (format "\n~a:root{~a}\n" src decls)]))
 
+;; A page with its content dropped and its attributes kept. The map bar and the
+;; quire diagrams want `n', `hp:leaf', `hp:forme', `hp:role', `hp:pressure' and
+;; `resp' from every page in the book, and nothing else -- no words, no lines.
+;; Keeping the stub instead of the page is what lets the drawing let go of a
+;; page as soon as it has drawn it.
+(define (page-stub el) (struct-copy element el [content '()]))
+
 ;; How many leaves to draw. 0 is all of them.
 ;;
 ;; The whole First Folio is 990 pages and 864,020 words, and every word is a
 ;; span carrying its position, its width, both its forms and the identity of
-;; every distinctive sort in it. That comes to 79 MB of HTML and takes a
-;; browser three and a half minutes to lay out. Neither `--copies 1' nor the
-;; old `--pages' touched it -- the first because the apparatus is a small part
-;; of the file beside the words themselves, and the second because it only
-;; ever truncated the terminal render. 1,200 copies against 1: 79.5 MB against
-;; 78.6. The book is the size, not the edition.
+;; every distinctive sort in it. That comes to 75 MB of HTML and 1,074,060
+;; elements. Neither `--copies 1' nor the old `--pages' touched it -- the first
+;; because the apparatus is a small part of the file beside the words
+;; themselves, and the second because it only ever truncated the terminal
+;; render. 1,200 copies against 1: 79.5 MB against 78.6. The book is the size,
+;; not the edition.
 ;;
 ;; So the limit belongs here, at the one place that turns pages into a page.
 ;; The book is still printed whole, still collated whole, and the report and
 ;; the TEI still describe all of it: this draws the first N leaves of it.
+;;
+;; The browser's share of this is no longer what it was -- `content-visibility'
+;; in the stylesheet took a reflow of the whole book from 25-32 seconds to 100
+;; milliseconds, and the load from 81 seconds to 15 -- but the file is still 75
+;; MB, and a reader who wants a look at a few leaves should not be sent all of
+;; it.
+;;
+;; Rendering from a parsed document, which is what the tests and any caller
+;; holding a document want. It reads the pages out of the tree and hands them
+;; over one at a time, so both routes run the same code below.
 (define (tei->html doc #:lede [lede ""] #:witness [witness "copya"]
                    #:face [face #f] #:font-file [font-file #f] #:fit [fit #f]
                    #:pages [page-limit 0])
-  (current-witness witness)
   (define root (document-element doc))
-  (define hdr (find root 'teiHeader))
+  (define all
+    (for/list ([d (in-list (find-all (find root 'body) 'div))]
+               #:when (equal? (attr d 'type) "page"))
+      d))
+  (define rest all)
+  (tei->html/source
+   (find root 'teiHeader)
+   (lambda () (and (pair? rest) (begin0 (car rest) (set! rest (cdr rest)))))
+   (lambda () (length all))
+   #:lede lede #:witness witness #:face face #:font-file font-file
+   #:fit fit #:pages page-limit))
+
+;; The renderer proper. It takes the header and a *source* of pages rather than
+;; a document: `next-page!' hands back one <div type="page"> at a time and #f
+;; when the body is done, and `count-pages!' is asked how long the whole book is
+;; only when the drawing has been cut short and the page has to say so.
+;;
+;; The reason is memory. A folio's TEI is 85 MB, and holding it as a tree cost
+;; 2.6 GB and 54 seconds before a single leaf was drawn -- against 13 MB and 28
+;; seconds to walk the same file a page at a time. It also makes `--pages' mean
+;; what it says: asking for twenty leaves used to read all 985 first and then
+;; throw 965 away, and now stops reading, which is 54 seconds down to half of
+;; one.
+(define (tei->html/source hdr next-page! count-pages!
+                          #:lede [lede ""] #:witness [witness "copya"]
+                          #:face [face #f] #:font-file [font-file #f] #:fit [fit #f]
+                          #:pages [page-limit 0])
+  (current-witness witness)
   (define title (let ([t (find hdr 'title)]) (if t (text-of t) "A book")))
   ;; The made-up copies, in the order the header lists them. Set before any
   ;; word is rendered, because `word->html' records which copies read which
@@ -956,16 +999,6 @@
           (and n (let ([m (regexp-match #px"([0-9]+) l" (text-of n))])
                    (and m (string->number (cadr m))))))
         0))
-  (define all-pages
-    (for/list ([d (in-list (find-all (find root 'body) 'div))]
-               #:when (equal? (attr d 'type) "page"))
-      d))
-  (define pages
-    (if (positive? page-limit)
-        (take all-pages (min page-limit (length all-pages)))
-        all-pages))
-  (define drawn-part-of-book?
-    (< (length pages) (length all-pages)))
   ;; Bound as openings: a verso and the recto facing it. The first recto has no
   ;; verso before it and stands alone, which is why a book opens on a single
   ;; page and thereafter in pairs.
@@ -994,10 +1027,26 @@
                                         "coming off disjunct"))))]
            [else h])]
         [else h])))
-  (define rendered
-    (for/list ([p (in-list pages)])
-      (cons (regexp-match? #rx"r$" (attr p 'n ""))
-            (page->html p lines-per-page damage-names leaf-notes))))
+  ;; One page is read, drawn, and let go before the next is read. What survives
+  ;; the loop is the drawn HTML and the page's stub, never the page itself.
+  (define-values (rendered pages)
+    (let loop ([n 0] [html '()] [stubs '()])
+      (define p (and (or (zero? page-limit) (< n page-limit)) (next-page!)))
+      (cond
+        [(not p) (values (reverse html) (reverse stubs))]
+        [else
+         (loop (add1 n)
+               (cons (cons (regexp-match? #rx"r$" (attr p 'n ""))
+                           (page->html p lines-per-page damage-names leaf-notes))
+                     html)
+               (cons (page-stub p) stubs))])))
+  ;; The whole book's length is wanted only to say how much of it is not being
+  ;; drawn, and finding it out means reading past where the drawing stopped --
+  ;; so it is asked for only when the count could differ from what was drawn.
+  (define drawn (length pages))
+  (define all-pages-count
+    (if (and (positive? page-limit) (= drawn page-limit)) (count-pages!) drawn))
+  (define drawn-part-of-book? (< drawn all-pages-count))
   (define body
     (let loop ([ps rendered] [out '()])
       (cond
@@ -1035,8 +1084,7 @@
                 "Only the drawing of the leaves is cut short, because the "
                 "whole of this book is ~a leaves of type and no browser will "
                 "lay that out quickly.</p>")
-               (length pages) (length all-pages) (length all-pages)
-               (length all-pages))
+               drawn all-pages-count all-pages-count all-pages-count)
        "")
    "</div><nav class=\"views\" id=\"views\">"
    "<button data-view=\"book\" class=\"on\">The book</button>"
@@ -1114,12 +1162,54 @@
     ",")
    "]"))
 
+;; Rendering from the file, which is what the program itself does. The document
+;; is never parsed whole: the header is read as one element, the port is wound
+;; on to <body>, and thereafter `read-xml/element' takes a single page off the
+;; port and leaves it standing at the next one.
+;;
+;; The structure this relies on is the one the program writes and the one TEI
+;; prescribes -- <TEI><teiHeader/><text><body> and then the pages as siblings.
+;; The header is read before <body> is looked for, so a `<body' occurring in the
+;; header's own prose cannot be mistaken for the tag.
 (define (tei-file->html path #:lede [lede ""] #:witness [witness "copya"]
                         #:face [face #f] #:font-file [font-file #f] #:fit [fit #f]
                         #:pages [pages 0])
-  (tei->html (read-xml (open-input-string (file->string path)))
-             #:lede lede #:witness witness
-             #:face face #:font-file font-file #:fit fit #:pages pages))
+  (define in (open-input-file path))
+  (dynamic-wind
+    void
+    (lambda ()
+      (unless (regexp-match #px"<TEI[^>]*>" in)
+        (error 'tei-file->html "no <TEI> element in ~a" path))
+      (define hdr (read-xml/element in))
+      (unless (regexp-match #px"<body[^>]*>" in)
+        (error 'tei-file->html "no <body> element in ~a" path))
+      ;; The next page, or #f at </body>. Anything in the body that is not a
+      ;; page is stepped over rather than drawn, which is what the filter on
+      ;; `type' did when the whole tree was in hand.
+      (define (next-page!)
+        (regexp-match #px"^[ \t\r\n]*" in)
+        (cond
+          [(regexp-try-match #px"^</body" in) #f]
+          [(eof-object? (peek-char in)) #f]
+          [else
+           (define el (read-xml/element in))
+           (if (equal? (attr el 'type) "page") el (next-page!))]))
+      ;; How many pages the book has in total, counted by scanning the rest of
+      ;; the file for the start tag rather than by parsing it. Only reached when
+      ;; the drawing was cut short, and it reads from wherever the drawing left
+      ;; off -- so it counts what remains and is added to what was drawn.
+      (define (count-rest!)
+        (length (regexp-match* #px"<div type=\"page\"" in)))
+      (define drawn-so-far 0)
+      (tei->html/source
+       hdr
+       (lambda () (let ([p (next-page!)])
+                    (when p (set! drawn-so-far (add1 drawn-so-far)))
+                    p))
+       (lambda () (+ drawn-so-far (count-rest!)))
+       #:lede lede #:witness witness
+       #:face face #:font-file font-file #:fit fit #:pages pages))
+    (lambda () (close-input-port in))))
 
 ;; The stylesheet as it is actually served: the hand-written layout, plus the
 ;; departure marks generated from the vocabulary. Both renderings use this, and

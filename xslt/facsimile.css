@@ -375,8 +375,53 @@ body.plain .acc, body.plain .pageno.wrong { border-bottom: 0; }
 /* Openings, as the book is bound: a verso and the recto facing it. The first
    recto stands alone, because it has no verso before it. */
 .opening { display: flex; gap: 0; justify-content: center;
-           margin: 3.4rem auto 3.6rem; width: fit-content; }
+           margin: .1rem auto .1rem; padding: 3rem .5rem .5rem;
+           width: fit-content; }
 .opening .leaf { margin: 0; }
+
+/* An opening the reader cannot see is not laid out. A 948-page folio is 494 of
+   these and just over a million elements, and without this the browser reflows
+   every one of them on any change at all -- measured at 25 to 32 SECONDS per
+   reflow, paid again on each zoom, resize, or legend toggle. With it, 70 to 83
+   milliseconds. The content is still in the document and still found by
+   find-in-page; it is the layout and paint that are skipped.
+
+   The size is given exactly rather than guessed, because `.leaf' above is
+   already sized in both axes from `--leaf-w'/`--leaf-h' -- which are set on
+   `.wrap', an ancestor, so they are in scope here. An estimate would be
+   guesswork the scrollbar would show up the moment a leaf came into view; these
+   are the same numbers the leaf itself uses. The leading `auto' lets the
+   browser keep the real measurement once it has rendered an opening for real.
+   The doubled width is the two leaves of an opening; the first recto stands
+   alone and is half of it, which costs a placeholder the wrong width for one
+   opening in 494 and nothing else.
+
+   `content-visibility' brings paint containment with it -- and brings it
+   whether or not the opening is on screen -- which clips whatever sticks out of
+   the box. Measured on the folio, exactly one thing does: `.tag', 46px above
+   the opening, which is its `top: -2.9rem' and therefore the same on every book
+   rather than something the head margin might or might not cover. Nothing
+   overflows the other three sides, though a lit leaf takes a 4px outline 3px
+   proud of its edge, so 8px there covers it.
+
+   The padding is taken out of the margin rather than added to it, so that the
+   page keeps its rhythm. The arithmetic has to allow for margin collapse, which
+   is the trap: adjacent openings collapsed 3.4rem against 3.6rem to a 3.6rem
+   gap, and padding does not collapse. So .1rem + .1rem collapse to .1rem, and
+   .1 + .5 below + 3 above is the same 3.6rem between one opening and the next.
+   Compensating margin for padding without allowing for the collapse put 48px
+   between every pair of openings and 23,625px on the height of the book. */
+.opening {
+  content-visibility: auto;
+  contain-intrinsic-size:
+    auto calc(2 * var(--leaf-w, 160) * var(--mm))
+    auto calc(var(--leaf-h, 210) * var(--mm));
+}
+/* Off-screen means off this screen. Printing wants every leaf laid out, and
+   `auto' would hand the printer blank paper for all but the visible opening. */
+@media print {
+  .opening { content-visibility: visible; }
+}
 /* The gutter. Two leaves of an opening are one sheet of paper folded, so they
    meet without a gap -- but the paper curves into the binding, and a flat join
    makes an opening look like two pictures side by side rather than a book. */
