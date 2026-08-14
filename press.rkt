@@ -181,6 +181,38 @@
            (ok (string-replace word low (string-append low "e"))))
       #f))
 
+;; WHAT A CORRECTOR CATCHES, BY LAMBARD'S GRADE
+;;
+;; These were two bare numbers -- `catches-accident' 0.75 and
+;; `catches-misreading' 0.10 -- with a comment apiece and no principle joining
+;; them. Lambard's grades in vocabulary.rkt supply the principle, and the two
+;; numbers turn out to BE two of the four grades. They keep their values; what
+;; is new is that a third and fourth grade now have somewhere to sit, and that
+;; adding a fault means grading it rather than guessing a rate for it.
+;;
+;; The ladder is DETECTABILITY and not danger, and the two run in different
+;; orders -- see the note in vocabulary.rkt. A reader without the copy catches
+;; what disturbs the surface:
+;;
+;;   cosmetic       the reading is untouched, so by sense he cannot catch it at
+;;                  all. This is why the wrong fount prints in every copy, and
+;;                  the ✱ row in CALIBRATION.md is about exactly this.
+;;   orthographic   not a word. The eye stops: the most catchable of them.
+;;   meaning        the sense breaks, and a break is visible without the copy
+;;                  even when the missing word is not -- which is why he can
+;;                  strike out a word set twice but must have the copy to put
+;;                  back one that was dropped.
+;;   sense          a word, and the wrong one. It reads, so it hides; only the
+;;                  copy finds it, and then it has nowhere left to hide.
+(define (catches-grade grade catches-accident catches-misreading with-copy?)
+  (case grade
+    [(cosmetic) 0.0]
+    [(orthographic meaning) catches-accident]
+    [(sense) (if with-copy? (max catches-misreading 0.80) catches-misreading)]
+    [else catches-misreading]))
+
+(provide catches-grade)
+
 (define (run-press b
                    #:copies [copies 4]
                    #:seed [seed 1623]
@@ -473,11 +505,14 @@
              (cond
                ;; foul case and turned letters are visible on the page itself,
                ;; so the copy adds little
-               [(eq? (event-kind e) 'accident) catches-accident]
+               [(eq? (event-kind e) 'accident)
+                (catches-grade 'orthographic catches-accident catches-misreading
+                               with-copy?)]
                ;; a misreading yields sense and hides from a reader working by
                ;; sense. Against the copy, read aloud, it has nowhere to hide.
-               [with-copy? (max catches-misreading 0.80)]
-               [else catches-misreading]))
+               [else
+                (catches-grade 'sense catches-accident catches-misreading
+                               with-copy?)]))
            ;; What the reader can put back depends on what he is reading
            ;; against. A literal is wrong on the page, so the standing type
            ;; shows it and the composed reading restores it. A misreading is

@@ -35,7 +35,74 @@
 
 (provide (struct-out deviation-kind)
          DEVIATION-KINDS kind-for kind-class ana->class-table
-         taxonomy-categories deviation-css)
+         taxonomy-categories deviation-css
+         LAMBARD-GRADES lambard-grade grade-gloss)
+
+;; ---------------------------------------------------------------------------
+;; Lambard's four grades, and why they are not the corrector's order
+;; ---------------------------------------------------------------------------
+;; William Lambard, printing the errata to his *Perambulation of Kent* (1576),
+;; sorts the faults before he lists them. Some "blemish only the beautie of our
+;; owne workmanship"; some "offend against the lawes of Orthographie"; some
+;; "shrewdly peruert the sense"; some "vtterly euert his meaning". Then he
+;; prints only "Suche therefore as be most daungerous".
+;;
+;; That is a taxonomy of DANGER, and it is the second axis over these same
+;; kinds: the first says what put the word there, this says how much it costs
+;; the reader.
+;;
+;; **AND IT IS NOT THE ORDER A CORRECTOR CATCHES THEM IN.** That is the finding,
+;; and it falls out of putting the two side by side. A reader working without
+;; the copy catches what disturbs the SURFACE, and Lambard grades by what
+;; disturbs the SENSE, and those come apart at both ends:
+;;
+;;   * an orthographic fault is the second least dangerous and the EASIEST to
+;;     catch -- `hanourable' is not a word, and the eye stops at it;
+;;   * a sense-perverting fault is the most dangerous and among the HARDEST --
+;;     `their' for `there' reads perfectly and hides from a reader by sense.
+;;
+;; So the dangerous errors are exactly the ones that survive, which is why an
+;; errata list is full of them and a census of proof-corrections is not -- the
+;; same two-stage disagreement the dropped word turns on. Lambard is evidence
+;; for the shape of what got out, not for what a corrector found.
+;;
+;; The program's two catch rates were `catches-accident' 0.75 and
+;; `catches-misreading' 0.10, and this is what they are: the orthographic grade
+;; and the sense grade. They keep their values and gain a reason.
+(define LAMBARD-GRADES
+  (list (cons 'cosmetic     "blemish only the beautie of our owne workmanship")
+        (cons 'orthographic "offend against the lawes of Orthographie")
+        (cons 'sense        "shrewdly peruert the sense")
+        (cons 'meaning      "vtterly euert his meaning")))
+
+(define (grade-gloss g) (cond [(assq g LAMBARD-GRADES) => cdr] [else "—"]))
+
+;; Every kind in the table above has a grade, and the test at the foot of this
+;; file fails if a new one is added without.
+;;
+;; `copy', `habit', `justification', `house-style' and the two pointing and
+;; capital habits are NOT graded, because they are not faults: a compositor's
+;; own spelling is not an error against anything, and Lambard is grading errors.
+;; `press-variant' is not graded either, being an outcome rather than a fault.
+(define KIND-GRADE
+  (hash
+   ;; The reading is untouched; only the workmanship shows.
+   "substitution"   'cosmetic
+   "sort-wanting"   'cosmetic
+   "division"       'cosmetic
+   ;; Not a word. The eye stops, so it is the most catchable of them.
+   "foul-case"      'orthographic
+   "spacing"        'orthographic
+   ;; A word, and the wrong one. Reads as sense and hides in it.
+   "misreading"     'sense
+   "pointing"       'sense
+   "transposition"  'sense
+   ;; The sense does not merely shift; it breaks.
+   "omission"       'meaning
+   "dittography"    'meaning
+   "resumption"     'meaning))
+
+(define (lambard-grade id) (hash-ref KIND-GRADE id #f))
 
 ;; id      the xml:id in the taxonomy, and the ana pointer minus its hash
 ;; class   the CSS class the renderers put on the word, or #f for no mark
@@ -70,6 +137,24 @@
                    "correcting it is the commonest thing a corrector did: two "
                    "of the twenty corrections on the one proof-corrected page "
                    "of the First Folio that survives."))
+   (deviation-kind
+    "capital" "dev-capital" "120,95,30" ".28" "0.09"
+    (string-append "A capital the compositor gave a word mid-sentence where "
+                   "his copy left it in lower case. Blayney identifies Okes's "
+                   "B by “capitalised King”, so the capitals are an "
+                   "attribution marker as the spellings are. Measured over 491 "
+                   "books: 10.5% of mid-sentence words carry one, 5.7% once "
+                   "the proper names are taken out, and the rule selects from "
+                   "the 3,761 word-types that vary."))
+   (deviation-kind
+    "pointing-habit" "dev-repointed" "35,95,75" ".28" "0.09"
+    (string-append "The heavy medial stop set as the compositor's period set "
+                   "it, whichever his copy had — a colon for a semicolon or "
+                   "the reverse. His pointing is a habit as his spelling is, "
+                   "and Blayney identifies a workman by it. Measured over 300 "
+                   "books: the colon is the heavy stop 70% of the time in the "
+                   "1600s and 35% by 1640, and a modernised copy has it the "
+                   "wrong way round."))
    (deviation-kind
     "omission" "dev-omitted" "60,80,140" ".32" "0.10"
     (string-append "A word in the copy that he never set. Hornschuch's first "
@@ -202,6 +287,24 @@
   (define classes (filter values (map deviation-kind-class DEVIATION-KINDS)))
   (check-equal? (length classes) (length (remove-duplicates classes))
                 "no two kinds share a class, which .dev-divided and .dev-shift did")
+
+  ;; A NEW FAULT MUST BE GRADED WHEN IT IS BUILT, or it silently drops out of
+  ;; the severity report -- the same way four mechanisms once dropped out of the
+  ;; apparatus for want of a category. Every id is either graded or named here
+  ;; as something Lambard is not grading.
+  (define UNGRADED
+    '("copy" "habit" "justification" "house-style" "press-variant"
+      "pointing-habit" "capital"))
+  (for ([id (in-list ids)])
+    (check-true (or (and (lambard-grade id) #t) (and (member id UNGRADED) #t))
+                (format "~a has no Lambard grade and is not listed as ungradable" id)))
+  (check-true (for/and ([g (in-list (hash-values KIND-GRADE))])
+                (and (assq g LAMBARD-GRADES) #t))
+              "every grade used is one of Lambard's four")
+  ;; The habits are not faults and must never be graded: a compositor's own
+  ;; spelling offends against nothing.
+  (check-false (lambard-grade "habit") "a habit is not an error")
+  (check-false (lambard-grade "capital") "nor is a capital he chose")
   (define css (deviation-css))
   (for ([k (in-list DEVIATION-KINDS)])
     (define c (deviation-kind-class k))

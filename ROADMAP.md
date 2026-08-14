@@ -920,9 +920,68 @@ any of them was written. Ask it of every new kind.
 - **An anchor that can see the new kinds.** The *Much Ado* diff is word-against-word
   and cannot register punctuation, spacing or lineation, which is why nothing here
   has ever counted them. §11 is now a dependency rather than a parallel item.
-- **Lambard's severity grades** — cosmetic, orthographic, sense-perverting,
-  meaning-destroying — would give `catches-accident` and `catches-misreading` a
-  principle instead of two bare numbers.
+- ~~**Pointing as a habit**~~ — **built 2026-08-14.** `repoint` in
+  `compositor.rkt`, at the HABIT stage and not the read stage, because it is a
+  choice and not a slip: `mis-point` is his hand going wrong, this is the
+  workman. Measured before building, the model's pointing was its copy's to
+  within the error rate — it made no choices at all — while Blayney identifies
+  Okes's B by "capitalised King ... and a free use of the apostrophe".
+
+  `tools/count-pointing.py` measures 300 books: the colon is the heavy stop 70%
+  of the time in the 1600s and 35% by 1640. **A modernised copy has it the wrong
+  way round.** The model now reads 66.5% at 1600 and 32.7% at 1640 — within four
+  points at both ends, with the trend reversing correctly. It selects between
+  two marks the copy already uses and invents neither.
+
+- ~~**Capitalisation as a habit**~~ — **built 2026-08-14.** `capitalise` in
+  `compositor.rkt`, beside `repoint` at the habit stage.
+  `tools/build-capitals.py` writes the 3,761 word-types the period capitalised
+  mid-sentence, with each one's share, to `lexicon/capitals-1580-1640.rktd`; the
+  rule selects from that table and cannot invent a capital. Model 9.2% against
+  the copy's 4.2% and the corpus's 10.5%.
+
+  **Both difficulties dissolved rather than being solved.** A capital falls on a
+  noun and there is no tagger — but the corpus names the words, so none is
+  wanted. And the measurement is of mid-sentence words — but the rule only adds
+  a capital to a word the copy left lower case, and a word opening a sentence
+  has one already, so the restriction enforces itself.
+
+  Still open in it: **the workmen do not differ.** Blayney's whole point is that
+  they do, and the corpus shows books from 6% to 17% — but no source gives a
+  per-compositor figure, and inventing one would put a difference into the
+  attribution evidence that nothing measured. This is the natural place for the
+  next real source to land.
+
+- **Whether he pointed MORE than his copy, and not merely otherwise.** What is
+  matched above is the *share* of heavy stops, not the density: the model reads
+  colon 8.6 per 1,000 against the corpus's 11.1 because it chooses among the
+  stops the copy has and adds none. Settling this needs a copy→print pair, which
+  is §11.
+
+- ~~**Lambard's severity grades**~~ — **built 2026-08-14.** `LAMBARD-GRADES`
+  and `KIND-GRADE` in `vocabulary.rkt`, `catches-grade` in `press.rkt`, and a
+  block in the departure report counting the four.
+
+  **The grades are not the corrector's order, and that is the finding.** Lambard
+  sorts by DANGER; a corrector without the copy catches by DETECTABILITY; the
+  two part at both ends. An orthographic fault is the second least dangerous and
+  the *easiest* to catch — `hanourable` is not a word and the eye stops at it.
+  A sense-perverting fault is the most dangerous and among the *hardest* —
+  `their` for `there` reads perfectly. **So the dangerous errors are exactly the
+  ones that survive**, which is why an errata list is full of what a proof
+  census does not show — the same two-stage disagreement the dropped word turns
+  on. Anyone reaching for Lambard as a ladder of catch rates has it backwards.
+
+  `catches-accident` 0.75 and `catches-misreading` 0.10 turn out to BE the
+  orthographic and sense grades. They keep their values — the refactor is
+  byte-identical on a full run — and what is new is that the other two grades
+  have somewhere to sit, and that adding a fault now means grading it rather
+  than inventing a rate for it. A test fails if a new kind is added ungraded.
+
+- **Lambard's edition size**, mentioned in the same passage: **six hundred
+  copies, and twenty years to sell them.** `--edition` defaults to 750 and the
+  Folio runs at 1,200; six hundred is a datum for the small end and nothing in
+  the calibration file rests on a real edition size yet.
 
 **Do not fit any of it to the twenty corrections on that page.** It carries eight
 times the book's average and says the density is short without saying what it is.

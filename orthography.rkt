@@ -24,8 +24,40 @@
 ;;; page is suspect as evidence of habit -- a point Hinman presses against his
 ;;; own method at i. 186-7.
 
-(require racket/string racket/list racket/match racket/set
+(require racket/string racket/list racket/match racket/set racket/runtime-path racket/promise
          "metrics.rkt" "lexicon.rkt")
+
+;; ---------------------------------------------------------------------------
+;; The capitals a printed book gave a word mid-sentence
+;; ---------------------------------------------------------------------------
+;; A compositor's capitals are a habit as his spelling is. Blayney identifies
+;; Okes's B by "capitalised King ... and a free use of the apostrophe", and this
+;; program had no mechanism for any of it: measured on its own output, it set
+;; capitals only where its copy already had them.
+;;
+;; The table is measured, not invented, for the same reason the spellings are.
+;; `tools/build-capitals.py' counts every MID-SENTENCE word in 491 English books
+;; of 1580-1640 -- a word at the head of a sentence is capitalised by rule and
+;; says nothing about a habit -- and keeps the 3,761 word-types capitalised
+;; between 4% and 90% of the time. Above 90% the word is a proper name and
+;; carries no choice; below 4% the capital is a slip.
+;;
+;; So the rule SELECTS from what the period capitalised and cannot invent a
+;; capital, which is the discipline lexicon.rkt imposes on spelling and the one
+;; that stopped the spelling devices producing `theere' and `manne'.
+(define-runtime-path capitals-file "lexicon/capitals-1580-1640.rktd")
+
+(define CAPITAL-SHARES
+  (delay
+    (for/hash ([row (in-list (with-input-from-file capitals-file read))])
+      (values (car row) (cadr row)))))
+
+;; How often the period gave this word a capital in the middle of a sentence,
+;; or #f if it is not a word anybody capitalised by choice.
+(define (capital-share w)
+  (hash-ref (force CAPITAL-SHARES) (string-downcase w) #f))
+
+(provide capital-share)
 
 ;; The gate every produced spelling passes through.
 ;;

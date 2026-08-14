@@ -48,6 +48,8 @@
          current-mis-space MIS-SPACE-RATE mis-space
          current-mis-transpose MIS-TRANSPOSE-RATE mis-transpose
          current-mis-drop MIS-DROP-RATE mis-drop
+         repoint colon-share COLON-SHARE
+         capitalise
          (struct-out word) (struct-out set-line) (struct-out event)
          (struct-out profile) (struct-out page-spec)
          PROFILES make-comp comp? comp-profile comp-events comp-rng comp-case
@@ -399,6 +401,111 @@
          [else (loop (cdr ps) (cons p out))])])))
 
 ;; ---------------------------------------------------------------------------
+;; The heavy stop, as the period set it
+;; ---------------------------------------------------------------------------
+;; POINTING WAS A HABIT AND THIS PROGRAM HAD IT ONLY AS AN ERROR. `mis-point'
+;; can drop a stop or set the wrong one, which is a fault; nothing here could
+;; point a book the way a workman pointed one. Measured on the model's own
+;; output, its pointing is its copy's pointing to within the error rate --
+;; comma 85.3 in the copy against 78.7 on the page, semicolon 11.1 against
+;; 10.0. The compositor was making no choices at all.
+;;
+;; That is a real hole, and Blayney names the faculty when he identifies Okes's
+;; B by "capitalised King ... and a free use of the apostrophe". Pointing and
+;; capitalisation are attribution markers exactly as spelling is.
+;;
+;; What the corpus can settle is the ONE choice that leaves an unambiguous
+;; trace: which mark a printer used for the heavy medial stop. Measured over 300
+;; English books of 2,000 words or more (`tools/count-pointing.py'), medians per
+;; 1,000 words:
+;;
+;;   decade    1580   1590   1600   1610   1620   1630   1640
+;;   colon      9.8   10.7   11.1   12.5    7.9    7.3    6.8
+;;   semicolon  6.6    6.2    4.7    9.3   10.4    9.5   12.5
+;;
+;; The colon is the heavy stop of the sixteenth century and the semicolon takes
+;; it over during the seventeenth -- 60% colon in the 1580s, 70% in the 1600s,
+;; 43% by the 1620s, 35% by 1640. **A modernised copy-text has this the wrong
+;; way round**, because an editor puts semicolons where the printer set colons:
+;; Areopagitica as this program receives it reads semicolon 11.1 against colon
+;; 3.2, which is the 1640s ratio inverted.
+;;
+;; So the compositor sets the heavy stop his period sets, whichever his copy
+;; had. This SELECTS between two marks the copy already uses and invents
+;; neither, which is the same discipline the spelling devices work under.
+;; Dated, because the trend is the whole finding: a rate right for 1590 is
+;; wrong for 1640 in the other direction.
+(define COLON-SHARE
+  '((1580 . 0.60) (1590 . 0.63) (1600 . 0.70) (1610 . 0.57)
+    (1620 . 0.43) (1630 . 0.43) (1640 . 0.35)))
+
+(define (colon-share year)
+  (cond
+    [(not year) 0.60]
+    [else
+     (define d (* 10 (quotient year 10)))
+     (cond
+       [(assv d COLON-SHARE) => cdr]
+       [(< d 1580) 0.60]
+       [else 0.35])]))
+
+;; ---------------------------------------------------------------------------
+;; The capital a word was given in the middle of a sentence
+;; ---------------------------------------------------------------------------
+;; The other half of the same hole. Blayney identifies Okes's B by "capitalised
+;; King", so capitals are an attribution marker exactly as spelling is, and this
+;; program set them only where its copy already had them. Measured over 491
+;; books, **10.5% of mid-sentence words carry a capital, 5.7% once the
+;; word-types capitalised nine times in ten are dropped as proper names.**
+;;
+;; NO PART OF SPEECH IS NEEDED, AND THAT WAS THE WHOLE DIFFICULTY. A capital
+;; falls on a noun and there is no tagger here, so the first thought was that
+;; the profile would have to carry a list of the words it capitalised -- which
+;; Blayney's evidence supports for exactly one word, `King'. The corpus gives
+;; 3,761 of them with the share for each, so the rule selects from what the
+;; period actually capitalised and cannot invent one.
+;;
+;; Nor is any sentence tracking needed, which was the second difficulty. The
+;; rule only ever ADDS a capital to a word the copy left in lower case, and a
+;; word at the head of a sentence arrives capitalised already -- so it is
+;; untouched whatever the rule would have done to it. The mid-sentence
+;; restriction enforces itself.
+;;
+;; One thing deliberately not modelled: **the workmen do not differ.** Blayney's
+;; point is that they do, and the corpus shows books running from 6% to 17% of
+;; mid-sentence words -- but a per-compositor figure is exactly what no source
+;; gives, and inventing an assignment would put a difference into the attribution
+;; evidence that nothing measured. Every compositor here capitalises alike, and
+;; the report says so.
+(define (capitalise w g)
+  (cond
+    [(zero? (string-length w)) w]
+    [(char-upper-case? (string-ref w 0)) w]
+    [else
+     (define core (string-trim w ".,;:!?'" #:repeat? #t))
+     (define share (and (positive? (string-length core)) (capital-share core)))
+     (cond
+       [(and share (< (rnd g) share))
+        (string-append (string (char-upcase (string-ref w 0))) (substring w 1))]
+       [else w])]))
+
+;; Applied to the word the stop hangs on, at the HABIT stage: it is a choice
+;; and not a slip, and the report must not call it one.
+(define (repoint w year g)
+  (define n (string-length w))
+  (cond
+    [(zero? n) w]
+    [else
+     (define last-ch (string-ref w (sub1 n)))
+     (cond
+       [(memv last-ch '(#\; #\:))
+        (define want (if (< (rnd g) (colon-share year)) #\: #\;))
+        (if (char=? want last-ch)
+            w
+            (string-append (substring w 0 (sub1 n)) (string want)))]
+       [else w])]))
+
+;; ---------------------------------------------------------------------------
 ;; A word passed over
 ;; ---------------------------------------------------------------------------
 ;; Hornschuch's FIRST mark: a letter, a word, or a stop left out. The stop has
@@ -547,8 +654,13 @@
                                                   (apply-conventions cv form)))))
            form
            read-word)]))
-  (define composed (apply-conventions cv habit))
-  (word copy-word read-word habit habit composed composed
+  ;; His pointing is a habit like his spelling, and belongs at the same stage.
+  ;; After the spelling habit, because the word he settles on is the word he
+  ;; points -- and the two are independent, a man's heavy stop having nothing
+  ;; to do with whether he sets `heere'.
+  (define habit* (capitalise (repoint habit (conventions-year cv) g) g))
+  (define composed (apply-conventions cv habit*))
+  (word copy-word read-word habit* habit* composed composed
         (width-of-word composed) '() italic? '() 'set))
 
 ;; Purely functional: returns a new word, leaves the old one alone.
@@ -1393,6 +1505,51 @@
     (check-equal? (parameterize ([current-mis-space 0.0]) (mis-space pairs (comp-rng c)))
                   pairs
                   "at nought he spaces as the copy does"))
+
+  ;; The capital, where the period gave the word one. Asserted as a proportion
+  ;; and an ordering, both of which come out of the corpus table.
+  (let ()
+    (define g (make-rng 13))
+    (define (share w)
+      (define n 400)
+      (/ (for/sum ([i n]) (if (char-upper-case? (string-ref (capitalise w g) 0)) 1 0))
+         (exact->inexact n)))
+    ;; `king' is capitalised 78.7% of the time in the corpus and `loue' 10.1%.
+    ;; The ORDER is the claim; the table carries the values.
+    (check-true (> (share "king") (share "loue"))
+                "the words the period capitalised oftener are capitalised oftener")
+    (check-true (> (share "king") 0.5) "and `king' is capitalised more often than not")
+    (check-true (< (share "loue") 0.3) "where `loue' seldom is")
+    ;; It selects from the table and cannot invent a capital.
+    (check-equal? (capitalise "zzqx" g) "zzqx"
+                  "a word the period never capitalised is left alone")
+    ;; A word the copy already capitalised is untouched, which is what makes
+    ;; the mid-sentence restriction enforce itself: a word opening a sentence
+    ;; arrives with its capital and never reaches the rule.
+    (check-equal? (capitalise "King" g) "King"
+                  "and one already capitalised is let be"))
+
+  ;; The heavy stop, set as the period set it. Asserted as a preference over
+  ;; many draws rather than on one, since the whole of it is a proportion.
+  (let ()
+    (define g (make-rng 11))
+    (define (share year)
+      (define n 400)
+      (define out (for/list ([i n]) (repoint "praise;" year g)))
+      (/ (for/sum ([w out]) (if (string=? w "praise:") 1 0)) (exact->inexact n)))
+    (define early (share 1600))
+    (define late  (share 1640))
+    ;; The colon is the heavy stop of the earlier date and gives way to the
+    ;; semicolon: 70% against 35% in the corpus. The ORDER is the finding.
+    (check-true (> early late)
+                "the colon gives way to the semicolon across the period")
+    (check-true (> early 0.5) "and is the commoner of the two in 1600")
+    (check-true (< late 0.5) "and the rarer by 1640")
+    ;; It selects between two marks the copy already uses and invents neither.
+    (check-equal? (repoint "praise" 1600 g) "praise"
+                  "a word with no heavy stop is left alone")
+    (check-equal? (repoint "praise," 1600 g) "praise,"
+                  "and a comma is not a heavy stop"))
 
   ;; A word passed over. Hornschuch's first mark, and the one the errata say
   ;; most about and the proof censuses say nothing about.

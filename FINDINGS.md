@@ -1861,3 +1861,36 @@ The one substantive correction: the note said no corrector is ever offered a
 wrong-fount sort. **Ten of the 1,947 are corrected**, by the other door — the
 copy-comparison scan catches anything whose printed form differs from the copy,
 and a borrowed sort that prints `V` for `U` differs. `DVKE. ] DUKE.`
+
+### Lambard's grades are not the order a corrector catches in
+
+The obvious use for the four grades — "blemish only the beautie of our owne
+workmanship", "offend against the lawes of Orthographie", "shrewdly peruert the
+sense", "vtterly euert his meaning" — is as a ladder of catch rates: the worse
+the fault, the likelier it is mended. **That is backwards, and putting the two
+orders side by side is what shows it.**
+
+Lambard grades by DANGER. A corrector reading without the copy catches by
+DETECTABILITY — by what disturbs the surface, not what costs the reader. The two
+run in different orders and part at both ends:
+
+| | Lambard's rank | how catchable |
+|---|---|---|
+| cosmetic — a wrong fount, a shift | least dangerous | **not at all by sense**; the reading is untouched |
+| orthographic — `hanourable` | second least | **easiest**; not a word, the eye stops |
+| sense-perverting — `their` for `there` | second worst | **among the hardest**; it reads |
+| meaning-destroying — a word dropped | worst | visible as a break, but not repairable without copy |
+
+So **the dangerous errors are exactly the ones that survive**. That is why an
+errata list is full of what a proof census does not show, and it is the same
+two-stage disagreement the dropped word turns on: Gascoigne's fifty-one errata
+are half dropped words, and neither surviving proof census shows one at all.
+Lambard is evidence about *what got out*, not about what a corrector found —
+and he says so himself by printing only "Suche therefore as be most daungerous".
+
+The program's two catch rates turned out to be two of the four grades already:
+`catches-accident` 0.75 is the orthographic one, `catches-misreading` 0.10 the
+sense one. Naming them so is byte-identical on a full run. What it buys is that
+the other two grades have somewhere to sit, and that **a new fault is now graded
+rather than given a rate of its own** — which is the fifth different way this
+project has found of not inventing a number.

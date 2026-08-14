@@ -128,6 +128,7 @@ decides whether the two agree.*
 | internal space | ~9% (Blayney, ten 20-line samples off *Lear*) | printed | 11.57% (Moxon ladder) | printed | short, and §5's residual |
 | word division, prose plays | 6.41 / 100 lines (Norton, 790 plates) | printed | 5.88 | printed | short by the same proportion |
 | roman lower-case alphabet | 11 ems (Smith, p. 158) | — | **10.95 ems** | — | 0.5%, and the only row right first time |
+| the heavy medial stop | colon is **70%** of colon+semicolon in the 1600s, **35%** by 1640; 300 English books ≥2,000 words, medians by decade | printed | **66.5%** at 1600, **32.7%** at 1640 (*Areopagitica*) | printed | **within 4 points at both ends, and the trend reverses in the right direction** |
 
 ✱ **Wrong fount compares across stages and is the one known fault in this
 table.** Hornschuch names it as something the corrector cleared; this program
@@ -158,7 +159,57 @@ Shifts made for want of a sort: 375852
   space-metal    367822
 ```
 
+**Pointing was a habit and the program had it only as an error.** Measured on
+its own output before this was built, the model's pointing was its copy's
+pointing to within the error rate — comma 85.3 per 1,000 in the copy against
+78.7 on the page, semicolon 11.1 against 10.0. It was making no choices at all,
+while Blayney identifies a workman by his pointing and his capitals as readily
+as by his spelling.
+
+The corpus settles the one choice that leaves an unambiguous trace, per 1,000
+words, medians over 300 books:
+
+| decade | 1580 | 1590 | 1600 | 1610 | 1620 | 1630 | 1640 |
+|---|---|---|---|---|---|---|---|
+| colon | 9.8 | 10.7 | 11.1 | 12.5 | 7.9 | 7.3 | 6.8 |
+| semicolon | 6.6 | 6.2 | 4.7 | 9.3 | 10.4 | 9.5 | 12.5 |
+
+**A modernised copy-text has this the wrong way round**, an editor putting
+semicolons where the printer set colons: *Areopagitica* as this program receives
+it reads semicolon 11.1 against colon 3.2, which is the 1640s ratio inverted.
+The compositor now sets the heavy stop his period set, selecting between two
+marks his copy already uses and inventing neither.
+
+What is matched is the **share**, not the density. The model reads colon 8.6 per
+1,000 against the corpus's 11.1, because it chooses among the heavy stops the
+copy has and does not add any. Whether a compositor also pointed *more* than his
+copy is a separate question and is not modelled.
+
+**Capitalisation, the same evidence and the same shape.** The measurement gives
+**10.5% of mid-sentence words capitalised, 5.7% once the word-types capitalised
+nine times in ten are dropped as proper names** — and the words that vary are
+exactly Blayney's kind of marker: `king` 78.7%, `church` 87.1%, `faith` 20.6%,
+`loue` 10.1%. `tools/build-capitals.py` writes the 3,761 of them to
+`lexicon/capitals-1580-1640.rktd` with each one's share, and the rule selects
+from that table, so it cannot invent a capital any more than a spelling device
+can invent a spelling. The model reads **9.2%** against the copy's 4.2%.
+
+Two difficulties dissolved rather than being solved, and both are worth knowing.
+A capital falls on a noun and there is no part of speech here — but the corpus
+names the words, so none is needed. And the count is of MID-SENTENCE words —
+but the rule only ever adds a capital to a word the copy left in lower case, and
+a word opening a sentence arrives with one already, so the restriction enforces
+itself and no sentence tracking is needed either.
+
+**The workmen do not differ, and that is deliberate.** Blayney's point is that
+they do, and the corpus shows books running 6% to 17%. But no source gives a
+per-compositor figure, and inventing an assignment would put a difference into
+the attribution evidence that nothing measured — the fault this file exists to
+prevent. Every compositor here capitalises alike.
+
 ```sh
+python tools/count-pointing.py 300                          # pointing and capitals
+python tools/build-capitals.py 600 > lexicon/capitals-1580-1640.rktd
 racket tools/measure-spacing.rkt samples/areopagitica.txt   # space and division
 racket tools/measure-castoff.rkt --kind drama folio/folio.tei.xml
 ```

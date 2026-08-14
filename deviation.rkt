@@ -150,6 +150,27 @@
     (check-regexp-match #rx"^spacing:" (note "troubled" "trou bled" "trou bled"))
     (check-false (regexp-match? #rx"misreading" (note "wisdom and" "wisdomand" "wisdomand"))
                  "a space left out is not a misreading")
+    ;; his capitals, which are a habit too and Blayney's other marker
+    (check-regexp-match #rx"^capital:"
+                        (word-deviation
+                         (word "king" "king" "King" "King" "King" "King"
+                               100 '() #f '() 'picked)))
+    (check-false (regexp-match? #rx"^habit:"
+                                (word-deviation
+                                 (word "king" "king" "King" "King" "King" "King"
+                                       100 '() #f '() 'picked)))
+                 "a capital is not a spelling")
+    ;; his pointing as a HABIT, which is a choice and at another stage than
+    ;; `mis-point' -- that one is his hand slipping, this one is the workman.
+    (check-regexp-match #rx"heavy stop of his period"
+                        (word-deviation
+                         (word "praise;" "praise;" "praise:" "praise:" "praise:" "praise:"
+                               100 '() #f '() 'picked)))
+    (check-false (regexp-match? #rx"^habit:"
+                                (word-deviation
+                                 (word "praise;" "praise;" "praise:" "praise:" "praise:" "praise:"
+                                       100 '() #f '() 'picked)))
+                 "and it is not reported as his spelling")
     ;; a word he never set at all, Hornschuch's first mark. The page-join slip
     ;; writes the SAME shape -- copy longer than reading -- and is claimed above
     ;; by its cause, so these two must not take each other's words.
@@ -298,7 +319,19 @@
                            (format "misreading: copy “~a” → read “~a”"
                                    (word-copy w) (word-read w))))]))
          '())
-     (if (and (not (stages-cancel? w)) (d (word-read w) (word-habit w)))
+     (if (and (not (stages-cancel? w)) (recapitalised? (word-read w) (word-habit w)))
+         (list (cons "capital"
+                     (format "capital: he set “~a” where the copy had “~a”; the period gave the word one mid-sentence"
+                             (word-habit w) (word-read w))))
+         '())
+     (if (and (not (stages-cancel? w)) (repointed? (word-read w) (word-habit w)))
+         (list (cons "pointing-habit"
+                     (format "pointing: he set “~a” where the copy pointed “~a”, the heavy stop of his period"
+                             (word-habit w) (word-read w))))
+         '())
+     (if (and (not (stages-cancel? w)) (d (word-read w) (word-habit w))
+              (not (repointed? (word-read w) (word-habit w)))
+              (not (recapitalised? (word-read w) (word-habit w))))
          (list (cons "habit"
                      (staged "habit"
                              (format "habit: “~a” → “~a”"
@@ -471,6 +504,12 @@
      "pointing"]
     [(differ? (word-copy w) (word-read w)) "misreading"]
     [(stages-cancel? w) (if variant? "press-variant" "copy")]
+    [(and (differ? (word-read w) (word-habit w))
+          (repointed? (word-read w) (word-habit w)))
+     "pointing-habit"]
+    [(and (differ? (word-read w) (word-habit w))
+          (recapitalised? (word-read w) (word-habit w)))
+     "capital"]
     [(differ? (word-read w) (word-habit w)) "habit"]
     [variant? "press-variant"]
     [else "copy"]))
@@ -539,6 +578,27 @@
          (and (pair? wb)
               (> (length wa) (length wb))
               (equal? wb (take-right wa (length wb)))))))
+
+;; His pointing, not his spelling: the two forms differ only in which heavy
+;; stop stands at the end. Told apart from the spelling habit by the shape of
+;; the difference, the same way the read-stage kinds are told from an eye-slip.
+;; A capital he gave the word, where the copy left it lower case. His habit as
+;; much as his spelling is, and told apart from it the same way -- by the shape
+;; of the difference, the two forms being the same letters in another case.
+(define (recapitalised? a b)
+  (and a b
+       (not (string=? a b))
+       (string=? (string-downcase a) (string-downcase b))))
+
+(define (repointed? a b)
+  (and a b
+       (not (string=? a b))
+       (= (string-length a) (string-length b))
+       (let ([n (string-length a)])
+         (and (positive? n)
+              (string=? (substring a 0 (sub1 n)) (substring b 0 (sub1 n)))
+              (memv (string-ref a (sub1 n)) '(#\; #\:))
+              (memv (string-ref b (sub1 n)) '(#\; #\:))))))
 
 (define (transposed? a b)
   (and a b
@@ -629,6 +689,14 @@
                           (differs? (word-copy w) (word-read w))
                           (transposed? (word-copy w) (word-read w)))
                      1 0))
+   'recapitalised (for/sum ([w (in-list words)])
+                    (if (and (not (stages-cancel? w))
+                             (recapitalised? (word-read w) (word-habit w)))
+                        1 0))
+   'repointed (for/sum ([w (in-list words)])
+                (if (and (not (stages-cancel? w))
+                         (repointed? (word-read w) (word-habit w)))
+                    1 0))
    'habit      (count-stage word-read word-habit)
    'fitting    (count-stage word-habit word-final)
    ;; THREE THINGS MAKE THE PRINTED WORD DIFFER FROM THE COMPOSED ONE, and only
@@ -683,6 +751,17 @@
    ;; less the mended ones weighted by the share of the run that got the
    ;; correction, less the ones mended before the press began at all -- which
    ;; leave no variant and no trace, and are Carter's point.
+   ;; The same words, sorted the second way. A word is counted under the grade
+   ;; of the fault it is COLOURED by, so the four add up to the marked words and
+   ;; not to more: a word carrying two faults costs the reader by its worst.
+   'grade-cosmetic     (for/sum ([w (in-list words)])
+                         (if (eq? (lambard-grade (classify w)) 'cosmetic) 1 0))
+   'grade-orthographic (for/sum ([w (in-list words)])
+                         (if (eq? (lambard-grade (classify w)) 'orthographic) 1 0))
+   'grade-sense        (for/sum ([w (in-list words)])
+                         (if (eq? (lambard-grade (classify w)) 'sense) 1 0))
+   'grade-meaning      (for/sum ([w (in-list words)])
+                         (if (eq? (lambard-grade (classify w)) 'meaning) 1 0))
    'accidents-mended
    (if r
        (+ (for*/sum ([(k s) (in-hash (press-run-states r))]
@@ -814,6 +893,10 @@
           "the eye back to the first of two like words; the mirror of eyeskip, and its rate")
      (row "two words set the wrong way round" (g 'transposed) n
           "no source gives a rate; the censuses give an ordering — rarer than pointing")
+     (row "the heavy stop set as the period sets it" (g 'repointed) n
+          "a colon for a semicolon or the reverse; measured from 300 books, and dated")
+     (row "given a capital he was not given" (g 'recapitalised) n
+          "3,761 word-types the period capitalised mid-sentence, with each one's share")
      (row "respelt by habit" (g 'habit) n
           "what he sets left to himself")
      (row "habit given up for the measure" (g 'habit-suspended) n
@@ -850,6 +933,24 @@
           "the house's conventions, not errors")
      ""
      (row "ANY departure from copy" (g 'any) n "")
+     ""
+     "    WHAT IT WOULD COST THE READER — LAMBARD'S FOUR GRADES"
+     "      He sorts the errata to his Perambulation of Kent (1576) before"
+     "      printing them, and prints only \"Suche therefore as be most"
+     "      daungerous\". The grades are his; the counts are this book's."
+     (row "blemish only the workmanship" (g 'grade-cosmetic) n
+          "the reading is untouched — a wrong fount, a shift, a divided word")
+     (row "offend against orthographie" (g 'grade-orthographic) n
+          "not a word: the eye stops, so it is the EASIEST to catch")
+     (row "shrewdly peruert the sense" (g 'grade-sense) n
+          "a word, and the wrong one: reads as sense and hides in it")
+     (row "vtterly euert his meaning" (g 'grade-meaning) n
+          "the sense breaks — a word dropped, doubled, or lost at a join")
+     "      Lambard's order is DANGER and a corrector's is DETECTABILITY, and"
+     "      they part at both ends: the orthographic fault is the second least"
+     "      dangerous and the easiest to see, the sense-perverting one the most"
+     "      dangerous and among the hardest. Which is why the errata lists are"
+     "      full of exactly what a proof census does not show."
      (format "    ~a of the text stands exactly as the copy had it"
              (string-append (real->decimal-string (- 100.0 (pct (g 'any) n)) 1) "%"))
      ""
