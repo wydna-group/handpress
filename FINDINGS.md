@@ -1718,3 +1718,146 @@ does not care that the page was a bad one. Re-derived on that basis the rate is
 it was set from and therefore no evidence of anything. The *total* is what gets
 read afterwards.
 
+
+---
+
+## The facsimile at folio scale
+
+Not a roadmap section. The rendering was never measured until it was called
+slow, and the three costs turned out to be separate, differently caused, and
+badly misjudged on first inspection.
+
+### The 33 MB of inline styles cannot be moved to a stylesheet, and moving them makes the file bigger
+
+The obvious optimisation, and the one anybody will reach for. A folio's facsimile
+is 75 MB, and **867,976 `style="--x:…;--w:…"` attributes are 33.4 MB of it — 44%**.
+Inline style is the textbook thing to hoist into a class.
+
+Counted before it was attempted: **680,545 of those values are distinct, 78.4%
+unique**. Every word sits at its own measured position, so there is almost
+nothing to share. Hoisting them costs a 28.8 MB stylesheet plus 13.1 MB of class
+references — **42.0 MB against the 33.4 MB it replaces**, and the file grows by a
+quarter. The three values that do repeat are `--m:20.000` and its kin, 1,970 of
+them, which is per-column and not per-word.
+
+The related question, whether to serve the stylesheet as a separate file, is
+answered the same way from the other end: the stylesheet is **~30 KB of 75 MB**,
+so unlinking it saves 0.04% and costs the self-contained property. Neither is
+where the bytes are. **The bytes are irreducibly per-word data**, and only
+chunking or fewer words will move them.
+
+### `content-visibility` was expected to fix interaction only, and fixed the load as well
+
+Measured on the folio before anything was changed: **81 s to `domContentLoaded`,
+1,074,060 DOM nodes, and 25 to 32 SECONDS for a single reflow** — paid again on
+every zoom, resize and legend toggle. The reasoning was that the 81 s is the HTML
+parser building a million nodes, which `content-visibility` cannot help, so it
+would fix the reflow and leave the load alone.
+
+Wrong, and by a lot. With `content-visibility: auto` on `.opening`, reflow fell
+to **100 ms** — but `domContentLoaded` fell to **14.6 s** as well. The parser is
+not the whole of that 81 s: the browser lays out incrementally *as the document
+streams in*, and skipping the layout skips it during parsing too. **A cost
+attributed to parsing was mostly layout wearing parsing's clothes.**
+
+The trap in applying it is margin collapse. `content-visibility` brings paint
+containment, which clips `.tag` — 46px above its opening, being its `top:
+-2.9rem` and therefore the same on every book — so the containment box needs
+padding. Taking that padding out of the margin *arithmetically*, 3.4rem of margin
+becoming 0.4rem margin and 3rem padding, is wrong: **adjacent margins collapse
+and padding does not**, so every gap grew by 48px and the book by 23,625px. The
+correct compensation leaves 0.1rem of margin on each side and puts the rest in
+padding.
+
+### Streaming the TEI, and what it does and does not save
+
+`read-xml` on the 85 MB folio TEI: **54 s and 2,561 MB retained**. The same file
+walked a page at a time with `read-xml/element`: **28 s and 13 MB** — the stdlib
+does this, no `sxml` or SSAX needed. Rendering was refactored to work from a
+header and a stream of pages, and the output is **byte-identical**.
+
+What it does not save is the memory of a *full* render, which is dominated by the
+75 MB of HTML being accumulated and comes out around 400 MB either way. What it
+does save is `--pages`, which used to read all 985 pages and throw 965 away: a
+20-page preview went from the whole 54 s parse to **11 s, of which only 2 s is
+XML** — 123 ms for the header, 414 ms for the twenty pages, and 1.5 s counting
+the rest of the book, which is needed only to say "showing the first 20 of 985".
+The remaining 9 s is module loading, and was always there.
+
+One thing the header cannot answer: its `<extent>` says "990 pages" where the
+body holds **985 `<div type="page">`**. The bibliographical count and the encoded
+count are different numbers, and the one the facsimile reports has to be counted.
+
+---
+
+## Comparing runs
+
+### A seed names a run of the random stream, not a book, and the per-seed columns invited a false alarm
+
+The Folio was regenerated and press variants read **346** where CALIBRATION.md
+recorded **478 for the same seed** — a 28% fall against a calibration target the
+old figure straddled. It looked like a regression, and it was chased as one.
+
+The chase was sound and worth keeping. A worktree at the commit that wrote the
+table reproduced its figures **exactly** — 478 variants, 66 catchwords failing,
+118 proofed, 107 corrected — so the table was not stale-in-the-sense-of-wrong,
+and the movement was genuinely caused by the commits after it. Bisecting four
+commits at one seed put the whole of it in `ad99ada`, which touches
+**`orthography.rkt` and nothing else**, and the whole of *that* in one class:
+"reading restored from the copy", 309 to 134, which is 83% of the loss.
+
+That looked damning, because the obvious mechanism would be the lexicon gate
+quietly repairing misreadings — a device forced to produce an attested form,
+handed `thier`, returning `their`. A compositor sets what he read, and a spelling
+device that undoes his eye-slip is a spell-checker in a printing house.
+
+**Measured, and it does not happen: 636 misreadings made, 636 surviving to print,
+0 repaired — and 0 at every one of the three commits.** `press.rkt` is byte for
+byte the same across the change. There is no mechanism.
+
+What actually moved is the stream. On one seed, Areopagitica sets in **60 leaves
+at the older commit and 64 at both later ones** — the casting off acquired two
+regimes — and on seed 44 the Folio is now 954 pages and 480 formes where the
+table says 948 and 474. Word count moves 0.09% while misreadings move 4%, which
+nothing but a shifted sequence of draws explains. **The same seed after a change
+of this kind is a different book**, so the per-seed columns are not paired
+observations and the differences between them are not differences.
+
+Read across versions, only the spread and the mean mean anything: 368–624 against
+321–531, overlapping, *t* ≈ 1.1. And with four seeds that test could not detect a
+real shift of a fifth either, so the honest verdict is **no evidence of a
+regression**, not proof there was none.
+
+The header of that table now says so, because the shape of the table is what
+caused the error: four labelled columns beside four older labelled columns are
+an invitation to subtract them.
+
+### Wrong fount was right all along, and unmeasurable from the report
+
+Chasing what looked like a stale calibration row produced two false trails worth
+marking, because both are easy to walk again.
+
+**`wrong-fount` in the TEI is not a wrong-fount sort.** Grepping the Folio's TEI
+for the string gives 79, against a recorded 1,996, which looks like a mechanism
+that has collapsed. They are running-title damage names — `[a wrong-fount i]`
+from `imposition.rkt` — identifying a skeleton forme, and have nothing to do with
+the event. A wrong-fount *borrow* leaves no such string.
+
+**The category is not mislabelled either.** The next guess was that the row
+reported the whole `'shift` kind under the name of one of its five causes. It
+does not: counted apart, wrong fount on the Folio is **1,947** against the
+recorded 1,996 — the row was accurate, and the difference is stream drift.
+
+What was actually wrong is that **no number in the report could have produced
+it**. The only figure printed was `Shifts made for want of a sort: 375852`, which
+is the whole kind and **98% space-metal** — 367,822 whites made up of smaller
+pieces, beside 4,524 cannibalized, 1,947 wrong fount, 956 another sort and 603
+face-down. A row graded against Blayney's "a handful a book" was being kept by
+hand from a quantity the program never printed. `analysis.rkt` now prints the
+five apart. **A figure in CALIBRATION.md that no report line yields is a figure
+nobody can check, and it will drift silently.**
+
+The one substantive correction: the note said no corrector is ever offered a
+wrong-fount sort. **Ten of the 1,947 are corrected**, by the other door — the
+copy-comparison scan catches anything whose printed form differs from the copy,
+and a borrowed sort that prints `V` for `U` differs. `DVKE. ] DUKE.`

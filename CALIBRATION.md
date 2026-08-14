@@ -26,8 +26,17 @@ So every row carries, where it can:
 
 ## The First Folio — the standard hard case
 
-*Regenerated 2026-08-13. Four seeds (1623, 11, 22, 44), `--edition 1200`,
+*Regenerated 2026-08-14. Four seeds (1623, 11, 22, 44), `--edition 1200`,
 `--copies 4`, five compositors, folio in sixes on crown paper.*
+
+> **Do not read a seed's column against the same seed's column in an older
+> version of this file.** A seed names a run of the random stream, not a book,
+> and any change that alters how many draws are taken before a decision moves
+> every decision after it. The casting-off work of `2b0f8f5` repaginated
+> Areopagitica from 60 leaves to 64 on one seed; on seed 44 this Folio is now
+> 954 pages where it was 948. The per-seed columns are here to show the
+> **spread**, and only the spread and the mean may be compared across versions.
+> Chasing a per-seed difference cost a session once; see FINDINGS.
 
 ```sh
 python tools/fetch-folio.py     # not committed; rerun to obtain the copy
@@ -36,23 +45,34 @@ racket main.rkt --format folio6 --paper crown --compositors A,B,C,D,E \
   --seed 1623 --quiet -o out-folio folio/folio.tei.xml
 ```
 
-Copy: 864,000 words in every run; 948 pages; 474 formes. Those three do not move
-with the seed and are the same book each time.
+Copy: about 864,000 words in every run. Pages and formes were once fixed at 948
+and 474 whatever the seed; since the casting off acquired two regimes they are
+not, and seed 44 gives 954 and 480.
 
 ### Against the record
 
 | | 1623 | 11 | 22 | 44 | mean | recorded | source |
 |---|---|---|---|---|---|---|---|
-| pages | 948 | 948 | 948 | 948 | **948** | 908 | the book |
-| press variants | 478 | 624 | 465 | 368 | **484** | "just over 500" | Hinman, Norton, p. xx |
-| formes corrected mid-run | 107 | 119 | 118 | 106 | **112** of 474 | ~100 of ~450 | ibid. |
-| formes proofed | 118 | 134 | 129 | 118 | **125** of 474 | — | — |
-| word divisions / 100 lines | 1.79 | 1.72 | 1.72 | 1.72 | **1.74** | 2.03 | measured, 790 plates |
+| pages | 948 | 948 | 948 | 954 | **950** | 908 | the book |
+| press variants | 346 | 531 | 321 | 428 | **407** | "just over 500" | Hinman, Norton, p. xx |
+| formes corrected mid-run | 105 | 100 | 111 | 117 | **108** of 474–480 | ~100 of ~450 | ibid. |
+| formes proofed | 121 | 110 | 130 | 134 | **124** of 474–480 | — | — |
+| word divisions / 100 lines | 1.78 | 1.80 | 1.72 | 1.70 | **1.75** | 2.03 | measured, 790 plates |
 
-**The variant count runs 368 to 624 — a 1.7-fold spread — and its mean straddles
-Hinman's figure.** Every calibration decision recorded in `press.rkt` (proof rate
-0.6, then 0.28, then 0.224) was argued from a *single* full Folio before that
-spread was known. Read the row as a range.
+**The variant count runs 321 to 531 — a 1.65-fold spread — and its mean now sits
+about a fifth below Hinman's figure**, where the previous four seeds gave 368 to
+624 and a mean of 484 that straddled it. The two sets of four overlap heavily and
+the difference of means is not significant (unpaired *t* ≈ 1.1 on 6 df), but four
+seeds cannot detect a shift of that size either, so this is *no evidence of a
+change* rather than evidence of none. It was run down commit by commit and no
+mechanism was found: `press.rkt` is untouched between the two, misreadings still
+survive to print at 100%, and the whole of the movement is re-randomisation and a
+changed pagination. Formes corrected, the steadier row and the one `--proof-rate`
+is set against, barely moved: 112 to 108.
+
+Every calibration decision recorded in `press.rkt` (proof rate 0.6, then 0.28,
+then 0.224) was argued from a *single* full Folio before that spread was known.
+Read the row as a range.
 
 Formes corrected is the steadier of the two and is the quantity `--proof-rate` is
 set against, which is why it is set against that one.
@@ -61,25 +81,33 @@ set against, which is why it is set against that one.
 
 | per book | 1623 | 11 | 22 | 44 | mean | the bound |
 |---|---|---|---|---|---|---|
-| crowded | 123 | 137 | 129 | 131 | **130** | — |
-| spun out | 177 | 187 | 155 | 193 | **178** | — |
-| *either* — miscast | 300 | 324 | 284 | 324 | **308** of 948 (325/1000) | Blayney: "the page-depth is almost entirely consistent" |
-| lines of copy dropped | 232 | 318 | 214 | 275 | **260** | McKerrow: "as occasionally happens" |
-| catchwords not answering | 66 | 91 | 63 | 76 | **74** | Blayney: "most of the catchwords are right" |
+| crowded | 132 | 151 | 169 | 145 | **149** | — |
+| spun out | 168 | 162 | 148 | 156 | **159** | — |
+| *either* — miscast | 300 | 313 | 317 | 301 | **308** of 950 (324/1000) | Blayney: "the page-depth is almost entirely consistent" |
+| lines of copy dropped | 323 | 276 | 324 | 313 | **309** | McKerrow: "as occasionally happens" |
+| catchwords not answering | 99 | 90 | 98 | 97 | **96** | Blayney: "most of the catchwords are right" |
 
 Both bounds are qualitative and neither source gives a rate. **A third of pages
 miscast still fails Blayney**, and that is the honest reading — but it was 717
-per 1,000 before the casting-off work of 2026-08-12 and is 325 now.
+per 1,000 before the casting-off work of 2026-08-12 and is 324 now.
+
+Catchwords not answering rose from a mean of 74 to 96 when the catchword came to
+be taken from the copy (`e70d054`) rather than from the next page's first word.
+That is the mechanism working: a catchword set from a word the compositor then
+lost his place over is *supposed* to fail. At 96 of about 943 set, some 90% still
+answer, which is the side of "most" the source asks for. The spread also
+tightened, 63–91 to 90–99, which is what a real mechanism replacing a lucky
+accident looks like.
 
 ### The compositor's faults
 
 | per book | 1623 | 11 | 22 | 44 | mean | note |
 |---|---|---|---|---|---|---|
-| accident of the case (made) | 835 | 812 | 818 | 864 | **832** | foul case, turned letters, wrong fount |
-| — left standing in one copy | 653 | 629 | 636 | 714 | **658** | what a diff against the copy-text would find |
-| pointed otherwise than the copy | 244 | 244 | 236 | 267 | **248** | a stop dropped, changed, or intruded |
-| he lost his place | 18 | 23 | 17 | 23 | **20** | a word or two dropped or doubled at a page join |
-| faults of impression | 509 | 512 | 513 | 456 | **498** | a lead showing, a sort standing proud |
+| accident of the case (made) | 822 | 854 | 913 | 880 | **867** | foul case, turned letters, wrong fount |
+| — left standing in one copy | 675 | 694 | 726 | 718 | **703** | what a diff against the copy-text would find |
+| pointed otherwise than the copy | 226 | 233 | 255 | 250 | **241** | a stop dropped, changed, or intruded |
+| he lost his place | 20 | 30 | 19 | 22 | **23** | a word or two dropped or doubled at a page join |
+| faults of impression | 506 | 511 | 509 | 456 | **496** | a lead showing, a sort standing proud |
 
 **Faults of impression are not press variants** and must never be added to that
 count: mending one alters no reading, so no collation of any number of copies
@@ -96,16 +124,39 @@ decides whether the two agree.*
 |---|---|---|---|---|---|
 | foul case + turned letters | **0.25 / 1,000 words** — 3 events in 11,990 (two `Leonato`/`Leonata`, one `tongues`/`tongnes`); exact Poisson 95% CI **0.05–0.73** | survived the corrector | 0.96 made, **0.76 survives** (Folio, 4 seeds) | both printed | **inside the interval at the right stage, outside it at the wrong one** |
 | tilde abbreviations | 1580s median **2.99** (p75 5.85, p90 9.65); 1600s **1.11** (p75 2.51); 1620s **0.25** (p75 0.83). 51/78/83 English books ≥2,000 words | printed | 1585 **5.01–7.13**; 1605 **1.71–2.40**; 1625 **0.16–0.87** (4 seeds, *Areopagitica*) | printed | **between median and p75 at every date** — inside the distribution, on the high side of it |
-| wrong-fount sorts | "a handful a book" | survived the corrector | **1,996** on the Folio, 2.31 / 1,000 words | **never corrected here** | ✱ **not comparable** — see below |
+| wrong-fount sorts | "a handful a book" | survived the corrector | **1,947** on the Folio, 2.25 / 1,000 words | 0.5% corrected; the rest print in every copy | ✱ **not comparable** — see below |
 | internal space | ~9% (Blayney, ten 20-line samples off *Lear*) | printed | 11.57% (Moxon ladder) | printed | short, and §5's residual |
 | word division, prose plays | 6.41 / 100 lines (Norton, 790 plates) | printed | 5.88 | printed | short by the same proportion |
 | roman lower-case alphabet | 11 ems (Smith, p. 158) | — | **10.95 ems** | — | 0.5%, and the only row right first time |
 
 ✱ **Wrong fount compares across stages and is the one known fault in this
 table.** Hornschuch names it as something the corrector cleared; this program
-classes it as a *shift* — a shop expedient, like robbing a sort — so no corrector
-is ever offered it and every one prints in every copy. It belongs with the faults
-of impression, being visible on the page and changing no reading. Unfixed.
+classes it as a *shift* — a shop expedient, like robbing a sort — so the
+corrector's own path never offers him one. It belongs with the faults of
+impression, being visible on the page and changing no reading. Unfixed.
+
+Two corrections to what this note used to say, both found on 2026-08-14:
+
+*Not quite never.* **Ten of the 1,947 are corrected at press, 0.5%** (and 26
+cannibalized borrows with them). They arrive by the other door: the corrector's
+copy-comparison scan catches anything whose printed form differs from the copy,
+and a borrowed sort that happens to print `V` for `U` differs. `DVKE. ] DUKE.`,
+`QVICKLY. ] QUICKLY.` So the reading is "almost never", not "never", and the
+mechanism by which the few escape is worth knowing before the row is fixed.
+
+*And it was not measurable.* The only figure the report gave was **375,852
+shifts**, which is the whole `'shift` kind and is 98% space-metal — 367,822
+whites made up of smaller pieces. Nothing printed distinguished the five causes,
+so this row's number could not be got from the report at all. It now can:
+
+```
+Shifts made for want of a sort: 375852
+  wrong-fount      1947
+  cannibalized     4524
+  face-down         603
+  another-sort      956
+  space-metal    367822
+```
 
 ```sh
 racket tools/measure-spacing.rkt samples/areopagitica.txt   # space and division
@@ -116,7 +167,16 @@ racket tools/measure-castoff.rkt --kind drama folio/folio.tei.xml
 
 ## The analysis, graded against the truth it knows
 
-*Regenerated 2026-08-13 except where noted.*
+*Measured 2026-08-13 and **not re-measured since**, unlike every other table in
+this file. Read these as the most recent figures, not as current ones.*
+
+Three mechanism commits have landed since, and two rows are known to sit on
+quantities that moved. **Perfecting order** is read off press variants, and those
+fell from a mean of 484 to 407. **Compositor attribution** is read off spelling,
+and the lexicon now gates every device that produces it. The rest rest on type
+recurrence and are less exposed, but all of them were taken before the random
+stream shifted, and none has been re-run. Re-running them is the next thing this
+file needs.
 
 | method | result | note |
 |---|---|---|
@@ -134,16 +194,27 @@ racket tools/measure-castoff.rkt --kind drama folio/folio.tei.xml
 
 ## The apparatus
 
-*Regenerated 2026-08-13, `samples/areopagitica.txt` at folio in sixes.*
+*Regenerated 2026-08-14, `samples/areopagitica.txt` at folio in sixes.*
 
 Every mechanism must name itself in the tooltip and carry its own colour, or the
 table and the page will disagree about the same word.
 
 | | |
 |---|---|
-| marked words on the page | 2,056 |
+| marked words on the page | 1,611 |
 | **without a tooltip** | **0** |
 | **whose tooltip opens with a fault other than the one they are coloured by** | **0** (was ~40) |
+
+The count fell from 2,056 when the lexicon came to gate every device
+(`ad99ada`): the marks that went were spellings no one ever wrote, and a device
+that can select but not invent cannot make them. Do not read the fall as lost
+coverage.
+
+A tooltip names its mechanism, but not always by the taxonomy's word for it —
+about a sixth open in the compositor's terms instead, `the ſ box was empty, so
+it was set s` for a substitution, `no sort to set "and" with` for a wanting
+sort. That is the house style and not a defect; a checker that matches the kind
+name literally will report them and be wrong.
 
 ```sh
 racket main.rkt --format folio6 --kind prose --seed 5 --html -o out samples/areopagitica.txt

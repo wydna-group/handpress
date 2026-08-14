@@ -514,6 +514,43 @@
                "  forme."))))
    "\n"))
 
+;; The expedients a compositor is driven to when a box is empty, told apart.
+;;
+;; They arrive as one kind, `'shift', because they have one cause -- the sort
+;; wanted was not there -- and for a long time they were reported as one number.
+;; That number is useless for grading. It is dominated by space-metal, hundreds
+;; of thousands of whites made up of smaller pieces, and CALIBRATION.md read the
+;; whole of it as **wrong-fount sorts** and set it against Blayney's "a handful
+;; a book". A handful is about wrong fount and nothing else; the row was
+;; comparing a category against one of its five members.
+;;
+;; So they are counted apart. Wrong fount especially, because it is the one the
+;; bibliographers care about: the reading is right and the letter is from
+;; another fount, which dates a page against the shop's other work.
+(define SHIFT-CAUSES
+  (list (cons 'wrong-fount     #rx"a wrong-fount")
+        (cons 'cannibalized    #rx"margin of a standing page")
+        (cons 'face-down       #rx"set face down")
+        (cons 'another-sort    #rx"set in its room")
+        (cons 'space-metal     #rx"white made up of smaller pieces")))
+
+(define (shift-cause e)
+  (or (for/or ([p (in-list SHIFT-CAUSES)])
+        (and (regexp-match? (cdr p) (event-detail e)) (car p)))
+      'other))
+
+(define (shift-tally shifts)
+  (for/fold ([h (hash)]) ([e (in-list shifts)])
+    (hash-update h (shift-cause e) add1 0)))
+
+;; Written out in the order of SHIFT-CAUSES so the reading is stable between
+;; runs, with wrong fount first because it is the row that gets graded.
+(define (shift-breakdown-lines shifts indent)
+  (define h (shift-tally shifts))
+  (for/list ([k (in-list (append (map car SHIFT-CAUSES) '(other)))]
+             #:when (positive? (hash-ref h k 0)))
+    (format "~a~a ~a" indent (pad (format "~a" k) 16) (hash-ref h k 0))))
+
 (define (case-report b)
   (define evs (book-events b))
   (define shifts (filter (lambda (e) (eq? (event-kind e) 'shift)) evs))
@@ -533,6 +570,7 @@
                                       (min 10 (hash-count ex))))])
           (format "      ~a wanted ~a time(s)" (pad (format "~s" (car kv)) 6) (cdr kv))))
     (list "" (format "  Shifts made for want of a sort: ~a" (length shifts)))
+    (shift-breakdown-lines shifts "      ")
     (for/list ([e (in-list (take shifts (min 8 (length shifts))))])
       (format "      ~a ~a" (pad (event-page e) 10) (event-detail e)))
     (list "" (format "  Accidents of the case: ~a" (length accidents)))
@@ -707,7 +745,9 @@
               "    Deepest depletion:      no bill to deplete")
           (format "    Sorts wanted while formes stood locked up: ~a"
                   (hash-count (tcase-exhausted tc)))
-          (format "    Shifts made for want of a sort: ~a" (length shifts))
+          (format "    Shifts made for want of a sort: ~a" (length shifts)))
+    (shift-breakdown-lines shifts "      ")
+    (list
           (format "    Accidents of the case:  ~a" (length accidents))
           (format "    Errors reading the copy: ~a" (length copy-errs))
           ""
