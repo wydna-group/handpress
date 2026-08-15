@@ -1894,3 +1894,86 @@ sense one. Naming them so is byte-identical on a full run. What it buys is that
 the other two grades have somewhere to sit, and that **a new fault is now graded
 rather than given a rate of its own** — which is the fifth different way this
 project has found of not inventing a number.
+
+### Wrong fount was two orders out because the mechanism had the wrong cause
+
+The row read **1,947** on the Folio against "a handful a book", and it had stood
+in CALIBRATION.md marked as the one known fault for long enough to be quoted as
+a caveat rather than treated as a defect. Two attempts at it failed before the
+right shape, and both failures are worth keeping.
+
+**It was invisible, and that is why it drifted.** The only figure the report gave
+was `Shifts made for want of a sort: 375852`, the whole kind and 98%
+space-metal. Splitting that in the report exposed the row the same afternoon.
+A figure no report line yields is one nobody can check.
+
+**The constant contradicted its own comment.** The last resort for an empty box
+chose between setting a sort face down and borrowing from another fount, and the
+note above it reasons correctly from Blayney — *Lear* "bristles with … improvised
+substitutions" while he remarks "the relative infrequency of … wrong-fount
+types" — and concludes the parameter "should not be pushed toward the borrow".
+It was set to push 0.75 toward the borrow.
+
+**First fix, and it was wrong.** Give the corner to the face-down, on the
+argument that the sources bound the two differently: Blayney proves the
+face-down once and the note calls its observable count "bounded below by 1 and
+above by nothing", where the borrow is bounded above at a handful. The reasoning
+about the sources was right and the consequence was not — the face-down went to
+3,695, and because it is the one expedient that makes press-correction
+*necessary*, **the variant count went to 1,152 against Hinman's five hundred**.
+Neither expedient can carry four thousand.
+
+**The corner was the error.** The model emptied a box and then asked what
+desperate thing to do about it, four thousand times. A working shop distributes
+continuously, so the commonest answer to an empty box is that it was not empty by
+the time he reached it, and the page keeps no record. The expedients are for the
+times the supply really failed: face-down held at 629–678 and press variants at
+472–627, both where they were.
+
+**And the borrow got the cause the source gives it.** Hornschuch: wrong fount is
+"mostly caused by having to vary the type, for example by inserting italics and
+capitals in a body of lower case". That sentence had been in this file since
+Simpson was read and nothing was built on it. Placed where italic meets roman it
+reads **11–16**, at the same stage as the source — which is also why a
+wrong-fount sort dates a page against the shop's other work.
+
+**A rate that is two orders out is not usually a rate.** It was the cause.
+
+### Spinning out could only double white that was already there
+
+A sixth of the Folio showed white at the foot, and the row that should have
+caught it was pointed at the wrong quantity. `miscast 324 per 1,000` counts pages
+whose copy was MEASURED OUT wrong; Blayney's "the page-depth is almost entirely
+consistent" is about the depth the page came out at, and the crowding devices
+exist to turn the one into the other. The report had said as much for months —
+it prints the miscast count and, separately, the two pages "under serious
+strain", with the note that "the two counts are not interchangeable" — and the
+calibration table quoted the first against a claim about the second.
+
+Measured directly, the defect was one-sided and complete:
+
+| | pages | filled the measure |
+|---|---|---|
+| crowded | 132 | 86.4% |
+| **spun out** | **168** | **4.2%** |
+
+Crowding worked and spinning out essentially never did, and the cause was a
+single condition:
+
+    ;; an extra white line wherever there is already one
+    (if (and (eq? (set-line-kind l) 'blank) (< added need)) ...)
+
+**It could only double a blank that already stood.** The median spun-out page had
+none at all, and 95% of them wanted more white than the page had blanks to
+double. The device was not weak; it had nothing to work with — which is a
+different failure from a badly-set rate and wants a different fix.
+
+A page has more joints than it has blank lines: a paragraph beginning, which its
+indent marks; a speech or stage direction, whose first word is italic; a heading.
+Opening those as well takes spun-out pages from 4.2% to **90.4%** filling and the
+book from 82.0% to **99.9%** within two lines of its measure, with press
+variants, formes corrected, the crowded/spun split and the surviving-accident
+rate all where they were.
+
+**A row that fails a source may be pointed at the wrong quantity, and the way to
+find out is to measure the quantity the source is actually talking about.**

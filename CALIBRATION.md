@@ -93,9 +93,31 @@ set against, which is why it is set against that one.
 | lines of copy dropped | 323 | 276 | 324 | 313 | **309** | McKerrow: "as occasionally happens" |
 | catchwords not answering | 99 | 90 | 98 | 97 | **96** | Blayney: "most of the catchwords are right" |
 
-Both bounds are qualitative and neither source gives a rate. **A third of pages
-miscast still fails Blayney**, and that is the honest reading — but it was 717
-per 1,000 before the casting-off work of 2026-08-12 and is 324 now.
+Both bounds are qualitative and neither source gives a rate.
+
+**The miscast row was being read against the wrong claim.** It counts pages whose
+copy was *measured out* wrong by more than two lines; Blayney's "the page-depth
+is almost entirely consistent" is about the depth the page came out at, and the
+crowding devices exist to turn the one into the other. The report has always said
+so — it prints the miscast count and separately the pages "under serious strain",
+with the note that "the two counts are not interchangeable" — and the table was
+quoting the first against a claim about the second.
+
+Measured directly, page depth against a 132-line measure:
+
+| | pages | filling the measure | 3+ lines short |
+|---|---|---|---|
+| as cast off | 649 | 79.4% | 0.0% |
+| crowded | 129 | 95.3% | 0.0% |
+| spun out | 166 | 90.4% | 0.6% |
+| **whole book within 2 lines** | | **99.9%** | |
+
+**That is Blayney's claim satisfied**, and it was not before: the same measure
+read 82.0% on 2026-08-14, with a sixth of the book showing white at the foot.
+The whole of the shortfall was on spun-out pages, of which only **4.2%** reached
+their depth against 86.4% of crowded ones — the filling device could only double
+a white line that already stood, and 95% of spun-out pages wanted more white than
+they had blanks to double. It now opens the page at its joints as well.
 
 Catchwords not answering rose from a mean of 74 to 96 when the catchword came to
 be taken from the copy (`e70d054`) rather than from the next page's first word.
@@ -166,11 +188,27 @@ decides whether the two agree.*
 |---|---|---|---|---|---|
 | foul case + turned letters | **0.25 / 1,000 words** — 3 events in 11,990 (two `Leonato`/`Leonata`, one `tongues`/`tongnes`); exact Poisson 95% CI **0.05–0.73** | survived the corrector | 0.96 made, **0.76 survives** (Folio, 4 seeds) | both printed | **inside the interval at the right stage, outside it at the wrong one** |
 | tilde abbreviations | 1580s median **2.99** (p75 5.85, p90 9.65); 1600s **1.11** (p75 2.51); 1620s **0.25** (p75 0.83). 51/78/83 English books ≥2,000 words | printed | 1585 **5.01–7.13**; 1605 **1.71–2.40**; 1625 **0.16–0.87** (4 seeds, *Areopagitica*) | printed | **between median and p75 at every date** — inside the distribution, on the high side of it |
-| wrong-fount sorts | "a handful a book" | survived the corrector | **1,947** on the Folio, 2.25 / 1,000 words | 0.5% corrected; the rest print in every copy | ✱ **not comparable** — see below |
+| wrong-fount sorts | "a handful a book" | survived the corrector | **11–16** on the Folio, 4 seeds | survives; the corrector's path never offers him one | **the same stage at last, and inside "a handful"** |
 | internal space | ~9% (Blayney, ten 20-line samples off *Lear*) | printed | 11.57% (Moxon ladder) | printed | short, and §5's residual |
 | word division, prose plays | 6.41 / 100 lines (Norton, 790 plates) | printed | 5.88 | printed | short by the same proportion |
 | roman lower-case alphabet | 11 ems (Smith, p. 158) | — | **10.95 ems** | — | 0.5%, and the only row right first time |
 | the heavy medial stop | colon is **70%** of colon+semicolon in the 1600s, **35%** by 1640; 300 English books ≥2,000 words, medians by decade | printed | **66.5%** at 1600, **32.7%** at 1640 (*Areopagitica*) | printed | **within 4 points at both ends, and the trend reverses in the right direction** |
+
+**Wrong fount was the one known fault in this table and is now fixed** — see
+below for what it was, because the shape of the error is worth more than the
+row. It read **1,947** against "a handful"; it reads 11–16.
+
+The fix was not a smaller rate. **The mechanism had the wrong cause.** It was
+modelled as what a compositor does when a box is empty and nothing else serves,
+which made it a function of how hard the fount is worked; Hornschuch says it is
+"mostly caused by having to vary the type, for example by inserting italics and
+capitals in a body of lower case". FINDINGS had carried that sentence since
+Simpson was read, and nothing was built on it. It is now placed where the two
+founts meet, which is also why a wrong-fount sort dates a page against the
+shop's other work — it came from whatever else was standing.
+
+The old text of this note, kept because the reasoning in it was sound and the
+conclusion was drawn from a number nobody could see:
 
 ✱ **Wrong fount compares across stages and is the one known fault in this
 table.** Hornschuch names it as something the corrector cleared; this program

@@ -387,14 +387,40 @@
        [else (values (take trimmed capacity) (drop trimmed capacity) '())])]
 
     [(< n (sub1 capacity))
-     ;; Spin it out: an extra white line wherever there is already one, which
-     ;; is where the eye will not resent it.
+     ;; Spin it out: white where the eye will not resent it.
+     ;;
+     ;; THIS COULD ONLY DOUBLE A WHITE LINE THAT ALREADY STOOD, and so was
+     ;; starved on exactly the pages that needed it. Measured over a Folio:
+     ;; only **4.2%** of spun-out pages reached their depth against 86.4% of
+     ;; crowded ones, three quarters of them ended three lines or more short,
+     ;; and **95% wanted more white than the page had blanks to double** -- the
+     ;; median spun-out page having none at all. The device was not weak, it
+     ;; had nothing to work with, which is why a sixth of the book showed white
+     ;; at the foot against Blayney's "the page-depth is almost entirely
+     ;; consistent".
+     ;;
+     ;; A compositor filling a short page opens it up at the joints, and a page
+     ;; has more joints than it has blank lines: a paragraph beginning, which
+     ;; its indent marks; a speech or a stage direction, whose first word is
+     ;; italic; a heading or a centred line. Never above the first line of the
+     ;; page, where white is not a join but a mistake.
      (define need (- capacity n))
+     (define (joint? l)
+       (or (> (set-line-indent l) 0)
+           (memq (set-line-kind l) '(stage heading centred))
+           (and (pair? (set-line-words l))
+                (word-italic? (car (set-line-words l))))))
      (define-values (out added)
-       (for/fold ([out '()] [added 0]) ([l (in-list lines)])
-         (if (and (eq? (set-line-kind l) 'blank) (< added need))
-             (values (cons (white-line spec) (cons l out)) (add1 added))
-             (values (cons l out) added))))
+       (for/fold ([out '()] [added 0]) ([l (in-list lines)] [i (in-naturals)])
+         (cond
+           [(>= added need) (values (cons l out) added)]
+           ;; a white line already there: double it, as before
+           [(eq? (set-line-kind l) 'blank)
+            (values (cons (white-line spec) (cons l out)) (add1 added))]
+           ;; or open a joint, but never at the head of the page
+           [(and (positive? i) (joint? l))
+            (values (cons l (cons (white-line spec) out)) (add1 added))]
+           [else (values (cons l out) added)])))
      (when (> added 0)
        (add-event! c (make-ev 'justification
                               (format "~a white line(s) put in to fill the page" added)

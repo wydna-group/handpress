@@ -939,7 +939,17 @@ any of them was written. Ask it of every new kind.
   dropped word perverts the sense where a misprint often does not. It is set to
   come out well below misreadings — one book gives 6 against 36 — and that
   inequality is the whole of the claim.
-- **Wrong fount is a stage error and is unfixed.** Hornschuch names it among the
+- ~~**Wrong fount is a stage error**~~ — **fixed 2026-08-14**, and not by
+  changing a rate. The mechanism had the wrong CAUSE: it was what a compositor
+  does when a box is empty and nothing else serves, so it grew with how hard the
+  fount was worked and read 1,947 on the Folio against "a handful a book".
+  Hornschuch gives the cause plainly — "mostly caused by having to vary the
+  type, for example by inserting italics and capitals in a body of lower case"
+  — and it is now placed where italic meets roman. **11–16 over four seeds**,
+  and at the same stage as the source for the first time. The old note follows,
+  because its reasoning was right and only its number was invisible:
+
+- ~~**Wrong fount is a stage error and is unfixed.**~~ Hornschuch names it among the
   things a corrector cleared; this program classes it a *shift* — a shop
   expedient — so the corrector's own path never offers him one. It belongs with
   the faults of impression, being visible on the page and changing no reading.

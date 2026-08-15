@@ -1386,7 +1386,8 @@
                          (set-box! skip (add1 ci))
                          (hash-ref LIGATURE-PRINTS lig ""))]
                    [else
-                 (define d (pick! tc ch #:careless (profile-care prof)))
+                 (define d (pick! tc ch #:careless (profile-care prof)
+                                  #:italic? (word-italic? w)))
                  (when (draw-piece d)
                    (set! pieces (cons (cons ci (draw-piece d)) pieces))
                    (note-recurrence! tc (draw-piece d)

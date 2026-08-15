@@ -1029,12 +1029,38 @@
 ;; Take one sort from the case, with all that may go wrong. `careless` scales
 ;; this compositor's proneness to foul case; an apprentice's stint is
 ;; measurably dirtier than a journeyman's.
-(define (pick! tc ch #:careless [careless 1.0])
+;; WRONG FOUNT IS NOT WHAT AN EMPTY BOX DOES, and modelling it that way made it
+;; two orders of magnitude too common. Hornschuch gives the cause outright: it
+;; is "mostly caused by having to vary the type, for example by inserting
+;; italics and capitals in a body of lower case". FINDINGS has carried that
+;; sentence since Simpson was read and nothing was built on it.
+;;
+;; So it is placed by rule and not by rate: it happens where the two founts
+;; meet, when a compositor setting italic reaches into the wrong case. That is
+;; why a wrong-fount sort dates a page against the shop's other work -- it came
+;; from what else was standing, which is Blayney's whole use for it.
+;;
+;; The rate is the only free number and it is bounded above by the source: a
+;; handful a book. Set so the Folio gives that order -- about a dozen -- which
+;; is 0.00005 of the sorts in an italic word, italic being a small part of any
+;; page. The source gives no number, so what is claimed is the ORDER.
+(define WRONG-FOUNT-RATE 0.00005)
+(define current-wrong-fount (make-parameter WRONG-FOUNT-RATE))
+(provide WRONG-FOUNT-RATE current-wrong-fount)
+
+(define (pick! tc ch #:careless [careless 1.0] #:italic? [italic? #f])
   (define boxes (tcase-boxes tc))
   (define g (tcase-rng tc))
   (cond
     [(or (char=? ch #\space) (not (hash-has-key? boxes ch)))
      (draw ch (string ch) #f "" #f)]
+
+    ;; Where italic meets roman. The reading is right and the letter wrong, and
+    ;; the box is untouched because the sort came out of another case.
+    [(and italic? (< (rnd g) (current-wrong-fount)))
+     (draw ch (string ch) 'wrong-fount
+           (format "~a set from a wrong-fount case, where the italic meets the roman" ch)
+           #f)]
 
     [(<= (hash-ref boxes ch 0) 0)
      (bump! (tcase-exhausted tc) ch)
@@ -1074,17 +1100,43 @@
        ;; press-correction *necessary* rather than optional: the forme cannot
        ;; go to press as it stands.
        [(< (rnd g) BLANK-FOR-PROOF)
+        ;; THE BORROW USED TO BE HERE AND IT WAS THE WRONG CAUSE. An empty box
+        ;; sent three sorts in four to another fount, which put 1,942 wrong-
+        ;; fount sorts in the Folio against "a handful a book" -- and the
+        ;; constant above says in its own words that the borrow "is the rare
+        ;; one" and "should not be pushed toward". It was pushed 0.75 toward.
+        ;;
+        ;; It went unseen because nothing counted it: the only figure the
+        ;; report gave was the whole `shift' kind, 375,852 and 98% space-metal.
+        ;; Splitting that in the report on 2026-08-14 made it visible the same
+        ;; afternoon.
+        ;;
+        ;; What decides which of the two keeps this corner is that the sources
+        ;; bound them differently. Blayney PROVES the face-down at I4v36 and
+        ;; the note above concludes its observable count is "bounded below by 1
+        ;; and above by nothing" -- an expedient that leaves no trace once the
+        ;; proof supplies the sort. The borrow is bounded ABOVE, at a handful.
+        ;; So the unbounded one takes the corner and the bounded one gets the
+        ;; cause Hornschuch actually gives it, above.
         (bump! (tcase-blanks tc) ch)
         (draw ch (string PLACEHOLDER) 'blank-for-proof
               (format "~a wanting; a sort set face down, to be inserted at proof" ch)
               #f)]
        [else
-        ;; And last, the sort is borrowed from another fount standing in the
-        ;; shop. The reading is right and the letter wrong -- a wrong-fount
-        ;; sort, and a gift to the bibliographer, since it dates the page
-        ;; against the shop's other work.
-        (draw ch (string ch) 'wrong-fount
-              (format "~a wanting; a wrong-fount ~a borrowed" ch ch) #f)])]
+        ;; AND MOST OF THE TIME NOTHING SHOWS, which is the answer the first
+        ;; attempt at this missed. Moving the borrow out of this corner left
+        ;; the face-down holding all of it -- 3,695 of them, and because a
+        ;; face-down is the one expedient that makes press-correction
+        ;; NECESSARY, the variant count went to 1,152 against Hinman's five
+        ;; hundred. Neither expedient can carry four thousand.
+        ;;
+        ;; The corner is reached that often because the model empties a box and
+        ;; then asks what desperate thing to do about it. A working shop
+        ;; distributes continuously: the commonest answer to an empty box is
+        ;; that it was not empty by the time he reached it, and the page keeps
+        ;; no record of the fact. So the sort is had, no event is raised, and
+        ;; the expedients are left for the times the supply really failed.
+        (draw ch (string ch) #f "" #f)])]
 
     [else
      ;; Is a distinctive piece taken this time? Its chance is its share of the
