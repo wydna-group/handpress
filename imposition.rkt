@@ -387,7 +387,14 @@
 ;;
 ;; Takes either a plain count of gatherings, for a book all in one series, or
 ;; a list of runs.
-(define (collation-formula f runs)
+;; `signed' is the signing statement, and it must be an OBSERVATION and not the
+;; format's rule. The report already derives one from the leaves that actually
+;; carry a signature -- "first 3 to 4 leaves, recto; irregular, the men
+;; differing in the habit" -- and a `[$3 signed]' computed from the format
+;; instead contradicted it in the line above. Two places asserting one fact is
+;; the fault this program has found in itself four times; the caller passes what
+;; it saw, and only where nothing was seen does the rule stand in.
+(define (collation-formula f runs #:signed [signed #f])
   (define rs
     (if (list? runs)
         runs
@@ -419,7 +426,13 @@
              (string-join (for/list ([r (in-list rs)] #:unless (null? (sig-run-leaves r)))
                             (run->string r))
                           " ")
-             (signed-leaves f)
+             (cond
+               [(pair? signed)
+                (if (= (car signed) (cdr signed))
+                    (format "~a" (car signed))
+                    (format "~a–~a" (car signed) (cdr signed)))]
+               [signed signed]
+               [else (signed-leaves f)])
              total (* 2 total))]))
 
 ;; ---------------------------------------------------------------------------

@@ -1049,86 +1049,47 @@ public-domain forms is.
 
 ## Calibration
 
-Every parameter that has been checked against a real book was wrong when first guessed,
-usually by an order of magnitude, and always in the same direction — towards a printing
-house more picturesque than the real one. The record:
+**The maintained figures are in [CALIBRATION.md](CALIBRATION.md) and are not
+repeated here.** They used to be, and the copy drifted: this file still read
+"0.72 survives" for foul case after the rate had moved, and still carried a ✱ on
+wrong fount after that row was fixed. One copy is the maintained one and the
+other is not — which is the reason the deviation vocabulary lives in one table
+too.
 
-**Read the two outer columns as distributions, not values.** Every discrepancy
-chased out of this table so far has dissolved once the spread was measured. The
-seeds, the intervals, the stage each side was measured at, and the date each was
-last regenerated are in **[CALIBRATION.md](CALIBRATION.md)** — quote from there,
-not from here. Where a row is marked ✱ the two columns are measured at different
-*stages* and are not directly comparable.
+What belongs here is the *shape* of the record, because it has not varied once.
+The fount was guessed at 60,000 sorts and is 31,200. Tildes were guessed at 83
+per thousand words and are 1.66. Foul case was 11.57 and is under one. Wrong
+fount stood at 1,942 on the Folio and is 14. **Every parameter checked against a
+real book has been wrong, most by an order of magnitude, and always in the same
+direction: towards a printing house more picturesque than the real one.**
 
-| parameter | in the real books | first guess | now |
-|---|---|---|---|
-| the fount | 21,953 sorts (Okes, *Lear* Q1) | 60,000 | 31,200 incl. space |
-| tilde abbreviations | 1.01 / 1000 words — **median**; p75 is 2.51 | 83 | 1.66 |
-| superscript `yᵗ`, `wᶜʰ` | 5.5 per **million** words | 6,600 | ~0 |
-| foul case + turned letters | 0.25 / 1000 words — **3 events**; 95% CI 0.05–0.73 | 11.57 | 0.87 made, **0.72 survives** |
-| word division | 2.03 / 100 lines (whole Folio) | 0.0 | 1.66 |
-| medial apostrophes (`rul'd`) | 9.58 / 1000 words | 1.17 | 5.37 |
-| ampersand | 3.18 / 1000 (English, 1600s) | 35 | 3.02 |
-| class spelling habits (`-ie`, `-ll`) | 57% (Blayney) | 82–91% | 57% |
-| wrong-fount sorts ✱ | a handful a book | 248 | 13 |
-| gaps a compositor could set | every one | 14% | 95% |
-| quarto leaf, tall to wide | 1.31 (Gaskell, Key III) | 1.99 | 1.31 |
-| verse share of the Folio | 73% (solved from the plates) | 94% | 73.2% |
-| roman lower-case alphabet | 11 ems (Smith, p. 158) | — | **10.95 ems** |
+Read every row as a distribution and never as a value. Each discrepancy chased
+out of that table so far has dissolved once the spread was measured — three in a
+single session — and a per-seed column compared against an older per-seed column
+is not a comparison at all, because a seed names a run of the random stream and
+not a book.
 
-The last row is the only one that was right the first time, and it is the only one that
-was checked *after* the fact rather than fitted: the width table was written to be
-plausible and turned out to be accurate to 0.5% against a figure nobody had looked up.
+Three later corrections say something the first list does not:
 
-Most of the measurements come from diffing the 1600 quarto of *Much Ado About Nothing*
-against the 1623 Folio text set from it — 11,990 words, a real copy-text and a real
-setting from it. That is a narrow base, and widening it is [ROADMAP §11](ROADMAP.md).
+- **Wrong fount** was not a bad rate but the wrong *cause*. Hornschuch puts it
+  where italic meets roman, not at an empty box. 1,942 → 14.
+- **The close-set comma** is not a fault at all. Blayney traces the patches to
+  space-shortage, so it has no rate: it falls out of a case running low, at 30%
+  of commas and as patchy as he describes.
+- **Foul case** was held above its observation to compensate for an instrument
+  nobody had graded. Graded against a known truth — a second setting made from a
+  first, diffed as Q against F — the instrument *over*counts by 69%.
 
-**✱ The wrong-fount row compares across stages and is not yet fixed.** Hornschuch
-names wrong fount as one of the things a corrector cleared, so "a handful a book"
-is what survived one. This program classes a wrong-fount sort as a *shift* — a
-shop expedient, like robbing a sort — so no corrector is ever offered it and every
-one prints in every copy: **1,996 in the Folio, 2.31 per 1,000 words**. It belongs
-with the faults of impression above, being visible on the page and changing no
-reading, and moving it there is [ROADMAP §12](ROADMAP.md)'s next job.
+**A figure that is orders out is usually not a figure**, and a generator set
+above an observation to compensate for an instrument is resting on a claim about
+that instrument, which here is measurable.
 
-**And every discrepancy chased out of this table so far has dissolved once the
-spread was measured** — press variants (366 against 543: both draws from a 2.3×
-spread), foul case (0.72 against 0.25: inside the Poisson interval of a
-three-event observation), tildes (2.19 against 1.11: between the median and the
-p75 of real books, which run from 0 to 19.6 per 1,000 in the 1600s). Not one was a
-miscalibration. In each case a point was compared against a point when neither
-side was a point. **The table's real fault is its shape, not its numbers.**
+Most of the measurements come from diffing the 1600 quarto of *Much Ado About
+Nothing* against the 1623 Folio set from it — 11,990 words, a real copy-text and
+a real setting from it. That is a narrow base, and widening it is
+[ROADMAP §11](ROADMAP.md). What that diff cannot see is punctuation, spacing or
+lineation, which is why the newest mechanisms are the least anchored.
 
-**The table names the books but not the stage, and for at least one row that
-decides whether it agrees.** A rate diffed out of a printed book counts what
-*survived* the corrector; the rate the program is set to is what the compositor
-*makes*. The report now prints both: on the Folio, **792 accidents made, 169
-mended at proof, 623 left standing in one copy**.
-
-The foul-case row is the case in point. Its observed figure is three accidents in
-11,990 words, which carries a Poisson 95% interval of **0.05 to 0.73 per 1,000
-words**. The rate the model makes, 0.92, falls outside it; the rate that survives,
-0.72, falls inside. **So the constant is right and the comparison was wrong** —
-and the 3.5-fold gap the table appears to show between 0.25 and 0.87 is mostly
-the two stages plus a three-event sample. Every row here needs its stage named.
-
-**And no anchor of this kind can be the whole target.** These were diffed word
-against word, so they see differences in the form of words and nothing else. The
-twenty corrections on the one proof-corrected page of the real Folio include
-punctuation, omitted spacing, a space intruded into a word, and faulty
-verse-lining — none of which a word-level diff can register. Widening what the
-program can get wrong is the only way it can be measured against Simpson at all.
-[ROADMAP §12](ROADMAP.md), which is the live item.
-
-The scribal contractions are the instructive failure. The program used to produce
-`implēētatiō` for *implementation*, stacking tilde contractions on one word, and label
-the result a space-saving. It was neither: the Folio has none of them, and some of the
-substituted forms were *longer* than what they replaced. Both manuals say why the whole
-picture was wrong — a compositor casting off *expands* the copy's abbreviations and
-counts them at length. The genuine English space-saver was sitting in the same data
-unnoticed: the Folio has eight times the quarto's medial apostrophes, turning some thirty
-`-ed` endings into `-'d`.
 
 Forward test, Q1600 → F1623, on the spelling that attribution work relies on:
 
@@ -1449,22 +1410,34 @@ repository is public.
 
 ## What next
 
-See [ROADMAP.md](ROADMAP.md). The two things at the top are both about grading the method
-rather than extending the simulation.
+See [ROADMAP.md](ROADMAP.md). Everything at the top is about grading the method
+rather than extending the simulation, which is the only thing this program has
+ever been good for.
 
-**Forme order from type recurrence** is the real prize, because it is Hinman's central
-method and this is the only place it can be graded against a known truth. Blayney even
-supplies the threshold at which he says it must fail: unless the evidence-density reveals
-at least two prior distributions in every quarto page, the order those pages were set in
-cannot be proved. The simulator can run it at any density and find where the boundary
-actually falls.
+**An anchor that can see the new kinds** ([§11](ROADMAP.md)). Nearly every rate
+rests on one pairing — 12,000 words of *Much Ado* — and that diff is
+word-against-word, so it cannot register punctuation, spacing or lineation. The
+newest and least anchored mechanisms are exactly the ones it is blind to. What
+would settle them is a reprint generation, where no annotator stands between copy
+and compositor: F2, F3, F4 through Furness. Note what a facsimile can and cannot
+do for this — a page-image scan answers spacing and signatures by eye and nothing
+by diff, because **OCR would manufacture the very ſ/f and n/u confusions being
+measured.**
 
-**Recovering the perfecting order from the groupings** has been sat: 100% of formes
-sorted into the right two classes, and the direction of those classes not recoverable
-from press variants at all. What is still open there is the analyst's eye — the
-inference is handed a perfect collation, where a real one misses variants — and a book
-long enough for the groupings to fall into more than one independently-flippable class,
-which has not yet happened in any run tested.
+**The concurrency experiment** ([§8](ROADMAP.md)). McKenzie's objection is that
+every percentage the analysis produces is the analyser inverting the generator,
+and this program appends it to every report and has never demonstrated it. It
+cannot be shown from inside one book, because the claim is that concurrent
+production invalidates single-book inference. A shop working three books against
+three presses, with §1's forme-order inference run over the result and watched to
+fall, is the only item here that would turn the disclaimer into evidence.
+
+**Forme order from type recurrence** ([§1](ROADMAP.md)) remains the standing
+prize, because it is Hinman's central method and this is the only place it can be
+graded against a known truth. Blayney supplies the threshold at which he says it
+must fail — two prior distributions revealed in every page — and the simulator
+can run any density and find where the boundary actually falls.
+
 
 ## Licence
 

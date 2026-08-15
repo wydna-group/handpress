@@ -77,8 +77,25 @@
 
 (define (book-runs b) (plans->runs (book-plans b)))
 
+;; The signing statement in the formula is what the leaves actually carry, not
+;; what the format prescribes. The two differ whenever the men differ in the
+;; habit, which they do, and a formula asserting `$3' over a report saying
+;; "first 3 to 4 leaves ... irregular" is one fact stated twice and differently.
+(define (book-signed-range b)
+  (define per
+    (for/list ([gat (in-range (book-gatherings b))])
+      (define ls
+        (for/list ([p (in-list (book-pages b))]
+                   #:when (and (= (page-ref-gathering (page-pref p)) gat)
+                               (not (string=? (page-signature p) ""))))
+          (page-ref-leaf (page-pref p))))
+      (if (null? ls) 0 (apply max ls))))
+  (define ns (filter positive? per))
+  (and (pair? ns) (cons (apply min ns) (apply max ns))))
+
 (define (book-collation b)
-  (collation-formula (book-fmt b) (book-runs b)))
+  (collation-formula (book-fmt b) (book-runs b)
+                     #:signed (book-signed-range b)))
 
 (define (book-find-page b sig)
   (for/or ([p (in-list (book-pages b))]) (and (string=? (page-sig p) sig) p)))

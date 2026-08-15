@@ -308,6 +308,28 @@ authors probably relied upon him to do so.''
 That is direct archival warrant for the ampersand device and for the whole
 expand/contract ladder, from a shop that kept its records.
 
+@subsection{What the copy was}
+@declare-exporting[handpress/copytext]
+
+Greg's three kinds, as @tt{--copy-kind}: the author's @bold{foul papers}, a
+scribe's @bold{fair copy}, or an earlier @bold{printed} book. It decides what the
+eye can go wrong at, which is a different question from how careless the man is.
+
+The program assumed one of these for a long time without saying so. Every
+misreading it models is a manuscript phenomenon — minims miscounted, letters the
+secretary hand does not keep apart — and between them they carry 85% of the
+slips. Setting from print is not easier manuscript but a @emph{different
+confusion set}: no minim can be miscounted in type, and what misleads a man
+reading a printed page is what Hornschuch says misleads him reaching into the
+case, ``letters similar in form elude the printer'' — r/t, n/u, e/c, ſ/f. That
+list is already in the type case, put there for foul case, so the print mode
+derives from it rather than keeping a second copy.
+
+The rates are an ordering and not a measurement. No source says foul papers
+yield so many times the errors of a fair copy; what the bibliographers agree is
+that an author's working draft is the hardest thing to set from and print the
+easiest, and the multipliers carry that order and nothing else.
+
 @subsection{Space-metal, and why justification is quantised}
 
 A gap between two words is a piece of type: a body cast a shade lower than the
@@ -591,6 +613,23 @@ went missing between them.
 
 @subsection{Signatures, and who puts them there}
 @declare-exporting[handpress/book]
+
+Two notations, and they are not the same notation. What the printer @emph{set}
+in the direction line follows Moxon (p. 210): past the twenty-third gathering he
+begins a second alphabet by @emph{adding a lower-case letter} — ``the Signature
+of the four and twentieth Sheet must be @bold{A a}, if five and twenty
+@bold{B b} … still as he begins a new Alphabet @bold{adding an a}'' — so the
+page carries @tt{Aa}, @tt{Bb}, @tt{Aaa}. What the bibliographer @emph{writes} in
+a collational formula is Bowers's shorthand: ``the common practice is to write
+@bold{2A in place of Aa or AA}, 3A in place of Aaa, AAA, or AAa''. One rule
+governs the metal and the other the description, and this program had a single
+function doing both.
+
+Bowers's system deliberately loses one distinction — it ``does not distinguish
+between AA and Aa, although it does differentiate A and a'' — on the ground that
+``printers very seldom bothered to distinguish Aa and AA as separate
+sequences''. It also requires that ``the appropriate number must always precede
+the letter'', because a bare @tt{I} always means the single-alphabet gathering.
 
 Signing is the compositor's act, not the imposer's. McKerrow finds the
 Elizabethan men ``normally finished a page of work at a time, adding catchword
@@ -974,6 +1013,48 @@ compositor's own practice.
          (values (listof copy-unit?) (listof change?))]{
 Prepares copy to house style, returning the prepared units and a record of
 every alteration.}
+
+@subsection{What a corrector could correct}
+@declare-exporting[handpress/deviation]
+
+Hornschuch's @emph{Orthotypographia} (1608) is a proof-corrector's manual from
+inside the period, and its list of marks is a taxonomy of correctable error. The
+test put to each before it is built: @bold{only a fault that changes a reading
+can become a press variant}. Foul case by shape and the faults of impression
+could never have closed the variant gap, and both were written first.
+
+What is modelled, and — the part worth attention — @bold{no two of the rates come
+from the same kind of evidence}:
+
+@itemlist[
+@item{@bold{spacing left out}, a @emph{share}: three of the twenty corrections on
+      the one surviving proof-corrected page of the Folio, against pointing's two.}
+@item{@bold{a word passed over}, a @emph{ceiling}: half of Gascoigne's fifty-one
+      errata are dropped words, discounted because errata are selected for
+      severity — Lambard prints only ``Suche therefore as be most daungerous''.}
+@item{@bold{transposition of words}, an @emph{ordering}: none in either itemised
+      proof census, so it is set under pointing and what may be quoted is the
+      order of the counts, never the number.}
+@item{@bold{the redundant word}, a @emph{mirror}: dittography is the eyeskip
+      already modelled, run backwards — the eye returning to the first of two
+      like words instead of the second — so it takes that mechanism's rate and
+      is the only kind here with no knob of its own.}
+]
+
+Two of the compositor's habits sit beside them and are @emph{not} faults, being
+counted apart for that reason. His @bold{pointing}: the colon is the heavy stop
+of the sixteenth century and the semicolon takes it over during the seventeenth,
+70% against 35%, measured over 300 books — and a modernised copy-text has this
+the wrong way round, so the compositor undoes an editor. His @bold{capitals}:
+3,761 word-types that the period capitalised mid-sentence, each with its share,
+so the rule selects from what was written and cannot invent a capital.
+
+And one thing that is neither. Setting @bold{close after a comma} is not a
+convention and not an error but what a case running short of space metal does —
+Blayney traces the patches to space-shortage, sixteen per cent unspaced on one
+forme against eighty-five on the next. It has no rate: the white is moved rather
+than lost, into the other gaps of the same line, and the frequency falls out of
+how low the boxes are.
 
 @subsection{At press}
 @declare-exporting[handpress/press]

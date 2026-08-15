@@ -24,8 +24,10 @@ figure from them arrived second-hand. A seventh came out of Simpson the same way
 They are marked **[manuals]**. Reading them directly cost less than any of the
 work they invalidated.
 
-**The live item is §12.** §5 is the other open one and its largest error is now
-found and fixed; what remains there is prose, not verse.
+**§12 is nine-tenths built** and what remains in it waits on §11's anchor. **The
+live items are §11** — a copy→print pair that can see punctuation and spacing —
+**and §8**, the concurrency experiment, which is the only one that asks whether
+the apparatus means anything at all.
 
 ---
 
@@ -786,41 +788,32 @@ in the README**; what follows is the history, which is where the value is.
 
 ## 11. Widen the calibration base
 
-**The corpus sweep is built** — `tools/corpus-sweep.py`, 2026-08-14. Eleven
-properties of the printed page, the model's distribution against the corpus's,
-with the copy-text in a third column. Six properties had been checked by hand
-over the life of this project and every one found a defect; this checks them
-together so that which ones get looked at stops being a matter of who wondered.
+**The corpus sweep is built** — `tools/corpus-sweep.py`. Eleven properties of the
+printed page, the model's distribution against the corpus's, the copy-text in a
+third column. Six properties had been checked by hand over this project's life and
+**every one found a defect**; this checks them together so that which get looked
+at stops being a matter of who wondered.
 
-Its first run is the argument for how it is built. It produced **two flags and
-both were the instrument's fault**:
+Its first run produced **two flags and both were the instrument's fault** — a
+hyphen count that was 45% line-end division, and a full stop the copy was already
+short on. Hence the two rules in its docstring: **distributions and never points**
+(a pooled corpus rate reads 8.46 ampersands per 1,000 where the per-document
+median is 2.19) and **one vetted extractor a side** (every `&` in the corpus is
+`&amp;`; a tilde is a combining mark). It prints what it *cannot* compare, which
+is the half a sweep usually omits.
 
-- **hyphen, 10.3x high.** 45% of the model's hyphens end a line — word division,
-  which the corpus cannot show because its text is reflowed — and others were em
-  rules written `--`. The property is now the hyphen *inside a word*, which is
-  the same question on both sides, and reads 1.72 against 1.46.
-- **the full stop, half the corpus rate.** The copy was already at 19.55 and the
-  model at 19.33: Milton's sentences, not the program. There is a copy column
-  now, and a flag that matches the copy says so on its own line.
+Open in it: **a genre filter.** All three flags on the Folio — periods, questions,
+mid-sentence capitals — came of comparing drama against a mostly-prose corpus. 80
+English drama texts of 1580–1640 carry usable `<TERM>` headings, thin for
+quartiles but enough for a median. It would also settle the **capitals overshoot**
+(20.7% mid-sentence against a corpus 10.3%, on a copy already at 14.2%), which is
+the likeliest real defect in the habit work: the rule *adds* the period's share
+rather than *targeting* it.
 
-So the two rules in its docstring are load-bearing: **distributions and never
-points** — a pooled corpus rate reads 8.46 ampersands per 1,000 where the
-per-document median is 2.19 — and **one vetted extractor a side**, because every
-`&` in the corpus is `&amp;` and a tilde is a combining mark. It also prints what
-it *cannot* compare, which is the half a sweep usually omits.
+And one row it raises without settling: **the apostrophe**, 8.84 per 1,000 against
+a corpus median of 0.17 but a pooled 10.22 — a distribution so skewed that
+CALIBRATION's 9.58 and the corpus median are both true of different populations.
 
-One row it raises without settling: **the apostrophe.** The model reads 8.84 per
-1,000 against a corpus median of 0.17 — but the corpus *pooled* rate is 10.22,
-so the distribution is severely skewed and the model sits in its upper tail.
-CALIBRATION's own figure of 9.58 for medial apostrophes and the corpus median of
-0.17 are both true of different populations. Worth knowing before either is
-quoted.
-
-
-
-Nearly every rate rests on **one pairing**: about 12,000 words of the *Much Ado*
-quarto against the Folio set from it. That is a narrow base for the confident
-tables the reports print.
 
 - [ ] **F2, F3, F4.** Furness's Variorum collates three further reprint
       generations, each set from its predecessor, with variants recorded line by
@@ -838,199 +831,58 @@ tables the reports print.
 
 ---
 
-## 12. What a corrector could correct — *the live item* **[manuals]**
+## 12. What a corrector could correct **[manuals]**
 
-Simpson's *Proof-Reading* sat in `sources/` for the life of this project and the
-only thing ever quoted from it was a sentence of Carter's **foreword**. Its
-subject is proof-correction. It holds the only proof-corrected page of the First
-Folio that survives, itemised, and Hornschuch's *Orthotypographia* (1608) — a
-proof-corrector's manual from inside the period — with his full list of marks.
+**Nine of Hornschuch's marks and two of the compositor's habits are built.** See
+*Built* below for what each cost and CALIBRATION.md for what each reads. The
+governing finding, which every one of them turned on:
 
-**The finding that governs this section.** Every error rate in the calibration
-table was diffed out of a *printed book*, so it counts what got past the
-corrector; the rate the program is set to is what the compositor *makes*. One
-number was doing both jobs. The report now prints made, mended at proof, and left
-standing in one copy.
+**Every error rate in the calibration table was diffed out of a *printed book*,
+so it counts what got past the corrector; the rate the program is set to is what
+the compositor *makes*.** One number was doing both jobs. The report now prints
+made, mended at proof, and left standing in one copy — and the same confusion has
+since been found in four more rows.
 
-### The vocabulary, and what each addition was worth
-
-Hornschuch's marks are a taxonomy of correctable error. Four were added:
-
-| | closes the press-variant gap? |
-|---|---|
-| foul case by shape as well as adjacency | **no — cannot, by construction** |
-| faults of impression (a lead showing, a sort proud) | **no — deliberately not variants** |
-| mis-resumption (a word dropped or doubled at a page join) | can, but 18 a book and 1 reached the list |
-| **mis-pointing** | **yes — ~10% of variants** |
-| **omitted and intruded spacing** | **yes — built 2026-08-14** |
-| **transposition of words** | **yes — built 2026-08-14** |
-| **the redundant word (dittography)** | **yes — built 2026-08-14** |
-| **a word passed over** | **yes — built 2026-08-14** |
-
-**Two of the four could never have closed it and were built first.** Only a fault
-that *changes a reading* can become a press variant, and that was knowable before
-any of them was written. Ask it of every new kind.
+And the test to put to any new kind, before writing it: **only a fault that
+changes a reading can become a press variant.** Foul case by shape and the faults
+of impression could never have closed the variant gap, and both were built first.
 
 ### Open
 
-- ~~**Omitted and intruded spacing**~~ — **built 2026-08-14.** `mis-space` in
-  `compositor.rkt`, applied in `read-copy` because running two words together
-  consumes the next one. Rate 0.00045, a share and not a density: spacing is
-  three of the proof page's twenty corrections against pointing's two, so it is
-  the pointing rate in that ratio. It reaches the variant count as predicted —
-  `butwhen ] but when`, `ari ſe ] arise`, corrected at press in Simpson's own
-  forms. The 2:1 split of run-together to opened rests on three instances and is
-  the weakest thing in it.
-- ~~**Transposition of words**~~ — **built 2026-08-14.** `mis-transpose` in
-  `compositor.rkt`, held as one pair the way a run-together word is, so the copy
-  keeps the true order and `transposed?` tells the kind from an eye-slip by the
-  shape of the difference. It reaches the variant count: `him from ] from him`,
-  `be to ] to be`, corrected at press. The letter-scale fault was already there
-  in `misread` and had been since the beginning; this is the word-scale one
-  Hornschuch draws a mark for.
+- **The redundant *letter*** — the other half of Hornschuch's second mark. A
+  letter set twice inside a word sits very close to the literals foul case
+  already makes, and the first question is whether it is distinguishable from
+  them on the page at all. **If it is not, it should not be built.**
 
-  **Its rate is an ordering, not a share.** Pointing and spacing were set from
-  their shares of the Folio proof page — two and three of its twenty. A word
-  transposition is *none* of those twenty, and none of the dozen Simpson
-  itemises from the Grete Herball either. Zero in about thirty-two itemised
-  corrections gives no rate, only a bound: rarer than pointing. Set to a third
-  of the pointing rate, and **the check is the order of the two counts in the
-  report, never the number** — measured on one book, transposed 2 against
-  pointed 5 and spaced 6.
-- ~~**The redundant word**~~ — **built 2026-08-14** as dittography, in
-  `copytext.rkt` beside the eyeskip it mirrors. The eye returns to the *first*
-  of two like words instead of the second, and the passage between is set twice.
+- **The signing statement's exceptions.** Bowers puts the breaches in the bracket
+  the formula now fills — `[$2(−K2) signed; A2 in ital., misprinting E2 as C2]`
+  — and the program states the pattern and none of them. Moxon quantifies the
+  commonest: "in Quarto's they not only leave the Signature 4 out, but **rarely
+  put in Signature 3**". A documented gap between rule and practice, and checkable
+  against the F2 facsimile by eye, signatures being large and in the direction
+  line.
 
-  **It invents no rate at all**, which is the thing worth keeping about it. It
-  takes the rate of the mechanism it is the mirror of: haplography and
-  dittography have always been treated as a pair, and there is no reason an eye
-  returning to the wrong one of two like words should favour the earlier or the
-  later. Asserting them equal is a weaker claim than any number invented for the
-  second. It is the only kind in §12 with no knob.
+- **An anchor that can see the new kinds.** The *Much Ado* diff is
+  word-against-word and cannot register punctuation, spacing or lineation, which
+  is why nothing here has ever counted them. §11 is a dependency, not a parallel
+  item. Note what F2 can and cannot do for it: it is a page-image scan with no
+  text layer, so it answers spacing and signatures by eye and nothing by diff —
+  **OCR would manufacture exactly the ſ/f and n/u confusions being measured.**
 
-  The repeated words carry an **empty copy**, and that is what makes them
-  correctable without touching `press.rkt`: the corrector already strikes out
-  any word whose copy is empty, which is how a word doubled at a page join is
-  mended. Verified — `compoſe ] `, `eﬀectiue ] `, `and ] `, a whole doubled
-  passage struck out on one line.
-- **The redundant *letter*** — the other half of Hornschuch's second mark, and
-  still open. It is a different thing from the redundant word and probably a
-  smaller one: a letter set twice inside a word sits very close to the literals
-  the foul-case mechanism already makes, and the first question to ask of it is
-  whether it is distinguishable from them on the page at all. If it is not, it
-  should not be built.
-- ~~**A dropped word**~~ — **built 2026-08-14** as `mis-drop`, held as one pair
-  like the rest of that family: the copy keeps both words and the reading has
-  only the one he set. It is restored at press by the copy-comparison scan —
-  `our ] of our`, `ſcandalous ] and scandalous`.
+- **Whether he pointed MORE than his copy**, and not merely otherwise. What is
+  matched is the *share* of heavy stops, not the density: the model chooses among
+  the stops the copy has and adds none. Needs a copy→print pair, so §11 again.
 
-  **The two bodies of evidence disagree, and the disagreement is the finding.**
-  Neither proof census shows a dropped word: not one of the Folio leaf's twenty
-  corrections, not one of the Grete Herball's dozen. Gascoigne's fifty-one
-  errata are *half* dropped words. Both are true, and the program already knew
-  why before this was built — `press.rkt` says the corrector "can see the sense
-  break ... but he cannot supply the word without the copy". A fault that is
-  hard to mend at proof is **rare in a census of proof corrections and common in
-  a list of what got out**. Two stages, two answers.
-
-  So the errata give a **ceiling and not a rate**, and a low ceiling at that:
-  they are selected for severity, Lambard printing only "Suche therefore as be
-  most daungerous" and Young omitting "the lesse being of no moment", and a
-  dropped word perverts the sense where a misprint often does not. It is set to
-  come out well below misreadings — one book gives 6 against 36 — and that
-  inequality is the whole of the claim.
-- ~~**Wrong fount is a stage error**~~ — **fixed 2026-08-14**, and not by
-  changing a rate. The mechanism had the wrong CAUSE: it was what a compositor
-  does when a box is empty and nothing else serves, so it grew with how hard the
-  fount was worked and read 1,947 on the Folio against "a handful a book".
-  Hornschuch gives the cause plainly — "mostly caused by having to vary the
-  type, for example by inserting italics and capitals in a body of lower case"
-  — and it is now placed where italic meets roman. **11–16 over four seeds**,
-  and at the same stage as the source for the first time. The old note follows,
-  because its reasoning was right and only its number was invisible:
-
-- ~~**Wrong fount is a stage error and is unfixed.**~~ Hornschuch names it among the
-  things a corrector cleared; this program classes it a *shift* — a shop
-  expedient — so the corrector's own path never offers him one. It belongs with
-  the faults of impression, being visible on the page and changing no reading.
-  Two corrections to what this said, both 2026-08-14: the count is **1,947**, not
-  1,996, and it is now printed by the report (`analysis.rkt` tells the five
-  causes of a shift apart, where the only figure before was 375,852 for the whole
-  kind, 98% of it space-metal). And **ten of them are corrected** — not none —
-  because the copy-comparison scan catches anything printing otherwise than the
-  copy, and a borrowed sort that prints `V` for `U` does.
-- **An anchor that can see the new kinds.** The *Much Ado* diff is word-against-word
-  and cannot register punctuation, spacing or lineation, which is why nothing here
-  has ever counted them. §11 is now a dependency rather than a parallel item.
-- ~~**Pointing as a habit**~~ — **built 2026-08-14.** `repoint` in
-  `compositor.rkt`, at the HABIT stage and not the read stage, because it is a
-  choice and not a slip: `mis-point` is his hand going wrong, this is the
-  workman. Measured before building, the model's pointing was its copy's to
-  within the error rate — it made no choices at all — while Blayney identifies
-  Okes's B by "capitalised King ... and a free use of the apostrophe".
-
-  `tools/count-pointing.py` measures 300 books: the colon is the heavy stop 70%
-  of the time in the 1600s and 35% by 1640. **A modernised copy has it the wrong
-  way round.** The model now reads 66.5% at 1600 and 32.7% at 1640 — within four
-  points at both ends, with the trend reversing correctly. It selects between
-  two marks the copy already uses and invents neither.
-
-- ~~**Capitalisation as a habit**~~ — **built 2026-08-14.** `capitalise` in
-  `compositor.rkt`, beside `repoint` at the habit stage.
-  `tools/build-capitals.py` writes the 3,761 word-types the period capitalised
-  mid-sentence, with each one's share, to `lexicon/capitals-1580-1640.rktd`; the
-  rule selects from that table and cannot invent a capital. Model 9.2% against
-  the copy's 4.2% and the corpus's 10.5%.
-
-  **Both difficulties dissolved rather than being solved.** A capital falls on a
-  noun and there is no tagger — but the corpus names the words, so none is
-  wanted. And the measurement is of mid-sentence words — but the rule only adds
-  a capital to a word the copy left lower case, and a word opening a sentence
-  has one already, so the restriction enforces itself.
-
-  Still open in it: **the workmen do not differ.** Blayney's whole point is that
-  they do, and the corpus shows books from 6% to 17% — but no source gives a
-  per-compositor figure, and inventing one would put a difference into the
-  attribution evidence that nothing measured. This is the natural place for the
-  next real source to land.
-
-- **Whether he pointed MORE than his copy, and not merely otherwise.** What is
-  matched above is the *share* of heavy stops, not the density: the model reads
-  colon 8.6 per 1,000 against the corpus's 11.1 because it chooses among the
-  stops the copy has and adds none. Settling this needs a copy→print pair, which
-  is §11.
-
-- ~~**Lambard's severity grades**~~ — **built 2026-08-14.** `LAMBARD-GRADES`
-  and `KIND-GRADE` in `vocabulary.rkt`, `catches-grade` in `press.rkt`, and a
-  block in the departure report counting the four.
-
-  **The grades are not the corrector's order, and that is the finding.** Lambard
-  sorts by DANGER; a corrector without the copy catches by DETECTABILITY; the
-  two part at both ends. An orthographic fault is the second least dangerous and
-  the *easiest* to catch — `hanourable` is not a word and the eye stops at it.
-  A sense-perverting fault is the most dangerous and among the *hardest* —
-  `their` for `there` reads perfectly. **So the dangerous errors are exactly the
-  ones that survive**, which is why an errata list is full of what a proof
-  census does not show — the same two-stage disagreement the dropped word turns
-  on. Anyone reaching for Lambard as a ladder of catch rates has it backwards.
-
-  `catches-accident` 0.75 and `catches-misreading` 0.10 turn out to BE the
-  orthographic and sense grades. They keep their values — the refactor is
-  byte-identical on a full run — and what is new is that the other two grades
-  have somewhere to sit, and that adding a fault now means grading it rather
-  than inventing a rate for it. A test fails if a new kind is added ungraded.
-
-- **Lambard's edition size**, mentioned in the same passage: **six hundred
-  copies, and twenty years to sell them.** `--edition` defaults to 750 and the
-  Folio runs at 1,200; six hundred is a datum for the small end and nothing in
-  the calibration file rests on a real edition size yet.
+- **Lambard's edition size** — **six hundred copies, and twenty years to sell
+  them.** `--edition` defaults to 750 and the Folio runs at 1,200; nothing in the
+  calibration file rests on a real edition size yet.
 
 **Do not fit any of it to the twenty corrections on that page.** It carries eight
 times the book's average and says the density is short without saying what it is.
 
 *Hornschuch's marks in full, the two itemised proof censuses, the errata evidence,
-the stage audit over every error row, and the rate derived wrongly from a density
-before rightly from a share: [FINDINGS](FINDINGS.md#12-what-a-corrector-could-correct).*
+the stage audit, and the rate derived wrongly from a density before rightly from a
+share: [FINDINGS](FINDINGS.md).*
 
 ---
 
@@ -1039,6 +891,35 @@ before rightly from a share: [FINDINGS](FINDINGS.md#12-what-a-corrector-could-co
 Kept short on purpose. Each was argued out at length when it was done; what is
 worth carrying forward is the number it produced. The README describes what these
 *do*; this is what they *cost to get right*.
+
+**What a corrector could correct**, all of 2026-08-14/15, and the point of the
+list is that **no two rates came from the same kind of evidence**:
+
+- **spacing left out** — a *share*, 3 of the proof page's 20 corrections.
+- **a word passed over** — a *ceiling*, half of Gascoigne's errata discounted for
+  severity, because errata are selected for it.
+- **transposition of words** — an *ordering*, 0 in ~32 itemised corrections, so
+  set under pointing and the check is the order of the counts.
+- **the redundant word** — a *mirror*: dittography is eyeskip run backwards and
+  takes that mechanism's rate. **The only kind with no knob.**
+- **pointing and capitals as habits** — the *corpus*, 300 and 491 books. The
+  colon is the heavy stop 70% of the time in the 1600s and 35% by 1640, and **a
+  modernised copy has it the wrong way round**. 3,761 word-types carry capitals.
+- **the close-set comma** — an *outcome*, not a rate at all. Blayney's patches of
+  close spacing are space-shortage; the program had the shortage and not the
+  response. 30% of commas, and patchy the way he describes.
+- **Lambard's grades** — and they are **not the corrector's order**. He grades by
+  danger, a reader without copy catches by detectability, and they part at both
+  ends, which is why the dangerous errors are the ones that survive.
+- **wrong fount** — 1,942 to **14**, by giving it Hornschuch's cause (italic
+  meeting roman) instead of a smaller rate. A rate two orders out is usually not
+  a rate.
+- **the spinning-out device** — could only double a white line that already
+  stood, and the median spun-out page had none. The book went from 82.0% to
+  **99.9%** within two lines of its measure.
+- **foul case** — held above its observation to compensate for an instrument that
+  was never graded. Graded, it *over*counts by 69%. Rates down a quarter and
+  inside the interval at last.
 
 **The material.**
 

@@ -24,12 +24,12 @@ picturesque than the real one.** Assume the next one is too.
 | the fount | 21,953 sorts, ~120 lb (Okes) | 60,000 | 31,200 incl. space |
 | tilde abbreviations | 1.01 / 1000 words (1600s) | 83 | 1.66 |
 | superscript `yᵗ`, `wᶜʰ` | 5.5 per **million** words | 6,600 | ~0 |
-| foul case + turned letters | 0.25 / 1000 words | 11.57 | 0.87 |
+| foul case + turned letters | 0.25 / 1000 words | 11.57 | 0.77 made, 0.59 survives |
 | word division | 5.1 / 100 lines | 0.0 | 5.3 |
 | medial apostrophes (`rul'd`) | 9.58 / 1000 words | 1.17 | 5.37 |
 | ampersand | 3.18 / 1000 (1600s) | 35 | 3.02 |
 | class spelling habits (`-ie`) | 57% (Blayney) | 82–91% | 57% |
-| wrong-fount sorts | a handful a book | 248 | 13 |
+| wrong-fount sorts | a handful a book | 248 | 14 on the Folio |
 | gaps a compositor could set | every one | 14% | 95% |
 | the printer named in the imprint | 58 of 81 (Blayney App. II) | — | 72% |
 | the imprint date spaced (`1 6 0 8.`) | about half | — | 50% |
@@ -37,6 +37,33 @@ picturesque than the real one.** Assume the next one is too.
 | heap order lost at the drying rack | **no source gives a value** | — | a knob, 0.15 |
 
 Every one of these was wrong in the same direction until it was measured.
+
+**AND WHEN A FIGURE IS ORDERS OUT IT IS ALMOST NEVER THE FIGURE.** Four rows
+failed their sources in one week and not one was fixed by changing a rate. Ask
+these before touching the number:
+
+| ask | the row that taught it |
+|---|---|
+| Is the **cause** right? | Wrong fount grew with how hard the fount was worked because it was modelled at an empty box. Hornschuch puts it where italic meets roman. 1,942 → 14. |
+| Is it the **quantity** the source means? | `miscast` counts copy measured out wrong; Blayney's "page-depth almost entirely consistent" is about the depth it came out at. |
+| Is it a **fault** at all? | The close-set comma is what a case short of space metal does. Bowers: "not considered to be misprints". It has no rate. |
+| Has the **instrument** been graded? | Foul case sat above its observation to compensate for a diff assumed to undercount. Graded against a known truth it *over*counts by 69%. |
+
+The last is the one only this program can answer, and the reason it exists: a
+generator set above an observation to compensate for an instrument is resting on
+a claim about that instrument, and here such claims are measurable. Reproduce the
+relationship — a second setting made from a first, diffed as Q against F — and
+count what the method recovers against what happened.
+
+Two more shapes of the same mistake, both cheap to check:
+
+- **A mechanism with no report line drifts unseen.** Wrong fount was invisible
+  because the only figure printed was the whole `'shift` kind, 98% space-metal.
+  Splitting it exposed the row the same afternoon. Add the count *before* the
+  mechanism.
+- **A rate can be right and its label wrong.** Every apparent fix should be
+  checked at the stage the source measured: made, mended at proof, or left
+  standing in one copy are three different numbers.
 
 ## Where the evidence lives
 
