@@ -1977,3 +1977,100 @@ rate all where they were.
 
 **A row that fails a source may be pointed at the wrong quantity, and the way to
 find out is to measure the quantity the source is actually talking about.**
+
+### The close-set comma is neither a convention nor a fault: it is what a short case does
+
+Nine pages of the Second Folio were read by eye to settle whether `--mis-space`
+was too low. Two things are visible on those pages and they are not the same
+thing:
+
+- **words genuinely run together**, `Whichſpeed`, `Towhom`, `Vntothe`, `Wifeand`
+  — mean about 3 a page;
+- **no space after a comma**, ranging from 7 a page on one to about 50 on
+  another.
+
+Bowers separates them in as many words: a word run together with the next is
+"**a misprint** … which must be reproduced", while two words "separated by a
+comma but set close up without a space following the comma … **are not
+considered to be misprints**".
+
+The first reading of the second kind was that it must be a house convention, and
+Smith supports that much — the comma "clinge[s] to the Matter so close as it
+always does, **in England**", where "all other Printing Nations make it a law to
+put at least a thin Space before it". Moxon gives the mechanics: an em is seven
+thin spaces and the comma is cast one and a half of them, so the sort reads as
+its own gap.
+
+**But the variance was too wide for a convention, and Blayney had already found
+why.** Counting Okes's men he reports that "C set approximately 20% of his
+unjustified commas without a space", that B's average was higher and erratic,
+and that "several patches of exceptionally frequent close spacing can probably be
+explained as **the result of space-shortage**" — K3v spaced 16 : unspaced 3
+against K4r spaced 4 : unspaced 22. Sixteen per cent on one forme and
+eighty-five on the next.
+
+**So the program had the cause and not the effect.** Space-metal shortage was
+already the hinge of the whole type-case model — 370,728 shifts for want of it on
+a Folio — and its only response was to make a white "up of smaller pieces". It
+could not do the thing Blayney watched a compositor do. The white is not lost
+when the comma is set close, it is **moved**: he is short of metal, not of
+measure, so the space goes into the other gaps of the same line and the line
+still fills. That is why no corrector marks it.
+
+Added, it gives **29.9% of commas** on the Folio — between Blayney's C at 20% and
+his B at "considerably higher" — with **nothing tuned to make it so**, and the
+right kind of patchiness: 4 on the quietest page against 59 on the busiest, a
+15-fold spread where Blayney's two formes differ 7-fold.
+
+**And a caution about the instrument.** Blayney, with the sheets under a glass,
+declined to tabulate this: "it is often extremely difficult to decide whether or
+not a space is likely to be present". A thin space is a seventh of an em. My
+counts came off a 105-dpi rendering, where it is invisible. **The eye-counts
+above are good for an ordering and worthless as rates**, and the number in
+CALIBRATION.md is Blayney's, not mine.
+
+### The Q/F diff overcounts foul case, and the rate was set on the belief that it undercounts
+
+`typecase.rkt` held the foul-case rate above the one measured figure — 0.25 per
+1,000 words, three accidents in 11,990 of *Much Ado* — on an argument written
+into the code: the comparison "can only see errors that changed a word into a
+different string, that escaped the corrector, and that stand in the one copy
+transcribed. It cannot see an error shared by both books." All true, and all
+pointing one way: the diff must undercount, so the generator should sit above it.
+
+**Nobody measured it, and it is wrong-signed.**
+
+This is the one experiment a library cannot run and this program can. The
+historical relationship was reproduced exactly: a first setting stands for the
+quarto, its printed text becomes the copy for a second, and the two printed texts
+are diffed word for word — so an error already in the quarto IS reproduced by the
+second compositor and IS hidden from the diff, which is the very difficulty the
+old reasoning rested on. Then the bibliographer's rule was applied: ring a
+one-letter swap between adjoining boxes that leaves a form nobody ever wrote.
+
+    148,828 words     126 accidents made     213 attributed     169%
+
+**It overcounts by seventy per cent.** Foul case has no signature of its own. The
+mark it leaves — one letter wrong, the wrong letter next door in the case, the
+result not a word — is exactly the mark of a misreading, and exactly the mark of
+a sort taken because the right box was empty. The bibliographer ringing it cannot
+tell the three apart, and the hidden shared errors do not make up the difference.
+
+Two false starts are worth keeping, because both are ways of getting this wrong:
+
+- **Diffing the copy-text against the print** attributed 5,080 accidents where 74
+  happened. Modern-spelling copy against period-spelling print makes every
+  convention look like an error.
+- **Adding the non-word filter but keeping that comparison** still gave 1,107 for
+  74. The comparison has to be print against print, in one orthography, or it
+  measures the modernisation and not the case.
+
+The rates came down a quarter, which puts the SURVIVING figure at 0.55–0.63
+against the interval's 0.05–0.73 — inside it, at the same stage, for the first
+time. Not down to the 0.25 point estimate: three hand-classified events is a thin
+anchor, the interval is wide because of it, and a rate carrying this much doubt
+belongs at the top rather than the middle.
+
+**A generator set above an observation to compensate for an instrument is resting
+on a claim about the instrument. That claim is measurable here, and was not
+measured for a year.**

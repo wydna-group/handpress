@@ -42,7 +42,8 @@
          "compositor.rkt" "book.rkt" "press.rkt" "imposition.rkt"
          "vocabulary.rkt"
          (only-in "typecase.rkt" substitution-only? substitution-phrase placeholder?)
-         (only-in "orthography.rkt" strip-conventions))
+         (only-in "orthography.rkt" strip-conventions)
+         (only-in "copytext.rkt" current-copy-kind copy-kind-note))
 
 (provide deviation-report deviation-counts word-deviation)
 
@@ -882,7 +883,7 @@
      (row "copy marked up by the corrector" (g 'prepared) n
           "before the compositor saw it")
      (row "misread from the copy" (g 'misreading) n
-          "his eye, not his judgement")
+          (format "his eye, not his judgement — reading ~a" (copy-kind-note (current-copy-kind))))
      (row "pointed otherwise than the copy" (g 'mis-pointed) n
           "a stop dropped, changed, or set where none stood; no source gives a rate")
      (row "spaced otherwise than the copy" (g 'mis-spaced) n

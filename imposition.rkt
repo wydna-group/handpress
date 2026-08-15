@@ -30,7 +30,7 @@
          SIG-LETTERS JAGGARD-LETTERS
          MAIN-SERIES LOWER-SERIES STAR-SERIES SYMBOL-SERIES PILCROW-SERIES
          PI-SERIES PRELIM-SERIES-CHOICES
-         series-mark series-prints? make-main-series)
+         series-mark formula-mark series-prints? make-main-series)
 
 (define SIG-LETTERS "ABCDEFGHIKLMNOPQRSTVXYZ")  ; J, U and W are not used
 
@@ -98,10 +98,27 @@
   (apply string-append (for/list ([_ (in-range (add1 n))]) mark)))
 
 ;; 0 -> A, 22 -> Z, 23 -> Aa, 46 -> Aaa ...
+;;
+;; THE COMMENT ABOVE WAS RIGHT AND THE CODE WAS NOT. It read `make-string' on
+;; the capital, so the twenty-fourth gathering signed `AA' where every source
+;; says `Aa'. Moxon, p. 210: "if the Book contain above three and twenty
+;; Sheets, the Signature of the four and twentieth Sheet must be **A a**, if
+;; five and twenty **B b** ... still as he begins a new Alphabet **adding an
+;; a**" -- so the second alphabet adds one lower-case letter and the third adds
+;; two, which is what `Aaa' at 46 means.
+;;
+;; Blayney's Appendix II collations, already mined for the imprint and
+;; preliminary work in this program, agree throughout: `πA8(−A7,8) A-Bb8
+;; Cc1,2[=πA7,8]' has Bb and Cc. So does the book this program is calibrated
+;; against -- the Folio signs its Comedies A-Z then Aa-Cc, and its Tragedies
+;; aa-zz then Aaa-Bbbb. Three witnesses and no dissent.
+;;
+;; It changes every collation formula past twenty-three gatherings.
 (define (letters-mark alphabet n)
   (define len (string-length alphabet))
   (define-values (rep idx) (quotient/remainder n len))
-  (make-string (add1 rep) (string-ref alphabet idx)))
+  (define ch (string-ref alphabet idx))
+  (string-append (string ch) (make-string rep (char-downcase ch))))
 
 (define (signature-letter n [alphabet SIG-LETTERS]) (letters-mark alphabet n))
 
@@ -117,6 +134,48 @@
                  (repeated (list-ref SYMBOLS idx) rep))]
     [(pi)      (if (zero? n) "π" (format "~aπ" (add1 n)))]
     [else      (letters-mark SIG-LETTERS n)]))
+
+;; WHAT THE BIBLIOGRAPHER WRITES IS NOT WHAT THE PRINTER SET, and one function
+;; was doing both jobs under two different authorities.
+;;
+;; `series-mark' above is the signature as it stands in the direction line:
+;; Moxon's `A a', which the Folio prints. The collational formula is a separate
+;; convention and Bowers states it flatly (p. 206): "The common practice ... is
+;; to write **2A in place of Aa or AA**, 3A in place of Aaa, AAA, or AAa, and
+;; so on."
+;;
+;; He gives the reason and the rules. Pursuing the printed form "relentlessly"
+;; produces `A-Z⁸, Aa-Zz⁸, Aaa-Zzz⁸, Aaaa-Zzzz⁸ ...' where "opportunities for
+;; misreading are obvious". And the number is not optional: "**the appropriate
+;; number must always precede the letter** ... one could not write A-7H⁸ I⁴,
+;; because the signature I without a preceding number always stands for only
+;; one I".
+;;
+;; It deliberately loses one distinction: "this system does not distinguish
+;; between AA and Aa, although it does differentiate A and a". Bowers holds
+;; that this costs nothing, "Printers very seldom bothered to distinguish Aa
+;; and AA as separate sequences". Cowley's partial expansion -- doubled letters
+;; written out and only triples abbreviated -- is allowed but "in Greg's view
+;; it is illogical", and is not done here.
+;;
+;; Blayney's Appendix II writes the expanded form, `A-Bb8 Cc1,2'. That is the
+;; older habit rather than a contradiction; Bowers is describing what to write
+;; in a formula and Blayney is quoting one. Where they part, the formula
+;; follows Bowers, because a formula is what this function makes.
+(define (formula-mark s n)
+  (case (sig-series-style s)
+    [(letters lower)
+     (define alphabet (or (sig-series-alphabet s) SIG-LETTERS))
+     (define len (string-length alphabet))
+     (define-values (rep idx) (quotient/remainder n len))
+     (define ch (string-ref alphabet idx))
+     (define base (if (eq? (sig-series-style s) 'lower)
+                      (string (char-downcase ch))
+                      (string ch)))
+     (if (zero? rep) base (format "~a~a" (add1 rep) base))]
+    ;; The symbol series carry no alphabet to exhaust, so they are written as
+    ;; they are set.
+    [else (series-mark s n)]))
 
 ;; Whether the mark is actually set in the direction line, or is only the
 ;; bibliographer's way of pointing at a leaf that carries nothing.
@@ -316,8 +375,8 @@
        (define n (car ls))
        (define same (let count ([xs ls] [k 0])
                       (if (and (pair? xs) (= (car xs) n)) (count (cdr xs) (add1 k)) k)))
-       (define first-mark (series-mark s i))
-       (define last-mark (series-mark s (+ i same -1)))
+       (define first-mark (formula-mark s i))
+       (define last-mark (formula-mark s (+ i same -1)))
        (span (list-tail ls same) (+ i same)
              (cons (if (= same 1)
                        (format "~a~a" first-mark (sup n))
@@ -338,11 +397,29 @@
   (cond
     [(zero? total) (format "~a: (no sheets)" (book-format-symbol f))]
     [else
-     (format "~a: ~a  [~a leaves; ~a pages]"
+     ;; THE BRACKETS WERE THE WRONG SLOT. Bowers reserves them for the signing
+     ;; statement -- which leaves of each gathering carry a signature -- and
+     ;; puts the extent outside, after a semicolon. A real formula-line of his:
+     ;;
+     ;;   Coll: 4°: A-I⁴ K² [$2(−K2) signed; A2 in ital.]; 38 leaves, pp. [6] 1-70
+     ;;
+     ;; This program was writing `[38 leaves; 76 pages]' into the slot a reader
+     ;; who knows the formulary reads as `$2 signed'. The extent is not wrong,
+     ;; it was standing where something else is expected.
+     ;;
+     ;; `$n signed' is information the program already has: `signed-leaves'
+     ;; answers it from the format, being the first half of the leaves in the
+     ;; gathering. What is NOT yet emitted is the exceptions Bowers puts beside
+     ;; it -- `(−K2)' for a leaf that should be signed and is not, italic
+     ;; signatures, missignings -- and Moxon says the exceptions are the rule in
+     ;; quarto: "in Quarto's they not only leave the Signature 4 out, but rarely
+     ;; put in Signature 3". So this states the pattern and not yet its breaches.
+     (format "~a: ~a [$~a signed]; ~a leaves, ~a pages"
              (book-format-symbol f)
              (string-join (for/list ([r (in-list rs)] #:unless (null? (sig-run-leaves r)))
                             (run->string r))
                           " ")
+             (signed-leaves f)
              total (* 2 total))]))
 
 ;; ---------------------------------------------------------------------------
@@ -936,7 +1013,7 @@
   ;; J, U and W are skipped in the signature alphabet.
   (check-equal? (signature-letter 8) "I")
   (check-equal? (signature-letter 9) "K")
-  (check-equal? (collation-formula QUARTO 2) "4°: A–B⁴  [8 leaves; 16 pages]")
+  (check-equal? (collation-formula QUARTO 2) "4°: A–B⁴ [$2 signed]; 8 leaves, 16 pages")
 
   ;; The preliminary series, in Gaskell's four forms plus McKerrow's π.
   (check-equal? (for/list ([n 3]) (series-mark STAR-SERIES n)) '("*" "**" "***"))
@@ -957,9 +1034,20 @@
   (check-equal? (page-ref-signature (car (page-refs QUARTO 0 PI-SERIES 0))) "π1r")
 
   ;; Gaskell n. 33a: Jaggard omitted X, Y and Z, so his 20-letter alphabet
-  ;; doubles three gatherings sooner than everyone else's.
-  (check-equal? (signature-letter 20 JAGGARD-LETTERS) "AA")
+  ;; turns over three gatherings sooner than everyone else's.
+  ;;
+  ;; This asserted "AA" and was wrong with the code it was written against.
+  ;; Moxon has the second alphabet ADD a lower-case letter -- "A a ... B b" --
+  ;; and Jaggard's own Folio signs its Comedies A-Z then Aa-Cc, so the house
+  ;; this alphabet is named for is itself a witness against the old form.
+  (check-equal? (signature-letter 20 JAGGARD-LETTERS) "Aa")
   (check-equal? (signature-letter 20 SIG-LETTERS) "X")
+  ;; The turn-over, and the one after it: a capital, then one lower case, then
+  ;; two. Asserted here because it is the rule the collation formula rests on.
+  (check-equal? (signature-letter 22 SIG-LETTERS) "Z")
+  (check-equal? (signature-letter 23 SIG-LETTERS) "Aa")
+  (check-equal? (signature-letter 24 SIG-LETTERS) "Bb")
+  (check-equal? (signature-letter 46 SIG-LETTERS) "Aaa")
 
   ;; A star gathering is signed like any other: *, *2, *3.
   (define stars (page-refs QUARTO 0 STAR-SERIES 1))
@@ -969,14 +1057,14 @@
   ;; Blayney's own formula for the First Quarto of Lear (Appendix II, no. 56):
   ;; a half-sheet of preliminaries, then the text from B.
   (check-equal? (collation-formula QUARTO (list (sig-run MAIN-SERIES 0 '(2 4 4 4 4 4 4 4 4 4 4))))
-                "4°: A² B–L⁴  [42 leaves; 84 pages]")
+                "4°: A² B–L⁴ [$2 signed]; 42 leaves, 84 pages")
   ;; The characteristically English habit: main series from B, preliminaries
   ;; A and a. Blayney no. 84 is 4°: A4 a2 B-H4.
   (check-equal? (collation-formula
                  QUARTO (list (sig-run MAIN-SERIES 0 '(4))
                               (sig-run LOWER-SERIES 0 '(2))
                               (sig-run MAIN-SERIES 1 '(4 4 4 4 4 4 4))))
-                "4°: A⁴ a² B–H⁴  [34 leaves; 68 pages]")
+                "4°: A⁴ a² B–H⁴ [$2 signed]; 34 leaves, 68 pages")
 
   ;; Half-sheet imposition: a two-leaf gathering in quarto is one forme worked
   ;; and turned, not two. This is the commonest preliminary arrangement in

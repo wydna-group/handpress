@@ -885,15 +885,42 @@
                         ;; ruin. Early printing is far cleaner than its
                         ;; reputation.
                         ;;
-                        ;; The rates below allow rather more than the observed
-                        ;; figure, because the comparison can only see errors
-                        ;; that changed a word into a different string, that
-                        ;; escaped the corrector, and that stand in the one
-                        ;; copy transcribed. It cannot see an error shared by
-                        ;; both books or one that happens to make a plausible
-                        ;; spelling.
-                        #:foulness [foulness 0.00012]
-                        #:turn-rate [turn-rate 0.00006]
+                        ;; The rates used to allow rather more than the
+                        ;; observed figure, on the reasoning that the comparison
+                        ;; "can only see errors that changed a word into a
+                        ;; different string, that escaped the corrector, and
+                        ;; that stand in the one copy transcribed" -- that it
+                        ;; UNDERCOUNTS. That was never measured, and it is
+                        ;; wrong-signed.
+                        ;;
+                        ;; THE INSTRUMENT WAS GRADED AGAINST A KNOWN TRUTH,
+                        ;; which is the one thing this program can do that a
+                        ;; library cannot. A first setting stands for the
+                        ;; quarto, its printed text becomes the copy for a
+                        ;; second, and the two are diffed exactly as Q is diffed
+                        ;; against F -- so an error already in the quarto is
+                        ;; reproduced by the second man and hidden from the
+                        ;; diff, which is the difficulty the old reasoning was
+                        ;; about. Over 148,828 words: **126 accidents made, 213
+                        ;; attributed to the case by the diff -- 169%**.
+                        ;;
+                        ;; It overcounts because foul case has no signature of
+                        ;; its own. A one-letter swap between adjoining boxes
+                        ;; leaving a form nobody wrote is also what a misreading
+                        ;; looks like, and what a sort taken for want of the
+                        ;; right one looks like. The bibliographer ringing it
+                        ;; cannot tell them apart, and neither could this rule.
+                        ;;
+                        ;; So the reason for sitting above 0.25 per 1,000 is
+                        ;; gone, and the rates come down by a quarter to put the
+                        ;; SURVIVING figure inside the interval the three Much
+                        ;; Ado accidents give (0.05-0.73) rather than just
+                        ;; outside it. Not down to 0.25: three hand-classified
+                        ;; events is a very thin anchor, the interval is wide
+                        ;; for that reason, and the top of it is where a rate
+                        ;; with this much doubt belongs.
+                        #:foulness [foulness 0.00009]
+                        #:turn-rate [turn-rate 0.000045]
                         #:condition [condition 'used]
                         #:rng [rng (make-rng 1)])
   (define boxes (make-hash))

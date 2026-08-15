@@ -1421,6 +1421,7 @@
   ;; short. Blayney makes it the hinge of the whole _Lear_ reconstruction: a
   ;; play is short lines and quadded-out ends, and "what _Lear_ used in the
   ;; quantities most unprecedented ... was space-metal".
+  (define ran-short? (box #f))
   (for ([gap (in-list (cons (set-line-indent l) (set-line-spaces l)))]
         #:when (> gap 0))
     (define-values (pieces short?) (take-space! tc gap))
@@ -1428,11 +1429,68 @@
     ;; forme is distributed, exactly as the letters do.
     (note-white! tc page pieces)
     (when short?
+      (set-box! ran-short? #t)
       (add-event! c (make-event 'shift
                                 "space-metal wanting; the white made up of smaller pieces"
                                 #:page page #:line lineno
                                 #:compositor (profile-name prof)))))
-  (struct-copy set-line l [words new-words]))
+  ;; ---------------------------------------------------------------------
+  ;; And when there is not enough white, the comma gives some up.
+  ;;
+  ;; BLAYNEY FOUND THIS AND GAVE THE CAUSE. Counting Okes's men he reports
+  ;; that "C set approximately 20% of his unjustified commas without a space",
+  ;; that B's average was higher and erratic, and -- the part that matters --
+  ;; that "several patches of exceptionally frequent close spacing can probably
+  ;; be explained as the result of SPACE-SHORTAGE", the difference between K3v
+  ;; (spaced 16 : unspaced 3) and K4r (spaced 4 : unspaced 22) being his
+  ;; example. Sixteen per cent on one forme and eighty-five on the next.
+  ;;
+  ;; So it is not a house convention and not a fault: it is what a compositor
+  ;; does when the space boxes run low, and this program had the shortage
+  ;; without the response. It could only make a white "up of smaller pieces".
+  ;;
+  ;; The comma is where he takes it from because the comma's own body reads as
+  ;; a gap -- Moxon casts it one and a half thin spaces wide against the em's
+  ;; seven -- and because English practice already sets it tight. Smith (1755)
+  ;; complains that the comma "clinge[s] to the Matter so close as it always
+  ;; does, in England", where "all other Printing Nations make it a law to put
+  ;; at least a thin Space before it".
+  ;;
+  ;; The width is not lost, it is MOVED. He is short of metal, not of measure:
+  ;; the space he saves at the comma goes into the other gaps of the same line,
+  ;; so the line still fills and the spacing is merely uneven. That is what
+  ;; makes this an expedient rather than an error, and why no corrector marks
+  ;; it -- Bowers: two words "set close up without a space following the comma
+  ;; ... are not considered to be misprints".
+  (define spaces (set-line-spaces l))
+  (define closed
+    (cond
+      [(not (unbox ran-short?)) spaces]
+      [else
+       (define eligible
+         (for/list ([w (in-list new-words)] [i (in-naturals)]
+                    #:when (and (< i (length spaces))
+                                (> (list-ref spaces i) 0)
+                                (regexp-match? #px"[,;:]$" (word-printed w))))
+           i))
+       (cond
+         [(null? eligible) spaces]
+         [else
+          (define at (list-ref eligible (rnd-int (comp-rng c) (length eligible))))
+          (define saved (list-ref spaces at))
+          (define others (for/list ([s (in-list spaces)] [i (in-naturals)]
+                                    #:unless (= i at))
+                           i))
+          (add-event! c (make-event 'shift
+                                    "space-metal wanting; the comma set close and the white spent elsewhere"
+                                    #:page page #:line lineno
+                                    #:compositor (profile-name prof)))
+          (for/list ([s (in-list spaces)] [i (in-naturals)])
+            (cond
+              [(= i at) 0]
+              [(null? others) s]
+              [else (+ s (quotient saved (length others)))]))])]))
+  (struct-copy set-line l [words new-words] [spaces closed]))
 
 (module+ test
   (require rackunit)

@@ -8,7 +8,8 @@
          racket/system racket/runtime-path racket/math
          "book.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
          "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt" "import.rkt"
-         "paper.rkt" "recurrence.rkt")
+         "paper.rkt" "recurrence.rkt"
+         (only-in "copytext.rkt" current-copy-kind COPY-KINDS copy-kind-note))
 
 (provide run-handpress apply-xslt)
 
@@ -104,6 +105,7 @@
                        #:mis-space [mis-space #f]
                        #:mis-transpose [mis-transpose #f]
                        #:mis-drop [mis-drop #f]
+                       #:copy-kind [copy-kind 'fair]
                        #:cast-off-method [cast-off-method 'pages]
                        #:cancel-rate [cancel-rate 0.0]
                        #:cancels [cancels 0]
@@ -212,12 +214,19 @@
                         #:find-prelims? find-prelims?
                         #:sig-alphabet (if jaggard? JAGGARD-LETTERS SIG-LETTERS)
                         #:prelim-style prelim-style))
+  ;; WHAT THE COPY IS has to outlive the composing, because the report names it
+  ;; and the report is written long after the last word is set. A parameterize
+  ;; around `set-book' alone left every report saying "a scribe's fair copy"
+  ;; whatever had been asked for -- the counts were right and the line above
+  ;; them was wrong, which is the worst of both. Set for the run instead.
+  (current-copy-kind copy-kind)
   ;; The pointing rate is read inside `make-word', so it is bound here rather
   ;; than threaded through the house.
   (define b (parameterize ([current-mis-point (or mis-point MIS-POINT-RATE)]
                            [current-mis-space (or mis-space MIS-SPACE-RATE)]
                            [current-mis-transpose (or mis-transpose MIS-TRANSPOSE-RATE)]
-                           [current-mis-drop (or mis-drop MIS-DROP-RATE)])
+                           [current-mis-drop (or mis-drop MIS-DROP-RATE)]
+                           )
               (set-book h copy kind)))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
                        #:proof-rate proof-rate
@@ -386,6 +395,7 @@
   (define mis-space #f)
   (define mis-transpose #f)
   (define mis-drop #f)
+  (define copy-kind 'fair)
   (define cast-off-method 'pages)
   (define cancel-rate 0.0)
   (define cancels 0)
@@ -471,6 +481,11 @@
       (set! mis-transpose (string->number x))]
      [("--mis-drop") x "chance per word that he passes it over and never sets it (the errata give a ceiling, not a rate)"
       (set! mis-drop (string->number x))]
+     [("--copy-kind") x "what the compositor was handed: foul (the author's papers), fair (a scribe's copy, the default), or print (an earlier book). Decides what his eye can go wrong at."
+      (let ([k (string->symbol x)])
+        (unless (memq k COPY-KINDS)
+          (error 'handpress "unknown --copy-kind ~a; expected one of ~a" x COPY-KINDS))
+        (set! copy-kind k))]
      [("--cast-off-method") x "pages (Smith: error bounded at one page) or breaks (Moxon: settled only at a break, and no crowding devices)"
       (set! cast-off-method (string->symbol x))]
      [("--cancels") n "leaves cancelled for reasons outside the simulation"
@@ -536,6 +551,7 @@
                        #:mis-space mis-space
                        #:mis-transpose mis-transpose
                        #:mis-drop mis-drop
+                       #:copy-kind copy-kind
                        #:cast-off-method cast-off-method
                        #:jaggard? jaggard?
                        #:prelim-style prelim-style

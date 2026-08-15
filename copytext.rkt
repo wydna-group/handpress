@@ -13,9 +13,11 @@
 ;;; eyeskip over a repeated word; the substitution of a commoner phrase for a
 ;;; rarer one under the pressure of memory; and simple transposition.
 
-(require racket/string racket/list racket/match racket/set "rng.rkt")
+(require racket/string racket/list racket/match racket/set "rng.rkt"
+         (only-in "typecase.rkt" SHAPE-CONFUSIONS))
 
 (provide (struct-out copy-unit) (struct-out misreading)
+         COPY-KINDS current-copy-kind copy-kind-note copy-kind-scale
          parse-copy misread EDITORIAL abbreviate-prefix
          MINIM-CONFUSIONS HAND-CONFUSIONS MEMORIAL)
 
@@ -328,6 +330,57 @@
   '(("e" "o") ("o" "e") ("c" "t") ("t" "c") ("c" "e") ("e" "c")
     ("f" "ſ") ("l" "b") ("h" "b") ("a" "o") ("y" "g") ("r" "s")))
 
+;; ---------------------------------------------------------------------------
+;; What the copy was
+;; ---------------------------------------------------------------------------
+;; Greg's classification, and the New Bibliography's own vocabulary: the copy a
+;; compositor was handed was the author's **foul papers**, a scribe's **fair
+;; copy**, or an earlier **printed** book. It decides what the eye can go wrong
+;; at, which is a different question from how careless the man is.
+;;
+;; THE PROGRAM ALREADY ASSUMED ONE OF THESE AND NEVER SAID SO. Every misreading
+;; here is a manuscript phenomenon -- minims miscounted, letters the secretary
+;; hand does not keep apart -- and between them they carry 85% of the slips.
+;; (ROADMAP §11 said the opposite, that "every misreading profile assumes
+;; printed copy". It had it backwards.) Naming the assumption is most of what
+;; this adds; the third mode is the new thing.
+;;
+;; **Setting from print is not easier manuscript, it is a different confusion
+;; set.** No minim is miscounted in a printed exemplar, because type keeps its
+;; strokes apart. What misleads a man reading type is what Hornschuch says
+;; misleads him reaching into the case -- "letters similar in form elude the
+;; printer", r/t, n/u, e/c, c/t, ſ/f -- and `SHAPE-CONFUSIONS' in typecase.rkt
+;; is that list already, put there for foul case. One shape, two places it can
+;; do harm.
+;;
+;; The RATES are an ordering and not a measurement. Nothing here says foul
+;; papers yield so many times the errors of a fair copy; what the bibliographers
+;; agree is the order -- an author's working draft is the hardest thing to set
+;; from, a scribe's fair copy easier, print easiest. The multipliers below carry
+;; that order and are knobs, and the report says so.
+;; Hornschuch's shapes, in the pair form `apply-pair' wants. NOT a second copy
+;; of the list: `SHAPE-CONFUSIONS' in typecase.rkt is the one place it is
+;; written down, and this turns that hash into pairs. The same shapes mislead a
+;; man reaching into the case and a man reading a printed page, which is why
+;; one list serves both and why neither may drift from the other.
+(define PRINT-CONFUSIONS
+  (for*/list ([(from tos) (in-hash SHAPE-CONFUSIONS)]
+              [to (in-list tos)])
+    (list (string from) (string to))))
+
+(define COPY-KINDS '(foul fair print))
+(define COPY-KIND-SCALE (hash 'foul 1.5 'fair 1.0 'print 0.5))
+(define current-copy-kind (make-parameter 'fair))
+
+(define (copy-kind-scale) (hash-ref COPY-KIND-SCALE (current-copy-kind) 1.0))
+
+(define (copy-kind-note k)
+  (case k
+    [(foul) "the author's foul papers, in his own hand"]
+    [(fair) "a scribe's fair copy, in the secretary hand"]
+    [(print) "an earlier printed book"]
+    [else "copy of an unstated kind"]))
+
 ;; Commonplaces that swim up under the pressure of memory and displace the
 ;; rarer reading actually in the copy.
 (define MEMORIAL
@@ -380,9 +433,19 @@
         [(< (string-length cur) 3) (cons wd cur)]
         [else
          (define slip
-           (and (< (rnd g) rate)
+           (and (< (rnd g) (* rate (copy-kind-scale)))
                 (let ([roll (rnd g)])
                   (cond
+                    ;; Reading type. No minim is miscounted in a printed
+                    ;; exemplar; what elude him are the shapes Hornschuch names.
+                    [(eq? (current-copy-kind) 'print)
+                     (if (< roll 0.85)
+                         (let ([n (apply-pair cur PRINT-CONFUSIONS g)])
+                           (and n (list n 'misreading
+                                        "letters alike in the printed copy")))
+                         (let ([n (transpose cur g)])
+                           (and n (list n 'transposition
+                                        "letters transposed in the stick"))))]
                     [(< roll 0.45)
                      (let ([n (apply-pair cur MINIM-CONFUSIONS g)])
                        (and n (list n 'minim "minims miscounted in the copy")))]
@@ -488,6 +551,44 @@
 
 (module+ test
   (require rackunit)
+
+  ;; THE COPY DECIDES WHAT THE EYE CAN GO WRONG AT, and the claim is an
+  ;; ORDERING: an author's foul papers are the hardest thing to set from, a
+  ;; scribe's fair copy easier, an earlier printed book easiest. The
+  ;; multipliers are knobs and no source gives them; the order is not.
+  ;;
+  ;; Asserted over several seeds because it was nearly asserted on one. Seed 5
+  ;; happens to give foul and fair the same total exactly -- 32 apiece -- and
+  ;; that coincidence cost most of an hour hunting a bug that was not there.
+  ;; One seed is a test of the seed.
+  (let ()
+    (define ws (for/list ([i 4000]) (list-ref '("minim" "vnion" "sonne" "wonder"
+                                                 "notion" "certaine" "reason")
+                                              (modulo i 7))))
+    (define (slips k seed)
+      (parameterize ([current-copy-kind k])
+        (define-values (_p errs) (misread ws (make-rng seed) 0.02 0.0))
+        (length errs)))
+    (define (total k) (for/sum ([s '(1 2 3 4 5)]) (slips k s)))
+    (define foul (total 'foul))
+    (define fair (total 'fair))
+    (define prn  (total 'print))
+    (check-true (> foul fair)
+                (format "foul papers are hardest to set from (~a vs ~a)" foul fair))
+    (check-true (> fair prn)
+                (format "and print is easiest (~a vs ~a)" fair prn))
+    ;; Print is not easier manuscript: no minim can be miscounted in type.
+    (check-false
+     (parameterize ([current-copy-kind 'print])
+       (define-values (_p errs) (misread ws (make-rng 9) 0.05 0.0))
+       (for/or ([e (in-list errs)]) (eq? (misreading-kind e) 'minim)))
+     "no minim is miscounted in a printed exemplar")
+    ;; And a hand still miscounts them.
+    (check-true
+     (parameterize ([current-copy-kind 'fair])
+       (define-values (_p errs) (misread ws (make-rng 9) 0.05 0.0))
+       (for/or ([e (in-list errs)]) (eq? (misreading-kind e) 'minim)))
+     "but a secretary hand does"))
 
   (define drama "Enter King and Queen.\n\nKing. And can you by no drift\nGet from him why he puts on this confusion?\n\nQueen. Did he receive you well?\n\nKing. Affront Ophelia. Her father and myself,\nLawful espials, will bestow ourselves\n")
   (define us (parse-copy drama))

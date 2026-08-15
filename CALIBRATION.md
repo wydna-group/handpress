@@ -26,7 +26,7 @@ So every row carries, where it can:
 
 ## The First Folio — the standard hard case
 
-*Regenerated 2026-08-14, **eight seeds** (1623, 11, 22, 44, 7, 99, 202, 555),
+*Regenerated 2026-08-15, **eight seeds** (1623, 11, 22, 44, 7, 99, 202, 555),
 `--edition 1200`, `--copies 4`, five compositors, folio in sixes on crown paper.
 Eight rather than four because four could not detect a shift of a fifth, which
 is what the previous entry had to admit about its own comparison.*
@@ -56,10 +56,10 @@ not, and seed 44 gives 954 and 480.
 | | range over 8 seeds | mean | recorded | source |
 |---|---|---|---|---|
 | pages | 948–954 | **949** | 908 | the book |
-| **press variants** | **423–614** | **524** | **"just over 500"** | Hinman, Norton, p. xx |
-| formes corrected mid-run | 104–118 | **111** of 474–480 | ~100 of ~450 | ibid. |
-| formes proofed | 120–134 | **128** | — | — |
-| word divisions / 100 lines | 1.69–1.78 | **1.73** | 2.03 | measured, 790 plates |
+| **press variants** | **397–601** | **515** | **"just over 500"** | Hinman, Norton, p. xx |
+| formes corrected mid-run | 98–111 | **105** of 474–480 | ~100 of ~450 | ibid. |
+| formes proofed | 114–124 | **118** | — | — |
+| word divisions / 100 lines | 1.67–1.74 | **1.71** | 2.03 | measured, 790 plates |
 
 **The press-variant count now straddles Hinman's figure, and nothing was tuned
 to make it.** The previous entry recorded 321–531 with a mean of 407, about a
@@ -134,11 +134,11 @@ is the question §12 puts to a kind before it is built.*
 
 | per book | range | mean | where the rate comes from |
 |---|---|---|---|
-| spaced otherwise than the copy | 280–352 | **313** | a **share** — 3 of the proof page's 20 corrections |
-| a word passed over | 296–326 | **309** | a **ceiling** — half of Gascoigne's errata, discounted for severity |
-| pointed otherwise than the copy | 222–269 | **246** | a **share** — 2 of that page's 20 |
-| two words the wrong way round | 67–86 | **76** | an **ordering** — 0 in ~32 itemised corrections, so under pointing |
-| a word set a second time | 25–66 | **46** | a **mirror** — eyeskip's own rate, run backwards. No knob |
+| spaced otherwise than the copy | 307–338 | **320** | a **share** — 3 of the proof page's 20 corrections |
+| a word passed over | 279–325 | **306** | a **ceiling** — half of Gascoigne's errata, discounted for severity |
+| pointed otherwise than the copy | 239–275 | **253** | a **share** — 2 of that page's 20 |
+| two words the wrong way round | 59–80 | **69** | an **ordering** — 0 in ~32 itemised corrections, so under pointing |
+| a word set a second time | 23–54 | **38** | a **mirror** — eyeskip's own rate, run backwards. No knob |
 
 The ordering the transposition rate was set to assert holds on every seed:
 **transposed under pointed**, 76 against 246. And spacing above pointing, 313
@@ -148,8 +148,8 @@ against 246, which is the 3:2 the proof page gives.
 
 | per book | range | mean | note |
 |---|---|---|---|
-| heavy stop set as the period sets it | 6,365–6,571 | **6,478** | answers to `--year`; 1623 is a 43% colon share |
-| a capital he was not given | 7,900–8,195 | **8,001** | selects from 3,761 word-types the corpus measured |
+| heavy stop set as the period sets it | 6,441–6,572 | **6,500** | answers to `--year`; 1623 is a 43% colon share |
+| a capital he was not given | 7,913–8,059 | **7,983** | selects from 3,761 word-types the corpus measured |
 
 **These are choices and not faults**, and are counted apart for that reason: a
 compositor's own pointing offends against nothing, and Lambard grades errors.
@@ -186,12 +186,13 @@ decides whether the two agree.*
 
 | parameter | in the real books | stage | the model | stage | verdict |
 |---|---|---|---|---|---|
-| foul case + turned letters | **0.25 / 1,000 words** — 3 events in 11,990 (two `Leonato`/`Leonata`, one `tongues`/`tongnes`); exact Poisson 95% CI **0.05–0.73** | survived the corrector | 0.96 made, **0.76 survives** (Folio, 4 seeds) | both printed | **inside the interval at the right stage, outside it at the wrong one** |
+| foul case + turned letters | **0.25 / 1,000 words** — 3 events in 11,990 (two `Leonato`/`Leonata`, one `tongues`/`tongnes`); exact Poisson 95% CI **0.05–0.73** | survived the corrector | 0.77 made, **0.55–0.63 survives** (Folio, 4 seeds) | survived the corrector | **inside the interval, at the same stage** |
 | tilde abbreviations | 1580s median **2.99** (p75 5.85, p90 9.65); 1600s **1.11** (p75 2.51); 1620s **0.25** (p75 0.83). 51/78/83 English books ≥2,000 words | printed | 1585 **5.01–7.13**; 1605 **1.71–2.40**; 1625 **0.16–0.87** (4 seeds, *Areopagitica*) | printed | **between median and p75 at every date** — inside the distribution, on the high side of it |
-| wrong-fount sorts | "a handful a book" | survived the corrector | **11–16** on the Folio, 4 seeds | survives; the corrector's path never offers him one | **the same stage at last, and inside "a handful"** |
+| wrong-fount sorts | "a handful a book" | survived the corrector | **9–19, mean 14** on the Folio, 8 seeds | survives; the corrector's path never offers him one | **the same stage at last, and inside "a handful"** |
 | internal space | ~9% (Blayney, ten 20-line samples off *Lear*) | printed | 11.57% (Moxon ladder) | printed | short, and §5's residual |
 | word division, prose plays | 6.41 / 100 lines (Norton, 790 plates) | printed | 5.88 | printed | short by the same proportion |
 | roman lower-case alphabet | 11 ems (Smith, p. 158) | — | **10.95 ems** | — | 0.5%, and the only row right first time |
+| the close-set comma | Okes's **C ~20%** of unjustified commas unspaced; B's average "considerably higher" and erratic, K3v 16% against K4r 85% on adjacent formes (Blayney i. 180–1) | printed | **29.8–30.3%, mean 30.0%** of commas, semicolons and colons (Folio, 8 seeds) | printed | **between his two men, and not tuned** — it is an outcome of space depletion, not a parameter |
 | the heavy medial stop | colon is **70%** of colon+semicolon in the 1600s, **35%** by 1640; 300 English books ≥2,000 words, medians by decade | printed | **66.5%** at 1600, **32.7%** at 1640 (*Areopagitica*) | printed | **within 4 points at both ends, and the trend reverses in the right direction** |
 
 **Wrong fount was the one known fault in this table and is now fixed** — see
@@ -238,6 +239,26 @@ Shifts made for want of a sort: 375852
   another-sort      956
   space-metal    367822
 ```
+
+**The foul-case row was outside its interval and the reason for it was
+wrong-signed.** It read 0.76 surviving against a top of 0.73 and was recorded as
+"inside the interval", which it never was. `typecase.rkt` held the rate above
+the observed figure because "the comparison can only see errors that changed a
+word into a different string, that escaped the corrector, and that stand in the
+one copy transcribed" — that the diff UNDERCOUNTS.
+
+**Graded against a known truth, it overcounts.** A first setting stands for the
+quarto, its printed text becomes the copy for a second, and the two are diffed
+as Q is diffed against F — so an error already in the quarto is reproduced by
+the second man and hidden, which is the difficulty the old reasoning was about.
+Over 148,828 words: **126 accidents made, 213 attributed to the case, 169%**.
+Foul case has no signature of its own — a one-letter swap between adjoining
+boxes leaving a form nobody wrote is equally what a misreading looks like, and
+what a sort taken for want of the right one looks like.
+
+So the rates came down a quarter. Not to 0.25: three hand-classified events is a
+thin anchor, which is why the interval is wide, and the top of it is where a rate
+carrying this much doubt belongs.
 
 **Pointing was a habit and the program had it only as an error.** Measured on
 its own output before this was built, the model's pointing was its copy's

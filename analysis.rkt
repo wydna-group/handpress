@@ -532,7 +532,10 @@
         (cons 'cannibalized    #rx"margin of a standing page")
         (cons 'face-down       #rx"set face down")
         (cons 'another-sort    #rx"set in its room")
-        (cons 'space-metal     #rx"white made up of smaller pieces")))
+        (cons 'space-metal     #rx"white made up of smaller pieces")
+        ;; Blayney's cause for the close-set comma: not a convention and not a
+        ;; fault, but what a man does when the space boxes run low.
+        (cons 'comma-set-close  #rx"comma set close")))
 
 (define (shift-cause e)
   (or (for/or ([p (in-list SHIFT-CAUSES)])

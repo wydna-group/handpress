@@ -75,6 +75,11 @@ ROWS = [
     ("wrong-fount sorts",    r"^      wrong-fount\s+(\d+)"),
     ("cannibalized",         r"^      cannibalized\s+(\d+)"),
 
+    # Blayney's close-set comma: an expedient when the space boxes run low, not
+    # a fault and not a convention. Counted here because its whole claim is a
+    # SHARE of the commas, and a bare total says nothing about that.
+    ("comma set close",      r"^      comma-set-close\s+(\d+)"),
+
     # Lambard's four grades over the same words. They must sum to the marked
     # words and not to more, a word costing the reader by its worst fault.
     ("grade cosmetic",       r"^    blemish only the workmanship\s+(\d+)\s"),
