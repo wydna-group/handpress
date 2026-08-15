@@ -862,7 +862,7 @@
     (list (page-sig p) (second i) (third i))))
 
 (define (turner-report b)
-  (define ev (recurrence-evidence (book-case b)))
+  (define ev (recurrence-evidence (book-case b) #:job (book-job b)))
   (define tbl (turner-table ev (page-views b)))
   (define truth (true-first-forme (book-fmt b) (book-by-formes? b)))
   (define fired (filter turner-pair-pattern? tbl))
@@ -996,7 +996,8 @@
 (define (recurrence-lines b [discrimination (current-discrimination)])
   (define tc (book-case b))
   (define rec (tcase-recurrence tc))
-  (define ev (recurrence-evidence tc #:discrimination discrimination))
+  (define ev (recurrence-evidence tc #:discrimination discrimination
+                                  #:job (book-job b)))
   (define seen (evidence-places ev))
   (define pages (book-pages b))
   (define page-forme

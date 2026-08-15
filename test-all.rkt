@@ -48,6 +48,7 @@
            (submod "orthography.rkt" test)
            (submod "compositor.rkt" test)
            (submod "book.rkt" test)
+           (submod "shop.rkt" test)
            (submod "press.rkt" test)
            (submod "perfecting.rkt" test)
            (submod "formeorder.rkt" test)

@@ -25,6 +25,7 @@
          LOWER-CASE-LEFT LOWER-CASE-RIGHT UPPER-CASE-LAY
          damage-vocabulary damage-for damage-phrase CONDITIONS batter!
          note-recurrence! sort-piece-note all-pieces battered-at-press
+         case-job set-case-job!
          SUBSTITUTIONS substitution-only? substitution-phrase
          PLACEHOLDER placeholder?)
 
@@ -704,10 +705,24 @@
 ;; `inverted' holds any batch of new type lately added to a box that was cast
 ;; from a badly-struck matrix: ch -> (vector remaining multiplier). See
 ;; `replenish!'.
+;; `job' is which book the man at these cases is setting just now. A box,
+;; because one pair of cases serves the whole house and the house works on
+;; several books at once: McKenzie's Bowyer ledger has twelve of thirteen
+;; compositors on more than one book in a fortnight, the median man on three
+;; (Printers of the Mind, appendix II(d)).
+;;
+;; It is here rather than threaded through the compositor because the case is
+;; the thing that has to know. A book does not care who else is drawing from the
+;; boxes; the boxes do. `shop.rkt' sets it as each job takes the frame, and
+;; `note-recurrence!' stamps it on every appearance, so that the evidence can
+;; afterwards be cut down to the one book a bibliographer would actually hold.
 (struct tcase (boxes initial low exhausted distributed foulness turn-rate rng
                      distinctive recurrence counter inverted replenished
-                     cannibalized blanks white pieces battered)
+                     cannibalized blanks white pieces battered job)
   #:transparent)
+
+(define (case-job tc) (unbox (tcase-job tc)))
+(define (set-case-job! tc j) (set-box! (tcase-job tc) j))
 
 ;; `distinctive' holds only the pieces standing in the case at this moment: a
 ;; piece is taken out of it when it is picked and put back when its forme is
@@ -947,7 +962,7 @@
   (tcase boxes (hash-copy boxes) (hash-copy boxes) (make-hash) (make-hash)
          foulness turn-rate rng distinctive (make-hash) counter
          (make-hash) (make-hash) (make-hash) (make-hash) (make-hash)
-         register (make-hash)))
+         register (make-hash) (box 'book)))
 
 ;; Types are battered at press as well as in the case. A sound sort may become
 ;; distinctive part-way through a book, which is why Hinman could date some
@@ -1325,10 +1340,17 @@
     (define low (hash-ref (tcase-low tc) ch n))
     (list ch n (max 0 low) (- 1.0 (/ (max 0.0 (exact->inexact low)) n)))))
 
-;; Where a given piece has printed, in order.
+;; Where a given piece has printed, in order, and IN WHICH BOOK.
+;;
+;; The job has to be on the record because the case outlives the book. A piece
+;; that goes from this book into another book's forme and comes back is, to
+;; anyone holding only this book, a piece that was absent for a while -- not a
+;; piece that printed somewhere he can look. Storing the appearance without
+;; saying whose it is would hand the analyst page 12 of somebody else's quarto
+;; as though it were page 12 of his own.
 (define (note-recurrence! tc piece place)
   (hash-update! (tcase-recurrence tc) (sort-piece-id piece)
-                (lambda (xs) (append xs (list place))) '()))
+                (lambda (xs) (append xs (list (cons (case-job tc) place)))) '()))
 
 (define (scarcest tc [n 8])
   (take (sort (hash->list (tcase-boxes tc)) < #:key cdr)

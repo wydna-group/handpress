@@ -16,14 +16,16 @@
 ;;; are the signature of setting by formes, and they mark the joins in the
 ;;; casting off.
 
-(require racket/list racket/string racket/math
+(require racket/list racket/string racket/math racket/generator
          "pagination.rkt" "metrics.rkt" "orthography.rkt" "typecase.rkt" "copytext.rkt"
          "corrector.rkt" "compositor.rkt" "imposition.rkt" "prelims.rkt"
          "titlepage.rkt" "paper.rkt" "rng.rkt")
 
 (provide (struct-out page) (struct-out book) (struct-out house)
          (struct-out standing-type) (struct-out gathering-plan)
-         make-house set-book house-layout book-layout
+         (struct-out tick)
+         make-house set-book set-book/steps drive-alone page-ens
+         house-layout book-layout
          page-sig page-all-lines page-text book-gatherings book-collation
          book-find-page book-runs plan-bound-leaves
          PRELIM-SCHEMES PRELIM-SCHEME-NAMES MIS-RESUME-RATE)
@@ -53,7 +55,11 @@
 ;; `paper' travels with the book because a leaf has no size without it, and
 ;; every consumer downstream -- the description, the TEI, the facsimile -- has
 ;; a book and not a house to hand.
-(struct book (pages formes skeletons fmt paper events stints case title
+;; `job' is which of the house's books this is. It matters only because `case'
+;; may be shared with others, and everything asking the case what could have
+;; been SEEN -- as against what is true of the metal -- has to say whose book it
+;; is holding. See `recurrence-evidence'.
+(struct book (job pages formes skeletons fmt paper events stints case title
                     copy-units authors-copy preparation standing paging
                     plans division titlepage prelim-scheme moved-to-end
                     cut-from-last-sheet?)
@@ -759,7 +765,64 @@
 ;; Setting the book
 ;; ---------------------------------------------------------------------------
 
+;; What the shop sees each time a book pauses: the page just set, and what it
+;; cost. `shop.rkt' schedules on this and nothing else, so a book need not know
+;; that any other work exists.
+;;
+;; `ens' is the cost in McKenzie's own unit. He states the equivalence himself
+;; -- "a maximum setting rate of something like 1000 ens or letters an hour"
+;; (Printers of the Mind, p. 8) -- so an en is one average sort's width, and the
+;; page's set width converted at two ens to the em is the honest reading of it.
+;; A white line reads zero, which slightly undercounts the quadding.
+(struct tick (job sig forme ens printed standing) #:transparent)
+
+(define (page-ens pg)
+  (exact-round (* 2 (/ (for/sum ([l (in-list (page-all-lines pg))])
+                         (line-set-width l))
+                       UNITS-PER-EM))))
+
+;; Setting a book is a coroutine, and `set-book' is the case of one book alone.
+;;
+;; The forme loop below pauses after every page and hands out a `tick'. Driven
+;; by `drive-alone' it runs straight through, which is what every caller before
+;; the shop existed wanted and still gets, byte for byte -- the pause consumes no
+;; randomness and reorders nothing. Driven by `shop.rkt' it is one job among
+;; several, and the pauses are where another book's compositor gets to the case
+;; first.
+;;
+;; ONE CAUTION IF THIS IS EVER CALLED DIRECTLY. A generator body does not begin
+;; until the first resume, so it inherits the dynamic extent of whoever resumes
+;; it and not of whoever built it. `current-mis-point' and its neighbours must
+;; therefore be parameterized around the DRIVING, not around `set-book/steps'.
+(define (drive-alone g)
+  (let loop ([v (g)])
+    (if (eq? (generator-state g) 'done) v (loop (g)))))
+
 (define (set-book h copy [copy-kind 'auto])
+  (drive-alone (set-book/steps h copy copy-kind)))
+
+;; The two questions a book has to ask the house, and their answers when there
+;; is no house to ask -- one book alone, which is every caller before `shop.rkt'
+;; and is still the default.
+;;
+;; `case' is the pair of cases this book sets from. Shared, it is the whole
+;; mechanism of concurrent production: type this book has just distributed can
+;; be picked up by another book before this one wants it again.
+;;
+;; `standing-elsewhere' is how many sorts the house's OTHER work is holding in
+;; standing formes just now. It has to be asked rather than assumed, because the
+;; ceiling below is a fact about the metal in the house and not about this book:
+;; two books each helping themselves to two thirds of the fount would be four
+;; thirds of it, which is not a printing house.
+;;
+;; A thunk and not a parameter, deliberately. A generator body resumes inside
+;; its own captured continuation, so a `parameterize' wrapped around the resume
+;; is not necessarily what the body sees; a closure over the shop's state is.
+(define (set-book/steps h copy [copy-kind 'auto]
+                        #:job [job 'book]
+                        #:case [shared-case #f]
+                        #:standing-elsewhere [standing-elsewhere (lambda () 0)])
+  (generator ()
   (define authors-copy (parse-copy copy copy-kind))
   (define cr (make-corrector #:rng (make-rng (+ (house-seed h) 3))
                              #:active? (house-prepare-copy? h)))
@@ -771,9 +834,10 @@
   (define spec (house-spec h))
   (define capacity (house-capacity h))
   (define g (make-rng (house-seed h)))
-  (define tc (make-type-case #:scale (house-case-scale h)
-                             #:condition (house-condition h)
-                             #:rng (make-rng (+ (house-seed h) 1))))
+  (define tc (or shared-case
+                 (make-type-case #:scale (house-case-scale h)
+                                 #:condition (house-condition h)
+                                 #:rng (make-rng (+ (house-seed h) 1)))))
   (define men
     (for/hash ([name (in-list (house-compositor-names h))] [i (in-naturals)])
       (values name
@@ -997,6 +1061,9 @@
   (define peak-pages 0)
   (define pages-standing 0)
   (define ledger '())
+  ;; Formes that went to press since the last pause, so the shop learns which
+  ;; metal came back to the case and when.
+  (define just-printed '())
   (define (sorts-in pg)
     (for/sum ([ch (in-string (page-text pg))])
       (if (char-whitespace? ch) 0 1)))
@@ -1140,7 +1207,8 @@
            (let dist ()
              (when (and (pair? standing)
                         (or (> (length standing) (house-formes-standing h))
-                            (> standing-sorts type-ceiling)))
+                            (> (+ standing-sorts (standing-elsewhere))
+                               type-ceiling)))
                  (define printed (car standing))
                  (set! standing (cdr standing))
                  (for ([p (in-list (hash-ref forme-pages printed '()))])
@@ -1160,7 +1228,15 @@
                  ;; piece whose injury is first seen in a known forme dates
                  ;; every appearance it makes afterwards.
                  (batter! tc 2 #:at printed)
+                 (set! just-printed (cons printed just-printed))
                  (dist)))
+
+           ;; The pause. Everything above has settled -- the page is standing,
+           ;; and anything the ceiling forced to press has gone and been
+           ;; distributed -- so the shop is handed a shop, not a half-made one.
+           (yield (tick job (page-ref-signature r) (forme-name fm)
+                        (page-ens pg) (reverse just-printed) standing-sorts))
+           (set! just-printed '())
 
            (page-loop (cdr ps) (add1 pos)
                       (if (house-by-formes? h) '() leftover))]))))
@@ -1203,14 +1279,14 @@
               #:rate (house-paging-error h)
               #:rng (make-rng (+ (house-seed h) 5501))))
 
-  (book with-titles all-formes skeletons fmt (house-paper h)
+  (book job with-titles all-formes skeletons fmt (house-paper h)
         (append* (for/list ([name (in-list order)])
                    (comp-event-list (hash-ref men name))))
         (compress-stints (reverse stint-log))
         tc (house-title h) units authors-copy prepared
         (standing-type peak-sorts peak-pages (reverse ledger)
                        (house-by-formes? h))
-        paging plans div tp prelim-scheme migration cut-out?))
+        paging plans div tp prelim-scheme migration cut-out?)))
 
 ;; ---------------------------------------------------------------------------
 
@@ -1571,10 +1647,44 @@
                                  out))])))
 
 (module+ test
-  (require rackunit racket/file racket/runtime-path)
+  (require rackunit racket/file racket/runtime-path racket/generator)
 
   (define-runtime-path ado-sample "samples/ado/_all-q1600.txt")
   (define-runtime-path areo-sample "samples/areopagitica.txt")
+
+  ;; Setting as a coroutine: one pause per page, and the pause changes nothing.
+  ;;
+  ;; The second check is the one that matters. `drive-alone' must give back the
+  ;; same book the old straight-through loop did, or every figure in
+  ;; CALIBRATION.md moves for a reason that has nothing to do with printing.
+  (let ()
+    (define txt (file->string areo-sample))
+    (define (house) (make-house #:seed 5 #:compositors '("A" "B")))
+    (define g (set-book/steps (house) txt 'prose))
+    (define ticks '())
+    (define stepped
+      (let loop ([v (g)])
+        (cond [(eq? (generator-state g) 'done) v]
+              [else (set! ticks (cons v ticks)) (loop (g))])))
+    (check-equal? (length ticks) (length (book-pages stepped))
+                  "one pause per page set")
+    (check-equal? (page-text (car (book-pages stepped)))
+                  (page-text (car (book-pages (set-book (house) txt 'prose))))
+                  "and pausing sets the same type as not pausing")
+
+    ;; THE UNIT THE CLOCK WILL BE BUILT ON, checked against the one source that
+    ;; states it independently. McKenzie reckons "a quarto of five to six
+    ;; sheets, each containing some 10,000 to 12,000 ens" (Printers of the Mind,
+    ;; p. 8). This program's page was measured from Hinman's type-page and
+    ;; Moxon's body, and has never been near his arithmetic -- so the two are
+    ;; independent, and the sheet coming out inside his range is a check rather
+    ;; than a fit. Asserted as an ordering on the range, not pinned to a value.
+    (define per-page
+      (/ (for/sum ([t (in-list ticks)]) (tick-ens t)) (length ticks)))
+    (define per-sheet (* per-page (book-format-pages QUARTO)))
+    (check-true (and (>= per-sheet 9000) (<= per-sheet 13000))
+                (format "a quarto sheet is about 10-12,000 ens; this one is ~a"
+                        (exact-round per-sheet))))
 
   ;; The chain from a mis-cast page to a catchword that does not answer.
   ;;

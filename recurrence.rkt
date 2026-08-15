@@ -259,16 +259,38 @@
                 (cons 'confusable lost-confusable))))
 
 ;; The whole filter, applied to a finished type case.
-(define (recurrence-evidence tc #:discrimination [d (current-discrimination)])
+;;
+;; `#:job' is the second filter and it is not a refinement of the first. The one
+;; above asks what an investigator's eye can separate; this asks what book is in
+;; his hands. Where a house works on several books at once -- McKenzie's whole
+;; subject -- the case holds appearances in books this reader has never seen,
+;; and serving them up would be the very thing the head of this file objects to:
+;; giving the analyst the answer and calling it evidence.
+;;
+;; What he gets instead is a chain with holes in it. The piece went into another
+;; book's forme, stood there for a fortnight, and came back; from this side it
+;; simply stops appearing and later starts again. That is what concurrent
+;; production does to type-recurrence evidence, and it is the thing worth
+;; measuring.
+;;
+;; The job is stripped on the way out, so everything downstream -- `turner-table',
+;; `evidence-by-page', `forme-pieces' -- keeps reading the places it always read.
+(define (recurrence-evidence tc
+                             #:discrimination [d (current-discrimination)]
+                             #:job [job #f])
   (define all (all-pieces tc))
   (define-values (keep lost) (identifiable-pieces all #:discrimination d))
   (define ids (for/set ([p (in-list keep)]) (sort-piece-id p)))
   (define rec (tcase-recurrence tc))
+  (define (mine places)
+    (for/list ([pl (in-list places)]
+               #:when (or (not job) (equal? (car pl) job)))
+      (cdr pl)))
   (evidence (for/set ([p (in-list all)]) (sort-piece-id p))
             ids
             lost
             (for/hash ([(id places) (in-hash rec)] #:when (set-member? ids id))
-              (values id places))))
+              (values id (mine places)))))
 
 ;; ---------------------------------------------------------------------------
 ;; Turner's rule

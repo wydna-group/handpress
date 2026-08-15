@@ -60,7 +60,9 @@
 
 ;; forme name -> the identifiable pieces that printed in it
 (define (forme-pieces b #:discrimination [d (current-discrimination)])
-  (define by-page (evidence-by-page (recurrence-evidence (book-case b) #:discrimination d)))
+  (define by-page (evidence-by-page (recurrence-evidence (book-case b)
+                                                         #:discrimination d
+                                                         #:job (book-job b))))
   (for/fold ([h (hash)]) ([p (in-list (book-pages b))])
     (hash-update h (page-forme-name p)
                  (lambda (s) (set-union s (hash-ref by-page (page-sig p) (set))))

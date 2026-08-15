@@ -1263,6 +1263,97 @@ he lists five books where it happens.
 
 ---
 
+## §8 — Concurrent production
+
+### McKenzie read second-hand cost two drafts of the plan, and inverted his central number
+
+The roadmap had carried "compositors at 5,000–6,000 ens a day against a nominal
+12,000" for a year. Read directly, that is backwards. **12,000 is the
+hypothetical** — 1,000 ens an hour times twelve (*Printers of the Mind*, SB 22
+(1969), p. 8) — and the whole of his part II exists to show nobody achieved it.
+The recorded figures are Pokins **6,307** a day through 1702, Bertram **5,700**,
+Knell **5,603**, and "often the daily totals were well below these figures"
+(p. 9). Those three are the shop's *best sustained* performances, not its middle.
+
+A scheduler built on the number as the roadmap had it would have reproduced
+McKerrow's equation — the thing the experiment exists to falsify — and looked
+rigorous doing it. **In `sources/mckenzie.pdf` the PDF page is the journal page**,
+with no offset, unlike Blayney.
+
+The appendices carry more than the prose. Appendix II(d), thirteen compositors
+over a fortnight in 1732: **twelve of the thirteen were on more than one book**,
+the median man on three. Appendix II(g).4, *Charles XII*: the composition list
+reads `B16, C4, Grantham; C6, Knell; C6, D2, Allestree; …` and **the numbers are
+pages, summing to sixteen per octavo sheet** — three or four men to a sheet in
+uneven takes. Its presswork ran `Bo, 4; Bi, 2; Co, 3; Ci, Do, 7; …` — **every
+forme of one book at a different press**, cycling through five.
+
+### The ballast held twice the metal in the building, and it looked exactly like the finding
+
+The other work in the house is modelled as a load on the case rather than as
+books, because the load McKenzie documents is about forty-five items — beside
+volume I of *Suidas*, the same one and a half presses printed volume II, "20
+other books whole or in part and at least 23 smaller jobs" (p. 33).
+
+First cut had a ballast job holding a whole gathering of standing type. In folio
+in sixes that is 63,360 ens against a house fount of 31,200 sorts — **twice the
+metal in the building.** It blew the shop's ceiling permanently, drove the book
+to distribute after every page, and destroyed Hinman's criterion completely.
+
+Which is precisely what the module was built to look for. The skill file's rule
+caught it: *a historically plausible symptom is when to check the arithmetic
+hardest*. Ballast now holds one forme, which is what the ledger actually records
+— "imposing 3 half sheets", "a Greek quarto page", "an English folio page".
+
+### And the corrected finding is sharper: the criterion fails to type shortage, not to concurrency
+
+`tools/measure-concurrency.rkt`, folio in sixes, control being the shop with one
+job. Hinman's premise is that two consecutive formes "cannot ordinarily have
+types in common" (i. 80). Counted directly:
+
+| | adjacent formes sharing type | quires uniquely and rightly ordered | quires admitting NO order |
+|---|---|---|---|
+| one book, full fount | **0 of 50** | 4 | 0 |
+| one book, fount ×0.75 | 0 of 50 | 4 | 0 |
+| one book, fount ×0.5 | **20 of 50** | 0 | **4** |
+| 8 sheets of other work, metal **not** pooled | **0 of 50** | 4 | 0 |
+| 8 sheets of other work, metal pooled | **20 of 50** | 0 | **4** |
+| 46 sheets of other work, metal pooled | 35 of 50 | 0 | 6 |
+
+**His premise is exactly true in a well-founded shop — 0%, not "ordinarily".**
+
+Read rows four and five together: they differ only in whether the other work's
+standing type counts against the house's fount. **Type travelling out to another
+job's forme and back leaves the criterion untouched. The same job merely holding
+metal destroys it.** So concurrency is not the mechanism; type shortage is, and
+concurrency is the ordinary way a shop arrived at it. Eight sheets of other work
+put the criterion in the same state as halving the fount.
+
+Two things follow. The failure is **exclusion, not vagueness** — every order is
+prohibited, so the truth is ruled out with the rest, and an analyst would find
+the quire inexplicable rather than undetermined. And Hinman's own escape,
+"in the initial quires of the Folio, and occasionally (but very rarely)
+elsewhere, the same types do appear in consecutive formes", is **not rare at all**
+in a shop under that pressure: it is 40% of adjacencies.
+
+It also lands on McKenzie's side of an argument he was already having. He attacks
+Hinman for displacing type shortage in favour of a timing motive — "starts a
+bibliographical hare" — and insists "**the constant factor throughout the Folio
+is shortage of type because of the method of quiring**" (p. 37). The mechanism
+with teeth here is the one he named.
+
+### Varying formes-standing does not reproduce it, which is what identifies the mechanism
+
+The obvious hypothesis — the criterion holds while the house can keep two formes
+standing — is wrong, and testing it is what found the real one. At
+`--formes-standing 1` with a full fount the criterion still reads 0 of 50 and 8
+of 10 quires right. **What matters is not how much stands but when it goes back.**
+`formes-standing` distributes at forme boundaries, so a forme's type reaches the
+forme after next; the ceiling fires *mid-forme*, so it reaches the very next one.
+Only the second violates Hinman's premise.
+
+---
+
 ## §10 — The First Folio as the standard test case
 
 ### Then the Norton Facsimile arrived
