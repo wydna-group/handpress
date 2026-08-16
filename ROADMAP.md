@@ -506,13 +506,29 @@ Eight sheets of other work does what halving the fount does. His premise reads
 See FINDINGS §8, including the ballast bug that held twice the metal in the
 building and looked exactly like the finding.
 
+And the objection does not fall equally. Turner's rule collapses with Hinman's —
+fired 8 and right 8 alone, **fired 0** with other work in the house — while
+**compositor attribution does not move at all**, 94% of judged pages resolved in
+every arm, and does not move under a fount halved either. *Evidence built on the
+movement of metal fails; evidence built on a workman's habits does not.*
+
 ### Open
 
-- **The crew is not shared yet.** Each job has its own men. McKenzie's Bowyer
-  ledger has **twelve of thirteen compositors on more than one book** in a
-  fortnight, the median man on three, and one book shared by five men (appendix
-  II(d)). This is what would move the *attribution* evidence, which the type
-  evidence above does not touch.
+- **Sharing the crew is deliberately not built.** The phenomenon is not in doubt
+  — twelve of thirteen compositors on more than one book in a fortnight, median
+  three (appendix II(d)) — but **nothing would count it.** Attribution is scored
+  against the truth of who set each page, so moving a man moves the truth with
+  him; the stint boundaries are already arbitrary with respect to the book, which
+  is McKenzie's own conclusion; and the one route by which a shared case could
+  reach the spelling evidence has been measured and does not. What is wanted
+  first is a measure of stint *structure* — not whether the right man is named
+  but whether the boundaries carry information. See FINDINGS §8.
+
+- **Skeleton recovery is wrong in folio in sixes and the sweep found it.**
+  Recovers 2 of 2 in quarto, about 21 of 8 across four folio books, and moves
+  under no concurrency arm — so it is not a §8 result, just an instrument nobody
+  had scored at that format. Whether the defect is in the running-title damage
+  model or in the inference is open.
 
 - **A sheet divided among three or four men at irregular page counts.** Appendix
   II(g).4: `B16, C4, Grantham; C6, Knell; C6, D2, Allestree; …`, the numbers

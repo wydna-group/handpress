@@ -45,7 +45,8 @@
 ;;; was nearly reported as a collapse.
 
 (require racket/list racket/file racket/math racket/set racket/runtime-path
-         "../shop.rkt" "../book.rkt" "../formeorder.rkt" "../imposition.rkt")
+         "../shop.rkt" "../book.rkt" "../formeorder.rkt" "../imposition.rkt"
+         "../recurrence.rkt" "../analysis.rkt")
 
 (define-runtime-path copy-file "../samples/areopagitica.txt")
 (define txt (file->string copy-file))
@@ -125,3 +126,73 @@
 (printf "standing type counts against the house's fount, and that is the whole of\n")
 (printf "the effect: type travelling out to another job and back leaves the\n")
 (printf "criterion standing, and the same job holding metal destroys it.\n")
+
+;; ---------------------------------------------------------------------------
+;; The other instruments
+;; ---------------------------------------------------------------------------
+;; Hinman's criterion is not the only inference in the report that scores itself
+;; against a truth, and one arm collapsing says nothing about the others. Turner
+;; reads the same type evidence and should move with it; attribution reads
+;; SPELLINGS and has no reason to, until the crew is shared. Reporting the
+;; forme-order collapse alone would invite the reading that "the analysis" fails,
+;; when what has been shown is that one inference does.
+
+(define (turner-score b)
+  (define tbl (turner-table (recurrence-evidence (book-case b) #:job (book-job b))
+                            (page-views b)))
+  (define truth (true-first-forme (book-fmt b) (book-by-formes? b)))
+  (define fired (filter turner-pair-pattern? tbl))
+  (values (length fired)
+          (for/sum ([tp (in-list fired)])
+            (if (equal? (turner-pair-first-forme tp) truth) 1 0))))
+
+(define (attribution-score b)
+  (define ev (spelling-evidence b '("A" "B")))
+  (define judged (filter (lambda (e) (not (string=? (page-evidence-verdict e) "?"))) ev))
+  (values (length judged) (length (filter resolved? judged))))
+
+(printf "\n\nTHE OTHER SCORED INFERENCES, same arms\n\n")
+(define (both label mk)
+  (define tf 0) (define tr 0) (define aj 0) (define ar 0)
+  (define sg 0) (define st 0) (define sok 0)
+  (for ([sd (in-list SEEDS)])
+    (define b (mk sd))
+    (define-values (f r) (turner-score b))
+    (define-values (j k) (attribution-score b))
+    (define-values (got used) (skeleton-recovery b))
+    (set! tf (+ tf f)) (set! tr (+ tr r)) (set! aj (+ aj j)) (set! ar (+ ar k))
+    (set! sg (+ sg got)) (set! st (+ st used))
+    (when (= got used) (set! sok (add1 sok))))
+  (printf "~a\n" label)
+  (printf "    Turner's rule fired ~a, named the first forme rightly ~a (~a%)\n"
+          tf tr (if (zero? tf) 0 (exact-round (* 100.0 (/ tr tf)))))
+  (printf "    attribution judged ~a pages, resolved ~a (~a%)\n"
+          aj ar (if (zero? aj) 0 (exact-round (* 100.0 (/ ar aj)))))
+  (printf "    skeletons recovered ~a where the house used ~a; agreed on ~a of ~a books\n\n"
+          sg st sok (length SEEDS)))
+
+(both "1. one book alone -- the control" (lambda (sd) (build sd)))
+(both "3. one book, fount at a half" (lambda (sd) (build sd #:scale 0.5)))
+(both "5. eight sheets of other work, sharing the house's metal"
+      (lambda (sd) (build sd #:ballast '(8))))
+(both "6. forty-six sheets of other work, sharing the house's metal"
+      (lambda (sd) (build sd #:ballast '(20 12 8 6))))
+
+(printf "THE OBJECTION DOES NOT FALL EQUALLY ON ALL BIBLIOGRAPHICAL EVIDENCE, and\n")
+(printf "that is the result worth carrying away from this file.\n\n")
+(printf "  Everything built on the MOVEMENT OF METAL collapses together: Hinman's\n")
+(printf "  criterion excludes the true order, and Turner's rule stops firing at\n")
+(printf "  all. Both read where a piece of type has been, and under shortage it\n")
+(printf "  has been somewhere the rule assumes it cannot have been.\n\n")
+(printf "  Everything built on a WORKMAN'S HABITS sits still. Attribution reads\n")
+(printf "  spellings and does not move -- not under other work in the house, and\n")
+(printf "  not under a fount halved either, though `supply-factor' lets a thin\n")
+(printf "  case push a man's spelling about. It was worth testing directly: if\n")
+(printf "  shortage made two men spell alike it would degrade without the crew\n")
+(printf "  being shared at all. It does not; if anything it helps.\n\n")
+(printf "  The skeletons are a third case and a warning. They read running\n")
+(printf "  titles rather than type, do not move under any arm here, and are\n")
+(printf "  already wrong in the control at this format -- recovering about two\n")
+(printf "  and a half times the skeletons the house used in folio in sixes,\n")
+(printf "  where quarto recovers them exactly. That is a defect this sweep\n")
+(printf "  found and did not cause, and it is not a concurrency result.\n")

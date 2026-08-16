@@ -15,6 +15,7 @@
          "press.rkt" "render.rkt" "paper.rkt" "perfecting.rkt" "formeorder.rkt")
 
 (provide (struct-out page-evidence)
+         resolved? narrowed? page-views book-by-formes? skeleton-recovery
          spelling-evidence attribution-report contamination-report
          skeleton-report castingoff-report case-report press-report
          description full-report ledger-report turner-report MCKENZIE)
@@ -283,6 +284,51 @@
 ;; Skeletons, casting off, the case, the press
 ;; ---------------------------------------------------------------------------
 
+;; The skeleton recovery as two numbers rather than as prose, so a sweep can
+;; score it without reading its own report back. McKenzie's objection lands
+;; harder here than anywhere: the whole two-skeleton inference is built on the
+;; press standing idle between formes, and "under conditions of concurrent
+;; printing the press would not be 'idle' at all but employed on another book"
+;; (Printers of the Mind, p. 24).
+(define (skeleton-recovery b)
+  (define recovered (skeleton-groups b))
+  (values (length recovered)
+          (length (filter (lambda (s) (pair? (skeleton-used-for s)))
+                          (book-skeletons b)))))
+
+;; Formes sharing a damaged running title were made ready from the same
+;; skeleton. Lifted out of `skeleton-report' so that the report and the score
+;; cannot drift apart -- this project has found the same fact stated twice and
+;; disagreeing five times now.
+(define (skeleton-groups b)
+  (define fmt (book-fmt b))
+  (define forme-of (make-hash))
+  (for ([g (in-range (book-gatherings b))])
+    (for* ([fm (in-list (formes-for-gathering fmt g))]
+           [pn (in-list (forme-page-numbers fm))]
+           [p (in-list (book-pages b))])
+      (when (and (= (page-ref-gathering (page-pref p)) g)
+                 (= (page-ref-number (page-pref p)) pn))
+        (hash-set! forme-of (page-sig p) (forme-name fm)))))
+  (define forme-titles (make-hash))
+  (for ([p (in-list (book-pages b))] #:when (page-running-title p))
+    (define fp (title-fingerprint (page-running-title p)))
+    (hash-update! forme-titles (hash-ref forme-of (page-sig p) "?")
+                  (lambda (xs) (append xs (list fp))) '()))
+  (define groups '())
+  (for ([(fm fps) (in-hash forme-titles)])
+    (define hit
+      (for/or ([grp (in-list groups)])
+        (and (for/or ([f (in-list grp)])
+               (not (null? (set-intersect fps (hash-ref forme-titles f '())))))
+             grp)))
+    (set! groups
+          (if hit
+              (for/list ([grp (in-list groups)])
+                (if (eq? grp hit) (append grp (list fm)) grp))
+              (append groups (list (list fm))))))
+  groups)
+
 (define (skeleton-report b)
   (define fmt (book-fmt b))
   (define forme-of (make-hash))
@@ -303,18 +349,7 @@
                   (lambda (xs) (append xs (list fp))) '()))
 
   ;; formes sharing a damaged title were made ready from the same skeleton
-  (define groups '())
-  (for ([(fm fps) (in-hash forme-titles)])
-    (define hit
-      (for/or ([grp (in-list groups)])
-        (and (for/or ([f (in-list grp)])
-               (not (null? (set-intersect fps (hash-ref forme-titles f '())))))
-             grp)))
-    (set! groups
-          (if hit
-              (for/list ([grp (in-list groups)])
-                (if (eq? grp hit) (append grp (list fm)) grp))
-              (append groups (list (list fm))))))
+  (define groups (skeleton-groups b))
 
   (string-join
    (append

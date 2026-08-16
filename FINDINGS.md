@@ -1342,6 +1342,62 @@ bibliographical hare" — and insists "**the constant factor throughout the Foli
 is shortage of type because of the method of quiring**" (p. 37). The mechanism
 with teeth here is the one he named.
 
+### McKenzie's objection does not fall equally on all bibliographical evidence
+
+The sharpest thing the sweep found, and it needed the other instruments to see
+it. Same arms, `tools/measure-concurrency.rkt`:
+
+| | control | 8 sheets of other work | 46 sheets |
+|---|---|---|---|
+| Hinman's forme order | 4 quires right | **every quire admits none** | every quire admits none |
+| Turner's rule | fired 8, right 8 | **fired 0** | fired 4, right 3 |
+| compositor attribution | 68 of 72 (94%) | **68 of 72 (94%)** | 68 of 72 (94%) |
+
+**Everything built on the movement of metal collapses together. Everything built
+on a workman's habits sits still.** Both type inferences read where a piece has
+been, and under shortage it has been somewhere the rule assumes it cannot have
+been. Attribution reads spellings and is untouched.
+
+That was worth testing rather than asserting, because there is a route by which
+it could have failed without the crew being shared at all: `supply-factor` lets a
+man's choice between two forms answer to what the boxes can afford, so a thin
+case might have pushed both men toward the same sort-cheap spellings and made
+them indistinguishable. Measured directly on a single book at fount ×1.0, ×0.5,
+×0.3 and ×0.2, attribution runs **75%, 85%, 85%, 82%** of judged pages resolved.
+It does not degrade; it slightly improves.
+
+So the reply to McKenzie is not "the analysis fails". It is that **the analysis
+built on type fails and the analysis built on habits does not**, which is a
+distinction a bibliographer could act on.
+
+### Sharing the crew is not built, because nothing would count it
+
+Under this project's own rule — decide what will count a mechanism before adding
+it. McKenzie's ledger is emphatic that men were shared (twelve of thirteen on
+more than one book, median three), so the phenomenon is not in doubt. But:
+
+- **attribution is scored against the truth of who set each page**, so moving a
+  man between jobs changes which pages he sets and the truth moves with him;
+- **the stint boundaries are already arbitrary with respect to the book** — drawn
+  from a beta on shop size — which is McKenzie's own conclusion that the
+  compositorial pattern "will rarely have any internal significance";
+- and the one route by which a shared case could reach the spelling evidence has
+  now been measured and does not.
+
+So it would be machinery with no instrument pointed at it. What is wanted first
+is a measure of stint *structure* — not whether the right man is named, but
+whether the boundaries carry information — and that does not exist yet.
+
+### The sweep found a defect it did not cause: skeleton recovery in folio in sixes
+
+Recovering skeletons from damaged running titles reads **2 where the house used
+2 in quarto — exact agreement — and about 21 where the house used 8 across four
+folio-in-sixes books.** It does not move under any concurrency arm, so this is
+nothing to do with §8; the sweep simply looked at an instrument that had not been
+scored at this format before. Folio in sixes puts six formes in a gathering
+where quarto puts two, and the title groups fragment. **Open: whether that is a
+defect in the running-title damage model or a real property of the inference.**
+
 ### Varying formes-standing does not reproduce it, which is what identifies the mechanism
 
 The obvious hypothesis — the criterion holds while the house can keep two formes
