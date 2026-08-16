@@ -24,10 +24,15 @@ figure from them arrived second-hand. A seventh came out of Simpson the same way
 They are marked **[manuals]**. Reading them directly cost less than any of the
 work they invalidated.
 
-**§12 is nine-tenths built** and what remains in it waits on §11's anchor. **The
-live items are §11** — a copy→print pair that can see punctuation and spacing —
-**and §8**, the concurrency experiment, which is the only one that asks whether
-the apparatus means anything at all.
+**§12 is nine-tenths built** and what remains in it waits on §11's anchor. **§8's
+experiment has been run** and gave the sharpest result this program has produced:
+concurrency destroys Hinman's forme-order criterion, but not by the route anyone
+expected — the mechanism is type shortage, and concurrent production is simply how
+a shop got there. What is left of §8 is the crew, which would move the
+*attribution* evidence rather than the type evidence.
+
+**The live item is §11** — a copy→print pair that can see punctuation and spacing
+— on which §12's remainder also waits.
 
 ---
 
@@ -479,32 +484,71 @@ Brevier 4:5 · Burgeois : Brevier 9:8.
 
 ---
 
-## 8. Concurrent production — the McKenzie mode
+## 8. Concurrent production — *built, and it answered* **[manuals]**
 
-The program models one book at a time. McKenzie's central finding is that a shop
-worked on several at once, and that the patterns this produces are "of such an
-unpredictable complexity … that no amount of inference from what we think of as
-bibliographical evidence could ever have led to their reconstruction."
+`shop.rkt`. Several jobs over one case on a deterministic clock; `--concurrent
+40,25` puts other work in the house. The answer, from
+`tools/measure-concurrency.rkt`:
 
-Every report says so and then carries on assuming otherwise. Building it means
-several books in the house at once sharing men, presses and type; a stint
-interrupted for weeks and resumed; a case replenished from another book's
-distributed forme; and type recurring across books rather than only within one.
+| | adjacent formes sharing type | quires uniquely + rightly ordered | admitting **no** order |
+|---|---|---|---|
+| one book alone | **0 of 50** | 4 | 0 |
+| other work, metal **not** pooled | **0 of 50** | 4 | 0 |
+| other work, metal pooled | **20 of 50** | 0 | **4** |
+| one book, fount ×0.5 | **20 of 50** | 0 | **4** |
 
-The point is not realism for its own sake. It is that **the analysis should then
-fail**, and the interesting measurement is how fast and in which direction. This
-is the honest reply to the objection: not an argument, an experiment.
+**Concurrency is not the mechanism; type shortage is, and concurrency is how a
+shop arrived at it.** Type travelling out to another job's forme and back leaves
+Hinman's criterion untouched; the same job merely *holding* metal destroys it.
+Eight sheets of other work does what halving the fount does. His premise reads
+0%, not "ordinarily", in a well-founded shop — and his "very rarely" exception is
+40% of adjacencies under shortage. The failure is **exclusion, not vagueness**.
+See FINDINGS §8, including the ballast bug that held twice the metal in the
+building and looked exactly like the finding.
 
-Needs a clock, which the program does not have. McKenzie supplies the rates —
-compositors at 5,000–6,000 ens a day against a nominal 12,000, presswork at about
-250 impressions an hour. Moxon supplies the unit the shop actually counted in: a
-**token** is 10 quires for a whole press, 5 for a single press-man (p. 321).
+### Open
 
-Two things wait on this rather than on anything else: **points shared between
-founts** (punctuation was "the common property of all founts of the same
-body-size", and Okes was still setting the Snowdons' points among his own, so the
-comma box belongs to the house), and **space-metal shared the same way** ("pica
-spaces are pica spaces, irrespective of fount").
+- **The crew is not shared yet.** Each job has its own men. McKenzie's Bowyer
+  ledger has **twelve of thirteen compositors on more than one book** in a
+  fortnight, the median man on three, and one book shared by five men (appendix
+  II(d)). This is what would move the *attribution* evidence, which the type
+  evidence above does not touch.
+
+- **A sheet divided among three or four men at irregular page counts.** Appendix
+  II(g).4: `B16, C4, Grantham; C6, Knell; C6, D2, Allestree; …`, the numbers
+  being pages and summing to sixteen. This program's finest grain is one forme.
+  Cheap and precisely sourced, but it moves attribution for single-book runs too,
+  so it wants its own calibration pass.
+
+- **The press room needs calibrating before it can be trusted.** `--presses` is
+  built and off by default. A forme cannot come back inside the page that sent it
+  — no time passes within one — so metal circulates measurably slower with a
+  press room than without, in a house with one book and idle presses. That is the
+  more nearly right of the two and it still moves figures CALIBRATION.md pins. It
+  reaches further than expected: **it changes the spelling**, because
+  `supply-factor` lets a compositor's choice between two forms answer to what the
+  boxes can afford.
+
+- **Sheets set and printed out of order.** "I know of no evidence that obliges us
+  to think of one sheet (or forme) being followed immediately on the press by
+  another of the same book. There is some case for it when perfecting, none
+  between sheets" (p. 41). `chain-quires` assumes the opposite and scores 12 of 12
+  on it. McKenzie gives a dated counter-example, Bennet's *Answer to the
+  Dissenters Pleas* (p. 42) — composed E, K / B, H, S / C / …, printed E, H, K, B,
+  L, S, U, C, D, F, X, G, I, R, Q, N, O, P, A, M, T. **Do not add a flag for it**:
+  it should fall out of men taking whatever sheet is ready. Whether it does is the
+  thing to check.
+
+- **Todd's remedy**, quoted approvingly (p. 16): the bibliographer "must examine
+  all the books so related before attempting the analysis of any." Ballast cannot
+  be analysed, so testing whether the remedy *works* needs one real second book.
+
+- **Points and space-metal shared between founts** — punctuation was "the common
+  property of all founts of the same body-size" and "pica spaces are pica spaces".
+  Natural now the case is shop-wide; both move calibrated figures.
+
+*Rates, and the one that was carried inverted for a year: FINDINGS §8. In
+`sources/mckenzie.pdf` the PDF page is the journal page, no offset.*
 
 ---
 

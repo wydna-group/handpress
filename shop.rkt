@@ -113,6 +113,99 @@
   (* HOURS-PER-DAY (/ ens (max 1.0 per-day))))
 
 ;; ---------------------------------------------------------------------------
+;; The press room
+;; ---------------------------------------------------------------------------
+;; McKenzie's Cambridge ran "never ... more than two presses, often one and a
+;; half, and occasionally only one" (p. 16), and a half press is one man at it
+;; rather than two -- Moxon's token is 10 quires for a whole press and 5 for a
+;; single press-man (p. 321), so half a press is half the rate and not half a
+;; machine. `#:presses 1.5' therefore means one full and one half.
+;;
+;; THE RATE IS A SPREAD, from the recorded weekly totals and not the
+;; hypothetical hourly one. Ponder and Quinny worked off 15,200; 13,800; 9,700;
+;; 12,700; 10,700 and 17,000 impressions in successive weeks (p. 10). Over a
+;; six-day week of twelve-hour days that is 135 to 236 an hour, against the 250
+;; an hour that "the evidence such as we have leads us to suppose" as a maximum
+;; (p. 8). Two independent anchors sit inside it: a 1592 testimony gives 2,500
+;; impressions as a crew's normal day (p. 12) and Ashley's Le Roy of 1594 gives
+;; 1,250-1,300 sheets perfected in a day (p. 48), both about 208 an hour.
+(define IMPRESSIONS-PER-HOUR-LOW 135)
+(define IMPRESSIONS-PER-HOUR-HIGH 236)
+
+(struct waiting (job forme sorts arrived) #:transparent)
+
+(struct pressroom (rates [free-at #:mutable] [pending #:mutable]
+                         [finished #:mutable] rng edition)
+  #:transparent)
+
+(define (make-pressroom presses edition rng)
+  ;; 2.5 presses is two full and one half
+  (define full (inexact->exact (floor presses)))
+  (define half? (> (- presses full) 0.01))
+  (define rates (append (for/list ([i (in-range full)]) 1.0)
+                        (if half? '(0.5) '())))
+  (pressroom (if (null? rates) '(1.0) rates)
+             (for/vector ([r (in-list (if (null? rates) '(1.0) rates))]) 0.0)
+             '() (hash) rng edition))
+
+(define (press-hours pr rate)
+  (define per-hour
+    (* rate (+ IMPRESSIONS-PER-HOUR-LOW
+               (* (- IMPRESSIONS-PER-HOUR-HIGH IMPRESSIONS-PER-HOUR-LOW)
+                  (rnd (pressroom-rng pr))))))
+  (/ (pressroom-edition pr) (max 1.0 per-hour)))
+
+(define (press-send! pr job forme sorts now)
+  (set-pressroom-pending! pr (append (pressroom-pending pr)
+                                     (list (waiting job forme sorts now)))))
+
+;; "All work to be taken in Turn, as brought to the Press, except in such Work
+;; as may require Dispatch, or the Compositor will want the Letter" -- the shop
+;; document McKenzie quotes at p. 20. In turn, then: the queue is by arrival.
+;; The exception is the interesting half, and it is not a courtesy -- it couples
+;; the press order to the type supply, which is why a press queue belongs to the
+;; type model rather than being a refinement of it. A compositor wants his
+;; letter when his own metal is piling up on the stone, so the job with the most
+;; formes waiting is served first.
+(define (press-drain! pr)
+  (let loop ()
+    (define pending (pressroom-pending pr))
+    (unless (null? pending)
+      (define free (pressroom-free-at pr))
+      (define i (for/fold ([b 0]) ([k (in-range (vector-length free))])
+                  (if (< (vector-ref free k) (vector-ref free b)) k b)))
+      (define held
+        (for/fold ([h (hash)]) ([w (in-list pending)])
+          (hash-update h (waiting-job w) add1 0)))
+      (define most (for/fold ([b 0]) ([(j n) (in-hash held)]) (max b n)))
+      (define next
+        (if (> most 1)
+            ;; somebody's letter is wanted
+            (for/first ([w (in-list pending)]
+                        #:when (= most (hash-ref held (waiting-job w) 0)))
+              w)
+            (car pending)))
+      (set-pressroom-pending! pr (remq next pending))
+      (define start (max (vector-ref free i) (waiting-arrived next)))
+      (define finish (+ start (press-hours pr (list-ref (pressroom-rates pr) i))))
+      (vector-set! free i finish)
+      (set-pressroom-finished!
+       pr (hash-set (pressroom-finished pr)
+                    (cons (waiting-job next) (waiting-forme next)) finish))
+      (loop))))
+
+;; Which of this job's formes have come off the stone by now.
+(define (press-off! pr job now)
+  (press-drain! pr)
+  (define done
+    (for/list ([(k t) (in-hash (pressroom-finished pr))]
+               #:when (and (eq? (car k) job) (<= t now)))
+      k))
+  (set-pressroom-finished!
+   pr (for/fold ([h (pressroom-finished pr)]) ([k (in-list done)]) (hash-remove h k)))
+  (map cdr done))
+
+;; ---------------------------------------------------------------------------
 ;; The jobs
 ;; ---------------------------------------------------------------------------
 
@@ -126,7 +219,7 @@
                   [ens #:mutable] [pages #:mutable])
   #:transparent)
 
-(struct shop (case jobs rng) #:transparent)
+(struct shop (case jobs rng press) #:transparent)
 
 ;; `book' is the job that was asked for; `others' are the ballast loads; `hours'
 ;; is how long the house took over the lot.
@@ -218,30 +311,60 @@
   ;;
   ;; A half-sheet is what the ledger actually records anyway: "imposing 3 half
   ;; sheets", "a Greek quarto page", "an English folio page" (appendix II(d)).
+  ;; Where the house has presses, ballast queues at them like everything else --
+  ;; otherwise the other work would hand its metal back faster than the book
+  ;; can, which is the reverse of contention and would quietly make concurrency
+  ;; look harmless. It goes on the stone and comes back when a press has worked
+  ;; it off. `at-press' is what it is holding meanwhile: still standing type.
+  (define at-press (box '()))
+  (define pr (shop-press s))
+
+  (define (retire! held)
+    (distribute! tc (cdr held))
+    (distribute-pieces! tc (car held))
+    (set-job-standing! j (max 0 (- (job-standing j)
+                                   (for/sum ([c (in-string (cdr held))])
+                                     (if (char-whitespace? c) 0 1))))))
+
   (define (give-back!)
+    ;; anything the press has finished
+    (when pr
+      (for ([f (in-list (press-off! pr (job-name j) (job-clock j)))])
+        (define held (assoc f (unbox at-press)))
+        (when held
+          (set-box! at-press (remq held (unbox at-press)))
+          (retire! (cdr held)))))
     (let loop ()
       (when (> (length (unbox standing)) pages-per-forme)
         (define oldest (car (unbox standing)))
         (set-box! standing (cdr (unbox standing)))
-        (distribute! tc (cdr oldest))
-        (distribute-pieces! tc (car oldest))
-        (set-job-standing! j (max 0 (- (job-standing j)
-                                       (for/sum ([c (in-string (cdr oldest))])
-                                         (if (char-whitespace? c) 0 1)))))
+        (cond
+          [pr
+           (define f (string->symbol (format "~a-f~a" (job-name j) (unbox page-no))))
+           (set-box! at-press (cons (cons f oldest) (unbox at-press)))
+           (press-send! pr (job-name j) f
+                        (for/sum ([c (in-string (cdr oldest))])
+                          (if (char-whitespace? c) 0 1))
+                        (job-clock j))]
+          [else (retire! oldest)])
         (loop))))
 
   (lambda ()
     (cond
       [(>= (unbox page-no) total-pages)
-       ;; finished: everything still standing goes back to the case
-       (for ([held (in-list (unbox standing))])
-         (distribute! tc (cdr held))
-         (distribute-pieces! tc (car held)))
+       ;; finished: everything still on hand or on the stone goes back
+       (for ([held (in-list (unbox standing))]) (retire! held))
+       (for ([p (in-list (unbox at-press))]) (retire! (cdr p)))
        (set-box! standing '())
+       (set-box! at-press '())
        (set-job-standing! j 0)
        #f]
       [else
        (define n (set-one-page!))
+       ;; charged before the press is asked, for the reason given at
+       ;; `#:charge!' in book.rkt
+       (set-job-ens! j (+ (job-ens j) n))
+       (set-job-clock! j (+ (job-clock j) (compose-hours n (shop-rng s))))
        (give-back!)
        ;; a ballast page is charged at the same ens as it set characters, which
        ;; is McKenzie's own equivalence -- "1000 ens or letters an hour" (p. 8)
@@ -264,15 +387,23 @@
 (define (make-shop h copy [copy-kind 'auto]
                    #:ballast [ballast '()]
                    #:shared-ceiling? [shared-ceiling? #t]
+                   ;; #f is a press that is always free and instant, which is
+                   ;; what this program assumed before it had a press room, and
+                   ;; is kept so that the press can be taken out of the
+                   ;; experiment and put back.
+                   #:presses [presses #f]
+                   #:edition [edition 750]
                    #:seed [seed (house-seed h)])
   (define tc (make-type-case #:scale (house-case-scale h)
                              #:condition (house-condition h)
                              #:rng (make-rng (+ seed 1))))
+  (define pr (and presses
+                  (make-pressroom presses edition (make-rng (+ seed 4201)))))
   (define book-job (job 'book 'book #f 0.0 0 #f 0 0))
   (define ballast-jobs
     (for/list ([sheets (in-list ballast)] [i (in-naturals)])
       (job (string->symbol (format "ballast~a" (add1 i))) 'ballast #f 0.0 0 #f 0 0)))
-  (define s* (shop tc (cons book-job ballast-jobs) (make-rng (+ seed 9001))))
+  (define s* (shop tc (cons book-job ballast-jobs) (make-rng (+ seed 9001)) pr))
 
   ;; The book under test. It is handed the shared case and a way of asking how
   ;; much metal the rest of the house is holding.
@@ -281,7 +412,20 @@
                             #:case tc
                             #:standing-elsewhere
                             (lambda ()
-                              (if shared-ceiling? (shop-elsewhere s* book-job) 0))))
+                              (if shared-ceiling? (shop-elsewhere s* book-job) 0))
+                            #:charge!
+                            (lambda (ens)
+                              (set-job-ens! book-job (+ (job-ens book-job) ens))
+                              (set-job-clock! book-job
+                                              (+ (job-clock book-job)
+                                                 (compose-hours ens (shop-rng s*)))))
+                            #:to-press
+                            (and pr (lambda (forme sorts)
+                                      (press-send! pr 'book forme sorts
+                                                   (job-clock book-job))))
+                            #:off-press
+                            (and pr (lambda ()
+                                      (press-off! pr 'book (job-clock book-job))))))
   (set-job-step! book-job
                  (lambda ()
                    (cond
@@ -293,7 +437,9 @@
                         [(tick? v)
                          (set-job-standing! book-job (tick-standing v))
                          (set-job-pages! book-job (add1 (job-pages book-job)))
-                         (tick-ens v)]
+                         ;; already charged by `#:charge!' mid-page, so the
+                         ;; loop is told 0 rather than charging it twice
+                         0]
                         [else
                          (set-job-result! book-job v)
                          (set-job-standing! book-job 0)
@@ -339,12 +485,10 @@
       (define next
         (for/fold ([best (car live)]) ([j (in-list (cdr live))])
           (if (< (job-clock j) (job-clock best)) j best)))
-      (define ens ((job-step next)))
-      (cond
-        [ens
-         (set-job-ens! next (+ (job-ens next) ens))
-         (set-job-clock! next (+ (job-clock next) (compose-hours ens g)))]
-        [else (set-job-step! next #f)])
+      ;; A job charges its own clock as it works, so that the presses can be
+      ;; asked with a current time from inside the page. The loop only has to
+      ;; notice when a job has finished.
+      (unless ((job-step next)) (set-job-step! next #f))
       (loop)))
   (shop-result (for/or ([j (in-list (shop-jobs s))])
                  (and (eq? (job-kind j) 'book) (job-result j)))
@@ -370,6 +514,41 @@
                   (for/list ([p (in-list (book-pages alone))]) (page-text p))
                   "and sets exactly the same type on every one of them")
     (check-true (> (shop-result-hours r) 0) "and the clock ran"))
+
+  ;; THE PRESS ROOM MOVES THE BASELINE, and is off by default until it has had
+  ;; its own calibration pass. A forme sent to the stone cannot come back inside
+  ;; the same page -- no time passes within one -- where the old instant model
+  ;; handed the type straight back, so type circulates measurably slower with a
+  ;; press room than without one, in a house with a single book and idle
+  ;; presses. That is physically the more nearly right of the two, and it is
+  ;; still a change to figures CALIBRATION.md pins, so it must not arrive as a
+  ;; side effect of asking a question about concurrency.
+  ;;
+  ;; The concurrency result does not rest on it either way: measured with the
+  ;; presses off and on, the shared-metal arm reads 40% and 32% of adjacent
+  ;; formes sharing type against a control of 0%, and every quire admits no
+  ;; order at all in both. See tools/measure-concurrency.rkt.
+  ;;
+  ;; HOW FAR IT REACHES was a surprise, and this pins it. A press room does not
+  ;; merely delay metal: it changes the SPELLING. `supply-factor' lets a
+  ;; compositor's choice between two forms of a word answer to what the boxes
+  ;; can afford, so a case held thinner by formes waiting on the stone spells
+  ;; differently -- `alacritie' for `alacrity', `manie' for `many'. That is
+  ;; Blayney's own account of why a workman's spellings are evidence at all,
+  ;; working through a mechanism built long after it. Which is also why the
+  ;; press room cannot be turned on quietly: it reaches the attribution
+  ;; evidence, not just the recurrence evidence.
+  (let ()
+    (define txt (file->string areo-sample))
+    (define (house) (make-house #:seed 5 #:compositors '("A" "B")))
+    (define plain (shop-result-book (run-shop (make-shop (house) txt 'prose))))
+    (define pressed (shop-result-book
+                     (run-shop (make-shop (house) txt 'prose #:presses 1.5))))
+    (check-equal? (length (book-pages pressed)) (length (book-pages plain))
+                  "a press room does not change how much copy fits")
+    (check-not-equal? (for/list ([p (in-list (book-pages pressed))]) (page-text p))
+                      (for/list ([p (in-list (book-pages plain))]) (page-text p))
+                      "but it does change the spelling, through the case"))
 
   ;; The clock is a spread, not a rate. Two pages of identical size must not
   ;; cost identical time, or this has rebuilt the hypothetical shop.

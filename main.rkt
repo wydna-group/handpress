@@ -6,7 +6,7 @@
 
 (require racket/cmdline racket/file racket/string racket/port racket/list
          racket/system racket/runtime-path racket/math
-         "book.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
+         "book.rkt" "shop.rkt" "press.rkt" "render.rkt" "tei-html.rkt" "analysis.rkt" "imposition.rkt"
          "orthography.rkt" "compositor.rkt" "tei.rkt" "binding.rkt" "import.rkt"
          "paper.rkt" "recurrence.rkt"
          (only-in "copytext.rkt" current-copy-kind COPY-KINDS copy-kind-note))
@@ -89,6 +89,9 @@
                        #:first-proof [first-proof 0.0]
                        #:proof-rate [proof-rate PROOF-RATE]
                        #:edition [edition 750]
+                       ;; the house's other work, in sheets, and its presses
+                       #:concurrent [concurrent '()]
+                       #:presses [presses #f]
                        #:condition [condition 'used]
                        #:title [title "THE HISTORY"]
                        #:book-title [book-title #f]
@@ -222,12 +225,23 @@
   (current-copy-kind copy-kind)
   ;; The pointing rate is read inside `make-word', so it is bound here rather
   ;; than threaded through the house.
+  ;; The house is only built where there is other work in it or a press room to
+  ;; wait for. With neither, `set-book' is called exactly as it always was --
+  ;; the shop with one job and no presses is pinned to the same type on every
+  ;; page in shop.rkt, but going through it would still consume the shared RNG
+  ;; differently, and every figure in CALIBRATION.md was measured on this path.
+  (define shop*
+    (and (or (pair? concurrent) presses)
+         (make-shop h copy kind #:ballast concurrent #:presses presses
+                    #:edition edition)))
   (define b (parameterize ([current-mis-point (or mis-point MIS-POINT-RATE)]
                            [current-mis-space (or mis-space MIS-SPACE-RATE)]
                            [current-mis-transpose (or mis-transpose MIS-TRANSPOSE-RATE)]
                            [current-mis-drop (or mis-drop MIS-DROP-RATE)]
                            )
-              (set-book h copy kind)))
+              (if shop*
+                  (shop-result-book (run-shop shop*))
+                  (set-book h copy kind))))
   (define r (run-press b #:copies copies #:seed seed #:first-proof first-proof
                        #:proof-rate proof-rate
                        #:edition edition
@@ -247,7 +261,19 @@
   ;; thing describes: the injuries are in the metal either way, and this says
   ;; only how much of them an investigator can make out.
   (current-discrimination discrimination)
-  (define report (full-report b r names #:source src))
+  (define report
+    (string-append
+     (full-report b r names #:source src)
+     (if (and shop* (pair? concurrent))
+         (string-append
+          "\n\n" (make-string 74 #\═) "\n\n"
+          (house-section (map job-name (shop-jobs shop*))
+                         (shop-shared-sorts shop*)
+                         (shop-book-sorts shop*)
+                         (exact-round (/ (for/fold ([m 0.0]) ([j (shop-jobs shop*)])
+                                           (max m (job-clock j)))
+                                         HOURS-PER-DAY))))
+         "")))
 
   (unless quiet?
     (for ([p (in-list (if (positive? pages)
@@ -379,6 +405,8 @@
   (define first-proof 0.0)
   (define proof-rate PROOF-RATE)
   (define edition 750)
+  (define concurrent '())
+  (define presses #f)
   (define condition 'used)
   (define title "THE HISTORY")
   (define book-title #f)
@@ -453,6 +481,13 @@
      [("--proof-rate") f
       "chance a forme is proofed at all, 0-1. Hinman's count of corrected formes in the Folio puts it at 0.224 (default)"
       (set! proof-rate (string->number f))]
+     [("--concurrent") s
+      "other work in the house while this book is printing, in sheets, e.g. 40,25,12. McKenzie's Cambridge printed a Folio-sized book alongside another of the same size, 20 more books whole or in part and 23 smaller jobs, on one and a half presses. The other work is a load on the type case and is never described: a bibliographer holds one book."
+      (set! concurrent (for/list ([x (in-list (string-split s ","))])
+                         (max 1 (or (string->number (string-trim x)) 1))))]
+     [("--presses") n
+      "presses in the house, and a half means one man at it rather than two (Moxon's token is 10 quires for a whole press and 5 for a single press-man). EXPERIMENTAL: a press room delays the return of metal to the case and so moves figures CALIBRATION.md pins. Left off, a forme is distributed the moment it is sent, which is what this program has always assumed."
+      (set! presses (string->number n))]
      [("--edition") n "sheets printed; the Cambridge accounts show 400-820"
                     (set! edition (string->number n))]
      [("--fount") c "condition of the type: new | used | worn | foul"
@@ -541,6 +576,7 @@
                        #:prepare-copy? prepare? #:first-proof first-proof
                        #:proof-rate proof-rate
                        #:edition edition #:condition condition
+                       #:concurrent concurrent #:presses presses
                        #:title title #:book-title book-title #:author author
                        #:printer printer #:publisher publisher
                        #:titlepage? titlepage? #:find-prelims? find-prelims?

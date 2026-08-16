@@ -1546,6 +1546,54 @@ CANCELS
       [else (loop (cdr ws) (cons (car ws) line)
                   (+ len 1 (string-length (car ws))) out)])))
 
+;; What else was in the house, and what it means for everything above.
+;;
+;; Kept apart from the report proper because it is of a different kind. Every
+;; other section is either evidence a bibliographer could gather or a score
+;; against the truth; this is the truth about a thing he has no access to at
+;; all. Todd, quoted approvingly by McKenzie (p. 16): under concurrent printing
+;; "the book is only one of several components in a more extensive enterprise,
+;; and thus exhibits only a portion of the information necessary for its
+;; analysis ... the bibliographer must examine all the books so related before
+;; attempting the analysis of any. To do less than this ... is to learn little
+;; or nothing at all."
+;;
+;; `shared' is the count of this book's identifiable sorts that also stood in
+;; another job's forme. From the reading room those other appearances are not
+;; evidence anybody is missing: the piece simply stops appearing for a while,
+;; and its return reads as a fresh distribution.
+(define (house-section jobs shared mine days)
+  (define others (for/list ([j (in-list jobs)] #:unless (eq? j 'book)) j))
+  (string-join
+   (append
+    (list "THE HOUSE" ""
+          (format "  Printed alongside ~a other ~a in the same shop, sharing"
+                  (length others) (if (= 1 (length others)) "job" "jobs"))
+          "  one pair of cases and one stock of metal."
+          ""
+          (format "    this book's identifiable sorts        ~a" mine)
+          (format "    of them, sorts that also stood in"))
+    (list (format "      another job's forme                ~a~a" shared
+                  (if (zero? mine) ""
+                      (format "  (~a%)"
+                              (exact-round (* 100.0 (/ shared (max 1 mine)))))))
+          (format "    the house was ~a working days over it" days)
+          ""
+          "  NONE OF THIS IS IN THE BOOK. It is stated because the simulator"
+          "  knows it and a bibliographer never could, which is the whole of"
+          "  what this program is for. Every figure above was computed from"
+          "  this book alone, as though the shop had worked on nothing else."
+          ""
+          "  Read the forme-order and recurrence sections against it. Type"
+          "  travelling out to another job and back leaves Hinman's criterion"
+          "  standing; the same job merely HOLDING metal destroys it, because"
+          "  a house short of type must send a forme back to the case before"
+          "  the next one is set -- and his rule reads exactly that as proof"
+          "  that the order was other than it was."))
+   "\n"))
+
+(provide house-section)
+
 (define (full-report b [r #f] [names '("A" "B")] #:source [src #f])
   (define ev (spelling-evidence b names))
   (string-join

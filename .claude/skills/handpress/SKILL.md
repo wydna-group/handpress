@@ -324,9 +324,24 @@ called it systematic.
 
 The corrections have come almost entirely from books, not from thinking harder.
 McKenzie's Cambridge Vouchers alone overturned four assumptions: that stints
-alternate (they run in long blocks), that setting by formes was normal (it was
-not), that type economy was the motive (labour scheduling may have been), and
+alternate (they run in long blocks), that setting by formes was normal — "it was
+followed occasionally but was certainly not normal" — that type economy was the
+motive **for two men sharing a book** (labour scheduling was; he calls shortage
+of type a "subsidiary" reason there, *Cambridge University Press* i. 144), and
 that the shop worked one book at a time.
+
+**Say which question a motive answers.** That third item stood for a year without
+its qualifier and read as though McKenzie thought type shortage unimportant, which
+is close to the reverse of his position. On *setting by formes* he is emphatic the
+other way: Hinman displaced type shortage in favour of an economic timing ratio
+and thereby "starts a bibliographical hare", because "**the constant factor
+throughout the Folio is shortage of type because of the method of quiring**"
+(*Printers of the Mind*, p. 37). Shared work and setting by formes are two
+questions, and he gives them opposite answers.
+
+Which the program has since measured, and he is right: type shortage is the whole
+mechanism by which concurrent production destroys Hinman's forme-order criterion.
+See §8 in FINDINGS.
 
 When a source is offered, mine it before building.
 

@@ -818,11 +818,36 @@
 ;; A thunk and not a parameter, deliberately. A generator body resumes inside
 ;; its own captured continuation, so a `parameterize' wrapped around the resume
 ;; is not necessarily what the body sees; a closure over the shop's state is.
+;; `to-press' and `off-press' are the press, and their defaults are a press that
+;; is always free and works instantly -- which is what this program assumed for
+;; its whole life before the house had more than one book in it. McKenzie's
+;; objection to that assumption is exact: "The phrase 'the press was idle' is
+;; perhaps misleading since under conditions of concurrent printing the press
+;; would not be 'idle' at all but employed on another book" (p. 24), and the
+;; whole two-skeleton argument rests on the idleness it denies.
 (define (set-book/steps h copy [copy-kind 'auto]
                         #:job [job 'book]
                         #:case [shared-case #f]
-                        #:standing-elsewhere [standing-elsewhere (lambda () 0)])
+                        #:standing-elsewhere [standing-elsewhere (lambda () 0)]
+                        #:to-press [to-press* #f]
+                        #:off-press [off-press* #f]
+                        ;; Charged the moment a page is set, and BEFORE the
+                        ;; distribution check, so that the house's clock is
+                        ;; current when the presses are asked what they have
+                        ;; finished. Charged afterwards instead, no press can
+                        ;; ever complete during the page that sent it to the
+                        ;; stone, and every forme comes back exactly one page
+                        ;; late whatever the edition -- which reads as a fact
+                        ;; about presses and is a fact about the loop.
+                        #:charge! [charge! void])
   (generator ()
+  ;; With no house to ask, a forme goes on the stone and comes straight back
+  ;; off it, so the two hooks together are the old inline distribution.
+  (define instant '())
+  (define to-press
+    (or to-press* (lambda (f sorts) (set! instant (append instant (list f))))))
+  (define off-press
+    (or off-press* (lambda () (begin0 instant (set! instant '())))))
   (define authors-copy (parse-copy copy copy-kind))
   (define cr (make-corrector #:rng (make-rng (+ (house-seed h) 3))
                              #:active? (house-prepare-copy? h)))
@@ -1056,14 +1081,50 @@
            (extend)))
        (hash-ref stint-plan i)]))
 
+  ;; A forme sent to press is off this book's hands but NOT out of its type: the
+  ;; metal stands in the forme on the press-stone until the run is worked off.
+  ;; That is why `to-press' and `off-press' are two hooks and not one. With no
+  ;; house to wait for, the default pair answers at once and this is the inline
+  ;; distribution it always was.
+  ;;
+  ;; ASKED AT THE TOP OF A PAGE AS WELL AS AFTER ONE, and that is not tidiness.
+  ;; Asked only after a page, it is asked with a clock that the shop has not yet
+  ;; advanced for the page just set, so a forme is always collected one page
+  ;; late however fast the press ran -- an edition of five behaved exactly like
+  ;; an edition of seven hundred and fifty, which is how the artifact was found.
+  ;; It read as "modelling the press at all weakens Hinman's criterion", which
+  ;; would have been a finding about the discretisation and nothing else.
+  (define (retrieve!)
+    (for ([f (in-list (off-press))])
+      (set! at-press (remq f at-press))
+      (for ([p (in-list (hash-ref forme-pages f '()))])
+        (set! standing-sorts (- standing-sorts (sorts-in p)))
+        (set! pages-standing (sub1 pages-standing))
+        (distribute! tc (page-text p))
+        (distribute-space! tc (page-sig p))
+        ;; the identifiable types go back to their own boxes and may be
+        ;; picked again for a later forme
+        (distribute-pieces!
+         tc (for*/list ([l (in-list (page-all-lines p))]
+                        [w (in-list (set-line-words l))]
+                        [pr (in-list (word-pieces w))])
+              (cdr pr))))
+      ;; and a few sound sorts are battered at press each time. Named with
+      ;; the forme that was on the press, because a piece whose injury is
+      ;; first seen in a known forme dates every appearance afterwards.
+      (batter! tc 2 #:at f)
+      (set! just-printed (cons f just-printed))))
+
   (define standing-sorts 0)
   (define peak-sorts 0)
   (define peak-pages 0)
   (define pages-standing 0)
   (define ledger '())
-  ;; Formes that went to press since the last pause, so the shop learns which
-  ;; metal came back to the case and when.
+  ;; Formes that came back off press since the last pause, so the shop learns
+  ;; which metal reached the case and when.
   (define just-printed '())
+  ;; Formes on the press-stone now: gone from `standing' and still holding type.
+  (define at-press '())
   (define (sorts-in pg)
     (for/sum ([ch (in-string (page-text pg))])
       (if (char-whitespace? ch) 0 1)))
@@ -1156,6 +1217,9 @@
           [(>= seg-index (length (gathering-plan-segments plan)))
            (page-loop (cdr ps) (add1 pos) carry)]
           [else
+           ;; whatever the presses have finished is back in the boxes before
+           ;; he reaches for the next sort
+           (retrieve!)
            (define seg (list-ref (gathering-plan-segments plan) seg-index))
            (define r (hash-ref refs page-no))
            (define fm (hash-ref page->forme page-no))
@@ -1175,6 +1239,7 @@
                             (hash-ref signs-for (profile-name (comp-profile man))
                                       (signed-leaves fmt)))))
            (hash-set! pages (cons gathering page-no) pg)
+           (charge! (page-ens pg))
            (set! stint-log (cons (cons (profile-name (comp-profile man))
                                        (page-ref-signature r))
                                  stint-log))
@@ -1205,30 +1270,22 @@
            ;; where the peak always falls -- so a check that only fires on
            ;; completion never sees the moment the shop actually feels.
            (let dist ()
+             (retrieve!)
+             ;; A forme already at press cannot be sent again, so the pressure
+             ;; may be unrelievable -- every press in the house busy and this
+             ;; book's metal locked in the formes on them. The loop stops
+             ;; rather than spinning, and the book goes on setting into a
+             ;; thinner case, which is the shop the sources describe.
              (when (and (pair? standing)
                         (or (> (length standing) (house-formes-standing h))
                             (> (+ standing-sorts (standing-elsewhere))
                                type-ceiling)))
                  (define printed (car standing))
                  (set! standing (cdr standing))
-                 (for ([p (in-list (hash-ref forme-pages printed '()))])
-                   (set! standing-sorts (- standing-sorts (sorts-in p)))
-                   (set! pages-standing (sub1 pages-standing))
-                   (distribute! tc (page-text p))
-                   (distribute-space! tc (page-sig p))
-                   ;; the identifiable types go back to their own boxes and
-                   ;; may be picked again for a later forme
-                   (distribute-pieces!
-                    tc (for*/list ([l (in-list (page-all-lines p))]
-                                   [w (in-list (set-line-words l))]
-                                   [pr (in-list (word-pieces w))])
-                         (cdr pr))))
-                 ;; and a few sound sorts are battered at press each time.
-                 ;; Named with the forme that was on the press, because a
-                 ;; piece whose injury is first seen in a known forme dates
-                 ;; every appearance it makes afterwards.
-                 (batter! tc 2 #:at printed)
-                 (set! just-printed (cons printed just-printed))
+                 (set! at-press (cons printed at-press))
+                 (to-press printed
+                           (for/sum ([p (in-list (hash-ref forme-pages printed '()))])
+                             (sorts-in p)))
                  (dist)))
 
            ;; The pause. Everything above has settled -- the page is standing,
